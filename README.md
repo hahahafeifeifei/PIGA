@@ -30,13 +30,21 @@ snakemake -s Snakefile --cores 4 --configfile config.yaml
 ## Full Workflow Execution
 1. Configure parameters in `config.yaml`:
      `samples`: sample list of the data.
+
      `validate_samples`:
+
      `special_validate_samples`:
+
      `hifi_samples`
+
      `sr_fastqs`: the path of short read sequencing data of each sample.
-     ` lr_fastqs`: the path of long read sequencing data of each sample.
+
+     `lr_fastqs`: the path of long read sequencing data of each sample.
+
      `reference`: the path of human reference genome(`GRCh38` and `CHM13`)
+
      `GATK_Resource`: the path of reference panel from dbsnp,hapmap,omni,1000G and so on which would be useful in the GATK calling process.
+
      `prefix`: (default: `1kcp`) 
 
 2. Run:
