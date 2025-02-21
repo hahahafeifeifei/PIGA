@@ -33,7 +33,7 @@ rule prepare_training_set:
     output:
         training_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.training.gfa"
     params:
-        exclude_samples = "|".join(config['validate_samples'])
+        exclude_samples = "|".join(config['training_samples'] + config['test_samples'])
     shell:
         """
         grep -vE '{params.exclude_samples}\\t' \
@@ -153,11 +153,11 @@ rule finalize_labels:
         node_features = rules.gnn_feature_extract.output.node_features,
         merged_training_node = rules.merge_samples.output.merged_training_node,
         merged_validation_node = rules.generate_validation_files.output.validation_node,
-        special_validation_node = expand("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.node", sample = config['special_validate_samples'], prefix=config['prefix'], allow_missing=True),
+        test_validation_node = expand("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.node", sample = config['test_samples'], prefix=config['prefix'], allow_missing=True),
         edge_features = rules.gnn_feature_extract.output.edge_features,
         merged_training_edge = rules.merge_samples.output.merged_training_edge,
         merged_validation_edge = rules.generate_validation_files.output.validation_edge,
-        special_validation_edge = expand("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.edge", sample = config['special_validate_samples'], prefix=config['prefix'], allow_missing=True)
+        test_validation_edge = expand("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.edge", sample = config['test_samples'], prefix=config['prefix'], allow_missing=True)
     output:
         node_label = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.training.node.label",
         edge_label = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.training.edge.label"
@@ -166,15 +166,15 @@ rule finalize_labels:
         csvtk -H -t join --left-join -f 1 --na NONE \
         {input.node_features} \
         {input.merged_training_node} | \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.special_validation_node}[0] \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.special_validation_node}[1] \
+        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_node}[0] \
+        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_node}[1] \
         > {output.node_label}
         
         csvtk -H -t join --left-join -f 1 --na NONE \
         {input.edge_features} \
         {input.merged_training_edge} | \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.special_validation_edge}[0] \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.special_validation_edge}[1] \
+        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_edge}[0] \
+        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_edge}[1] \
         > {output.edge_label}
         """
         
@@ -246,7 +246,7 @@ rule node_edge_inference:
         shell("python3 {node_inference_script} {input.node_label} {input.node_statistics} {node.model} {node_threshold} > {output.TVR90_node_label}")
         shell("python3 {edge_inference_script} {input.edge_label} {input.edge_statistics} {edge.model} {edge_threshold} > {output.TVR90_edge_label}")
 
-#TODO:what is hifi list and hifi_clip list?
+
 rule FP_node_edge_prepare:
     input:
         node_label = rules.finalize_labels.output.node_label,
@@ -261,7 +261,8 @@ rule FP_node_edge_prepare:
         paste {input.node_label} {input.TVR90_node_label} | awk '{{if($83==0 || $84==0) print$87;else {{if($88=="FP" && $83!=1 && $84!=1) print$87}} }}' > {output.TVR90_FP_node_label}
         paste {input.edge_label} {input.TVR90_edge_label} | awk '{{if($78==0 || $79==0) print$82;else {{if($83=="FP" && $78!=1 && $79!=1) print$82}} }}' > {output.TVR90_FP_edge_label}
         """
-        
+
+#TODO:edit the script to removed the parameters hifi_samples_list.
 rule gfa_node_edge_TVR90_filter:
     input:
         linear_gfaffix_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa",
@@ -272,7 +273,7 @@ rule gfa_node_edge_TVR90_filter:
         TVR90_filter_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.filter.gfa",
         TVR90_rmac0_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmac0.gfa"
     params:
-        hifi_samples_list = ",".join(config['hifi_samples']),
+        # hifi_samples_list = ",".join(config['hifi_samples']),
         validate_low_samples_list = "|".join(f"{sample}_low\t" for sample in config['validate_samples'])
     shell:
         """
@@ -294,6 +295,8 @@ rule gfa_node_edge_TVR90_filter:
 
 
 #TODO: can be written by pipe.    
+# params:
+#     hifi_samples_dashP_command = "|".join((f"-P {sample} " for sample in config['hifi_samples']))
 rule TVR90_vg_clip:
     input:
         TVR90_rmac0_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmac0.gfa"
@@ -302,12 +305,10 @@ rule TVR90_vg_clip:
         vg_clip = temp("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmtips.vg"),
         vg_unchop = temp("c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.vg"),
         gfa_unchop = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.gfa"
-    params:
-        hifi_samples_dashP_command = "|".join((f"-P {sample} " for sample in config['hifi_samples']))
     shell:
         """
         vg convert -g {input.TVR90_rmac0_gfa} > {output.vg}
-        vg clip -s {params.hifi_samples_dashP_command} {output.vg} > {output.vg_clip}
+        vg clip {output.vg} > {output.vg_clip}
         vg mod -u {output.vg_clip} > {output.vg_unchop}
         vg view {output.vg_unchop} > {output.gfa_unchop}
         
@@ -389,13 +390,11 @@ rule variant_projection:
         clip_vg = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.rmtips.vg",
         variant_project_vg = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.vg",
         variant_project_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfa"
-    params:
-        hifi_samples_dashP_command = "|".join((f"-P {sample} " for sample in config['hifi_samples']))
     shell:
         """
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {input.gfa} | vg convert -g - > {output.vg}
         
-        vg clip -s {params.hifi_samples_dashP_command} \
+        vg clip \
         {output.vg} \
         > {output.clip_vg}
         
@@ -467,10 +466,10 @@ rule variant_project_gfa_ids:
         grep snv {output.ids_gfa} > {output.ids_variant_path}
         """        
 
-rule xxx:
-    input:
-    output:
-    shell:
-        """
+# rule xxx:
+#     input:
+#     output:
+#     shell:
+#         """
         
-        """  
+#         """  

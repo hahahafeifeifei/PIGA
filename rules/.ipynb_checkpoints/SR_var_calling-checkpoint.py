@@ -92,6 +92,7 @@ rule HaplotypeCaller_autosomes:
         intervals = " ".join([f"-L chr{i}" for i in range(1, 23)])
     threads: 2
     resources:
+        #20G
         mem_mb = 20000
     shell:
         """
@@ -137,7 +138,7 @@ rule construct_gvcf_map:
     input:
         gvcf = expand("c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz",sample = config['samples'])
     output:
-        gvcf_map = "c1_call_sr_snv/sr_gvcf/CKCG.analysis_set.gvcf.map"
+        gvcf_map = "c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map"
     threads: 1
     shell:
         """
@@ -154,7 +155,7 @@ rule construct_gvcf_map:
 
 # rule add_intervals_to_config:
 #     input:
-#         interval_file = "/storage/yangjianLab/wangyifei/project/01.CKCG/10.SR_variant/CHM13/03.merge/analysis_set/CHM13.20mb.interval"
+#         interval_file = "/storage/yangjianLab/wangyifei/project/01.{config['prefix']}/10.SR_variant/CHM13/03.merge/analysis_set/CHM13.20mb.interval"
 #     output:
 #         touch("c1_call_sr_snv/interval_vcf/.intervals_generated")
 #     run:
@@ -165,12 +166,13 @@ rule construct_gvcf_map:
         
 rule GenomicsDB_GenotypeGVCFs_interval:
     input:
-        gvcf_map = "c1_call_sr_snv/sr_gvcf/CKCG.analysis_set.gvcf.map" 
+        gvcf_map = "c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map" 
     output:
         vcf = "c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz"
     log:
         "logs/GenomicsDB_GenotypeGVCFs_interval/{interval}.log"
     resources:
+        #20G
         mem_mb = 20000
     threads: 2
     params:
@@ -207,7 +209,7 @@ rule merge_intervals:
     input:
         vcfs = expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",interval = config['intervals'])
     output:
-        merged_vcf = "c1_call_sr_snv/merged_vcf/CKCG.gatk.raw_variant.analysis_set.vcf.gz"
+        merged_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz"
     log:
         "logs/merge_intervals/merge_intervals.log"
     shell:
@@ -220,7 +222,7 @@ rule merge_intervals:
 
 rule merged_vcf_snp_VQSR:
     input:
-        vcf = "c1_call_sr_snv/merged_vcf/CKCG.gatk.raw_variant.analysis_set.vcf.gz",
+        vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz",
         ref = config['reference']['CHM13'],
         hapmap = config['GATK_Resource']['hapmap'],
         omni = config['GATK_Resource']['omni'],
@@ -228,12 +230,13 @@ rule merged_vcf_snp_VQSR:
         dbsnp = config['GATK_Resource']['dbsnp'],
         known_indel = config['GATK_Resource']['known_indel']
     output:
-        snp_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/CKCG.gatk.snp_recalibrated.analysis_set.vcf.gz"
+        snp_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz"
     log:
         "logs/merged_vcf_snp_VQSR/merged_vcf_snp_VQSR.log"
     resources:
-        max_mem_gb = 200,
-        min_mem_gb = 100    
+        # 100G-200G
+        max_mem_mb = 200000,
+        min_mem_mb = 100000    
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}g -Xms{resources.min_mem_gb}g" \
@@ -268,13 +271,13 @@ rule merged_vcf_snp_VQSR:
 
 rule merged_vcf_indel_VQSR:
     input:
-        vcf = "c1_call_sr_snv/merged_vcf/CKCG.gatk.snp_recalibrated.analysis_set.vcf.gz",
+        vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz",
         ref = config['reference']['CHM13'],
         mills = config['GATK_Resource']['mills'],
         axiomPoly = config['GATK_Resource']['axiomPoly'],
         dbsnp = config['GATK_Resource']['dbsnp']
     output:
-        snp_indel_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/CKCG.gatk.variant_recalibrated.analysis_set.vcf.gz"
+        snp_indel_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz"
     log:
         "logs/merged_vcf_indel_VQSR/merged_vcf_indel_VQSR.log"
     resources:
@@ -309,3 +312,237 @@ rule merged_vcf_indel_VQSR:
             -O {output.snp_indel_recalibrated_vcf} \
             2>> {log}
         """
+
+#snp_indel_recalibrated_filter_auto_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.auto_chr.vcf.gz"
+#snp_indel_recalibrated_filter_chrX_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.chrX.vcf.gz"
+rule gatk_vcf_filter:
+    input:
+        snp_indel_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz",
+        ref = config['reference']['CHM13']
+    output:
+        snp_indel_recalibrated_filter_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz",
+        snp_indel_recalibrated_filter_hwe_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz"
+    params:
+        variant_samples_number = 1034
+    shell:
+        """
+        bcftools view --threads 16 -f PASS {input.snp_indel_recalibrated_vcf} | bcftools norm --threads 16 -m -any -f {input.ref} | bcftools view --threads 16 -e "ALT=='*'" | bcftools plugin fill-tags --threads 16 | bcftools view --threads 16 -i 'HWE>=1e-6 || ExcHet>=0.1' -o {output.snp_indel_recalibrated_filter_vcf}
+        
+        bcftools view --threads 16 -i "HWE>=1e-6 && NS>1034" {output.snp_indel_recalibrated_filter_vcf} -o {output.snp_indel_recalibrated_filter_hwe_vcf}
+
+        #bcftools view --threads 16 -e "CHR=='chrX' | CHR=='chrY' | CHR=='chrM'" {output.snp_indel_recalibrated_filter_vcf} -o {output.snp_indel_recalibrated_filter_auto_vcf}
+
+        #bcftools view --threads 16 -i "CHR=='chrX'" {output.snp_indel_recalibrated_filter_vcf} -o {output.snp_indel_recalibrated_filter_chrX_vcf}
+        """
+
+
+
+rule male_whatshap_phase:
+    input:
+        snp_indel_recalibrated_filter_hwe_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz",
+        zmw_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam",
+        ref = config['reference']['CHM13']
+    output:
+        sample_auto_vcf = temp("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.{sample}.auto_chr.vcf.gz"),
+        sample_auto_whatshap_vcf = temp("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.auto_chr.vcf.gz"),
+        sample_chrX_vcf = temp("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.{sample}.chrX.vcf.gz"),
+        sample_chrX_whatshap_vcf = temp("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.chrX.vcf.gz"),
+        sample_whatshap_vcf = "c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.vcf.gz"
+    threads: 4
+    resources:
+        #20G
+        mem_mb = 20000
+    shell:
+        """
+        bcftools view --threads {threads} -e "CHR=='chrX' | CHR=='chrY' | CHR=='chrM'" -s {wildcards.sample}-WGS -a {input.snp_indel_recalibrated_filter_hwe_vcf} | bcftools view --threads {threads} -e 'GT=="0/0" | GT=="0|0"' | bcftools norm --threads {threads} -m +any -f {input.ref} | whatshap unphase - | bgzip -@ {threads} -c > {output.sample_auto_vcf}
+            
+        whatshap phase --ignore-read-groups --reference {input.ref} --output {output.sample_auto_whatshap_vcf} {output.sample_auto_vcf} {input.zmw_bam}
+
+        tabix -f {output.sample_auto_whatshap_vcf}
+
+        bcftools view --threads {threads} -s {wildcards.sample}-WGS -a {input.snp_indel_recalibrated_filter_hwe_vcf} chrX | bcftools view --threads {threads} -e 'GT=="0/0" || GT=="0|0" || GT=="0"' | awk -v OFS='\\t' '{{if(substr($1,1,1)=="#") print$0; else{{if($1=="chrX" && $2>=2394411 && $2<=153925834) {{for(i=1;i<=9;i++) printf $i"\\t"; split($10,info,":");info[1]=info[1]"/"info[1];for(j=1;j<=length(info)-1;j++) printf info[j]":";printf info[length(info)];print"" }} else print$0 }} }}' | bcftools norm --threads {threads} -m +any -f {input.ref} | whatshap unphase - | bgzip -@ {threads} -c > {output.sample_chrX_vcf}
+        
+        whatshap phase --ignore-read-groups --reference {input.ref} --output {output.sample_chrX_whatshap_vcf} {output.sample_chrX_vcf} {input.zmw_bam}
+
+        tabix -f {output.sample_chrX_whatshap_vcf}
+
+        bcftools concat --threads {threads} -a -O z -o {output.sample_whatshap_vcf} {output.sample_auto_whatshap_vcf} {output.sample_chrX_whatshap_vcf}
+
+        tabix -f {output.sample_whatshap_vcf}
+        
+        fi
+         """
+
+rule female_whatshap_phase:
+    input:
+        snp_indel_recalibrated_filter_hwe_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz"
+    output:
+        sample_vcf = temp("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.{sample}.vcf.gz"),
+        sample_whatshap_vcf = "c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.vcf.gz"
+    threads: 4
+    resources:
+        #20G
+        mem_mb = 20000
+    shell:
+        """
+        bcftools view --threads {threads} -e "CHR=='chrY' | CHR=='chrM'" -s {wildcards.sample}-WGS -a {input.snp_indel_recalibrated_filter_hwe_vcf} | bcftools view --threads {threads} -e 'GT=="0/0" | GT=="0|0"' | bcftools norm --threads {threads} -m +any -f {input.ref} | whatshap unphase - | bgzip -@ {threads} -c > {output.sample_vcf}
+
+        whatshap phase --ignore-read-groups --reference {input.ref} --output {output.sample_whatshap_vcf} {output.sample_vcf} {input.zmw_bam}
+
+        tabix -f {output.sample_whatshap_vcf}
+        """
+
+# based on the sex, select the rules.
+def dynamic_whatshap_phase_input(wildcards):
+    if get_sex(wildcards) == "male":
+        return rules.male_whatshap_phase.output
+
+    else:
+        return rules.female_whatshap_phase.output
+
+use rule $(dynamic_whatshap_phase_input) as dynamic_step with:
+    output: "c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.vcf.gz"
+
+#TODO:maybe here add into config file?
+rule merged_whatshap_vcf:
+    input:
+        expand("c1_call_sr_snv/whatshap/{sample}/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.{sample}.vcf.gz", sample=config['samples']),
+        ref = config['reference']['CHM13']
+    output:
+        whatshap_vcf_list = "c1_call_sr_snv/whatshap/merge/vcf.list",
+        merged_whatshap_vcf = "CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.vcf.gz",
+        merged_whatshap_filter_vcf = "CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.analysis_set.biallelic.vcf.gz"
+    shell:
+        """
+        ls c1_call_sr_snv/whatshap/*/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.analysis_set.biallelic.*.vcf.gz > {output.whatshap_vcf_list}
+        bcftools merge --threads 16 -0 -m any \
+            -l {output.whatshap_vcf_list} \
+            -Oz \
+            -o {output.merged_whatshap_vcf}
+
+        bcftools view --threads 16 {output.merged_whatshap_vcf} | \
+            bcftools norm --threads 16 -m -any -f {input.ref} | \
+            bcftools plugin fill-tags --threads 16 | \
+            bcftools view --threads 16 -v snps -e "N_PASS(GT=='0|1' || GT=='1|0')==0 && (AN-AC<=1 || AC<=1)" \
+            -o {output.merged_whatshap_filter_vcf}
+        """
+
+rule whatshap_vcf_shapeit4_topmed_scaffold:
+    input:
+        genetic_map = "/storage/yangjianLab/wangyifei/resource/genetic_map/chm13_liftover/shapeit4/genetic_map_chm13_{chr}.reform.txt",
+        topmed_east_asian = "/storage/yangjianLab/wangyifei/resource/TOPMed/east_asian/merge_vcf/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
+        merged_whatshap_filter_vcf = "CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.analysis_set.biallelic.vcf.gz"
+    output:
+        topmed_scaffold_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.scaffold.shapeit4.analysis_set.biallelic.{chr}.vcf.gz"
+    threads: 16
+    resources:
+        #150G
+        mem_mb = 150000
+    shell:
+        """
+        shapeit4 \
+            --input {input.merged_whatshap_filter_vcf} \
+            --map {input.genetic_map} \
+            --region {wildcards.chr} --pbwt-depth 8 -T {threads} --sequencing --use-PS 0.0001 \
+            --reference {input.topmed_east_asian} \
+            --out {output.topmed_scaffold_vcf}
+        
+        tabix -f {output.topmed_scaffold_vcf}
+        """
+rule whatshap_vcf_shapeit4:
+    input:
+        genetic_map = "/storage/yangjianLab/wangyifei/resource/genetic_map/chm13_liftover/shapeit4/genetic_map_chm13_{chr}.reform.txt",
+        merged_whatshap_filter_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.analysis_set.biallelic.vcf.gz",
+        topmed_scaffold_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.scaffold.shapeit4.analysis_set.biallelic.{chr}.vcf.gz"
+    output:
+        shapeit4_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.{chr}.vcf.gz"
+    threads: 16
+    resources:
+        #150G
+        mem_mb = 150000
+    shell:
+        """
+        shapeit4 \
+            --input {input.merged_whatshap_filter_vcf} \
+            --map {input.genetic_map} \
+            --region {wildcards.chr} --pbwt-depth 8 -T {threads} --sequencing --use-PS 0.0001 \
+            --scaffold {input.topmed_scaffold_vcf} \
+            --out {output.shapeit4_vcf}
+        
+        tabix -f {output.shapeit4_vcf}
+        """
+
+concat -f vcf.list --threads 16 -O z -o CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.vcf.gz
+
+#chr1-chr22,chrX
+rule shapeit4_vcf_concat:
+    input:
+        shapeit4_vcfs = expand("c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.{chr}.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"])
+    output:
+        shapeit4_vcf_list = "c1_call_sr_snv/shapeit4/vcf.list",
+        concat_shapeit4_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.vcf.gz",
+        concat_shapeit4_filter_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.maf0.01.vcf.gz"
+    threads: 16
+    resources:
+        mem_mb = 30000
+    shell:
+        """
+        ls c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.chr*.vcf.gz > {output.shapeit4_vcf_list}
+        
+        bcftools concat -f {output.shapeit4_vcf_list} \
+            --threads 16 \
+            -Oz \
+            -o {output.concat_shapeit4_vcf}
+
+        bcftools view --threads 16 \
+            -i 'AF>=0.01 && AF<=0.99' \
+            -o {output.concat_shapeit4_filter_vcf} \
+            {output.concat_shapeit4_vcf}
+        """
+
+# change the name into "xxx-CLR" to be used in long read whatshap.
+rule rename_samples_concat_shapeit4_vcf:
+    input:
+        concat_shapeit4_filter_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.maf0.01.vcf.gz"
+    output:
+        rename_concat_shapeit4_vcf = "c1_call_sr_snv/shapeit4/CKCG.gatk.variant_recalibrated.filter.hwe_missing_filter.whatshap.unphase_singleton_filter.topmed_eas.shapeit4.analysis_set.biallelic.maf0.01.rename.vcf.gz"
+    threads: 1
+    resources:
+        mem_mb = 10000
+    shell:
+        """
+        zcat {input.concat_shapeit4_filter_vcf} | sed '/^#CHROM/s/WGS/CLR/g' | bgzip -c > {output.rename_concat_shapeit4_vcf}
+        """
+rule xxx:
+    input:
+    output:
+    threads:
+    resources:
+        mem_mb = 
+    shell:
+        """
+        """
+rule xxx:
+    input:
+    output:
+    threads:
+    resources:
+        mem_mb = 
+    shell:
+        """
+        """
+rule xxx:
+    input:
+    output:
+    threads:
+    resources:
+        mem_mb = 
+    shell:
+        """
+        """
+
+
+
+
+
+

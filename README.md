@@ -7,7 +7,7 @@ This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **popula
 ***TODO***
 
 - successfully run the whole pipeline with **test files** (currently dry run is ok)
-- finish rules of `long read variant calling`, `variant phasing` and `draft assembly` (preparation of the personal variants set)
+- finish rules of `draft assembly` (preparation of the personal variants set)
 - How to generate the files in `some_files` directory?
 - Refine the **name** of each rule,  add the **annotation** for each rule, maybe edit the **path** of files...
 
@@ -30,24 +30,16 @@ snakemake -s Snakefile --cores 4 --configfile config.yaml
 ## Full Workflow Execution
 1. Configure parameters in `config.yaml`:
      `samples`: sample list of the data.
-
-     `validate_samples`:
-
-     `special_validate_samples`:
-
-     `hifi_samples`
-
+     `training_samples`:
+     `test_samples`:
      `sr_fastqs`: the path of short read sequencing data of each sample.
-
-     `lr_fastqs`: the path of long read sequencing data of each sample.
-
+     `lr_HIFI_fastqs`: the path of hifi read sequencing data of each sample.
+     `lr_ZMW_fastqs`: the path of zmw read sequencing data of each sample.
      `reference`: the path of human reference genome(`GRCh38` and `CHM13`)
-
      `GATK_Resource`: the path of reference panel from dbsnp,hapmap,omni,1000G and so on which would be useful in the GATK calling process.
-
      `prefix`: (default: `1kcp`) 
 
-2. Run:
+3. Run:
 
     ```bash
     snakemake --cores 64 --configfile config/config.yaml
@@ -66,12 +58,12 @@ snakemake -s Snakefile --cores 4 --configfile config.yaml
 
 | Rule File                     | Inputs                                                       | Outputs                                     | Description |
 | ----------------------------- | ------------------------------------------------------------ | ------------------------------------------- | ----------- |
-|                               |                                                              |                                             |             |
-|                               |                                                              |                                             |             |
-|                               |                                                              |                                             |             |
-|                               |                                                              |                                             |             |
+| `call_sr_snv`                 | population SR read                                           | population SR snv                           |             |
+| `call_lr_snv`                 | population LR read                                           | population LR snv                           |             |
+| `merge_snv`                   | population SR snv + population LR snv                        | population merge snv                        |             |
+| `phase_snv`                   | population merge snv + population LR read                    | population phased snv                       |             |
 | `generate_personal_reference` | individual SR + individual LR + outgroup pangenome +individual phased snv | personal reference + personal reference snv |             |
-|                               |                                                              |                                             |             |
+| *To be finished*              |                                                              |                                             |             |
 | `split_minigraph`             | Population FASTA                                             | Split subgraph chunks                       |             |
 | `construct_pangenome`         | Split subgraph chunks                                        | Split subgraph pangenome                    |             |
 | `simplify_ml_pangenome`       | Split subgraph pangenome                                     | Simplified subgraph pangenome               |             |
