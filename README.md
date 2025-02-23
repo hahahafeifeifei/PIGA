@@ -7,7 +7,6 @@ This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **popula
 ***TODO***
 
 - successfully run the whole pipeline with **test files** (currently dry run is ok)
-- finish rules of `draft assembly` (preparation of the personal variants set)
 - How to generate the files in `some_files` directory?
 - Refine the **name** of each rule,  add the **annotation** for each rule, maybe edit the **path** of files...
 
@@ -21,7 +20,16 @@ Please make sure the tools listed below have been installed and executable:
 - B
 - C
 
+## Documentation
+
+There are several step-by-step manuals available that describe all use cases currently supported for this pipeline.
+
+**Getting Started**  
+
+First-time users should start by reading the [tutorial](#tutorial-link).  If you encounter problems or "strange behaviour", check the [FAQ](#faq-link) for explanations and solutions. If unresolved, please open a [github issue](#github-issue-link).
+
 ## Run Test Example
+
 Currently ony test example is ready to run.
 ```bash
 snakemake -s Snakefile --cores 4 --configfile config.yaml
@@ -71,15 +79,13 @@ snakemake -s Snakefile --cores 4 --configfile config.yaml
 | `merge_snv`                   | population SR snv + population LR snv                        | population merge snv                        |             |
 | `phase_snv`                   | population merge snv + population LR read                    | population phased snv                       |             |
 | `generate_personal_reference` | individual SR + individual LR + outgroup pangenome +individual phased snv | personal reference + personal reference snv |             |
-| *To be finished*              |                                                              |                                             |             |
+| `draft_assembly`              | individual SR + individual LR + personal_reference + personal reference snv | individual draft assembly                   |             |
 | `split_minigraph`             | Population FASTA                                             | Split subgraph chunks                       |             |
 | `construct_pangenome`         | Split subgraph chunks                                        | Split subgraph pangenome                    |             |
 | `simplify_ml_pangenome`       | Split subgraph pangenome                                     | Simplified subgraph pangenome               |             |
 | `inject_snv_pangenome`        | Simplified subgraph pangenome                                | injected subgraph pangenome                 |             |
 | `merge_pangenome`             | all iniected subgraph pangenomes                             | merged pangenome                            |             |
 | `infer_diploid_path`          | individual SR + individual LR + individual draft assembly + merged pangenome | individual final assembly                   |             |
-
-
 
 ## Citation
 

@@ -3,8 +3,6 @@
 def get_sr_fastqs(wildcards):
     return config["sr_fastqs"][wildcards.sample]
 
-def get_sr_unmapped_fastqs(wildcards):
-    return config["sr_unmapped_fastqs"][wildcards.sample]
     
 def get_hifi_pbmm2_map_input_fastqs(wildcards):
     return config["lr_hifi_fastqs"][wildcards.sample]

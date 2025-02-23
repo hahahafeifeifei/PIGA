@@ -83,14 +83,18 @@ rule personal_ref_dv:
         mem_mb = 
     shell:
         """
-        singularity exec -B /storage/yangjianLab:/storage/yangjianLab,/storage/yangjianLab/wangyifei/tmp/tmp:/tmp \
+        mkdir -p c6_draft_assembly/personal_ref_dv/{wildcards.sample}/tmp
+        
+        singularity exec -B -B $(pwd):/project \
+            -B $(pwd)/c6_draft_assembly/personal_ref_dv/{wildcards.sample}/tmp:/tmp \
+            -B ${{REF_DIR}}:${{REF_DIR}} \
             ~/software/deepvariant/deepvariant_v1.3_sandbox \
             /opt/deepvariant/bin/run_deepvariant \
             --num_shards {threads} \
             --model_type=PACBIO \
-            --ref={input.consensus_fasta} \
-            --reads={input.ngs_dedup_ref_bam} \
-            --output_vcf={output.personal_ref_dv_vcf} \
+            --ref=/project/{input.consensus_fasta} \
+            --reads=/project/{input.ngs_dedup_ref_bam} \
+            --output_vcf=/project/{output.personal_ref_dv_vcf} \
             --sample_name {wildcards.sample}
         
         bcftools view -@ {threads} -f PASS -i "GQ>20" -r chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX {output.personal_ref_dv_vcf} | \

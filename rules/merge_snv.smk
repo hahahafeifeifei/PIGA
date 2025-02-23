@@ -275,8 +275,6 @@ rule prepare_sample_kmer:
     input:
         ngs_R1_fastq = get_sr_fastqs[0],
         ngs_R2_fastq = get_sr_fastqs[1],
-        ngs_R1_unmapped_fastq = get_sr_unmapped_fastqs[0],
-        ngs_R2_unmapped_fastq = get_sr_unmapped_fastqs[1],
         hifi_fastq = get_Q20_pbmm2_map_input_fastqs
     output:
         sample_meryl = "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex"
@@ -290,10 +288,8 @@ rule prepare_sample_kmer:
         """
         meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/R1.meryl {input.ngs_R1_fastq}
         meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/R2.meryl {input.ngs_R2_fastq}
-        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl {input.ngs_R1_unmapped_fastq}
-        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl {input.ngs_R2_unmapped_fastq}
-        meryl union-sum output c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl
-        rm -rf c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl
+        meryl union-sum output c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl
+        rm -rf c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl
 
         meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/hifi.meryl {input.hifi_fastq}
         meryl union-sum output c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}.meryl c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl c3_merge_snv/meryl/{wildcards.sample}/hifi.meryl
