@@ -8,3 +8,4 @@ For some files in the pipeline, I'm not able to figure out the source or find th
 `/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.chop.node.sum.list`
 `/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.list`
 `/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/chr.node_range.list`
+`/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/03.meryl/result/{sample}/{sample}-WGS.meryl`  didn't download

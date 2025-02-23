@@ -269,6 +269,97 @@ generate_sample_consensus_vcf:
         """
 
 
+# merfin polish
+#use merylIndex to represent the whole {sample}.meryl directory.
+rule prepare_sample_kmer:
+    input:
+        ngs_R1_fastq = get_sr_fastqs[0],
+        ngs_R2_fastq = get_sr_fastqs[1],
+        ngs_R1_unmapped_fastq = get_sr_unmapped_fastqs[0],
+        ngs_R2_unmapped_fastq = get_sr_unmapped_fastqs[1],
+        hifi_fastq = get_Q20_pbmm2_map_input_fastqs
+    output:
+        sample_meryl = "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex"
+    threads: 4
+    resources:
+        #30G
+        mem_mb = 30000
+    params:
+        mem = 30
+    shell:
+        """
+        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/R1.meryl {input.ngs_R1_fastq}
+        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/R2.meryl {input.ngs_R2_fastq}
+        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl {input.ngs_R1_unmapped_fastq}
+        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl {input.ngs_R2_unmapped_fastq}
+        meryl union-sum output c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl
+        rm -rf c3_merge_snv/meryl/{wildcards.sample}/R1.meryl c3_merge_snv/meryl/{wildcards.sample}/R2.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R1.meryl c3_merge_snv/meryl/{wildcards.sample}/unpaired.R2.meryl
+
+        meryl count k=21 memory={params.mem} threads={threads} output c3_merge_snv/meryl/{wildcards.sample}/hifi.meryl {input.hifi_fastq}
+        meryl union-sum output c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}.meryl c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl c3_merge_snv/meryl/{wildcards.sample}/hifi.meryl
+
+        rm -rf c3_merge_snv/meryl/{wildcards.sample}/hifi.meryl
+        """
+
+rule merfin_filter:
+    input:
+        consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz",
+        sample_consensus_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.vcf",
+        ref = config['CHM13'],
+        ref_mer = directory("/storage/yangjianLab/wangyifei/resource/Reference/CHM13/CHM13_21mer_meryl"),
+        sample_WGS_meryl = "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex",
+        sample_consensus_miss_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.miss.vcf.gz"
+    output:
+        sample_consensus_filter_vcf = "c3_merge_snv/merfin/{sample}/{sample}.consensus.filter.vcf.gz",
+        sample_consensus_final_vcf = "c3_merge_snv/merfin/{sample}/{sample}.consensus.final.vcf.gz"
+    threads: 6
+    resources:
+        #60G
+        mem_mb = 60000
+    params:
+        mem = 60
+    shell:
+        """
+        merfin -filter \
+            -sequence {input.ref} \
+            -readmers c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl \
+            -seqmers {input.ref_mer} \
+            -vcf {input.consensus_vcf} \
+            -output c3_merge_snv/merfin/{wildcards.sample}/{wildcards.sample}.consensus \
+            -threads {threads} \
+            -memory {params.mem}
+
+        bgzip -@ {threads} c3_merge_snv/merfin/{wildcards.sample}/{wildcards.sample}.consensus.filter.vcf
+        tabix -f {output.sample_consensus_filter_vcf}
+
+        bcftools concat --threads {threads} -a {output.sample_consensus_filter_vcf} {input.sample_consensus_miss_vcf} -o {output.sample_consensus_final_vcf}
+        """
+
+rule merge_merfin_vcf:
+    input:
+        expand("c3_merge_snv/merfin/{sample}/{sample}.consensus.final.vcf.gz", sample = config['samples'])
+    output:
+        merfin_vcf_list = "c3_merge_snv/merfin/merge/vcf.list",
+        merge_merfin_vcf = "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.vcf.gz",
+        merge_merfin_filter_vcf = "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz",
+    threads: 28
+    resources:
+        #50G
+        mem_mb = 50000
+    shell:
+        """
+        ls c3_merge_snv/merfin/*/*.consensus.final.vcf.gz > {output.merfin_vcf_list}
+
+        bcftools merge -0 -m none --threads {threads} \
+            -l {output.merfin_vcf_list} | \
+            bcftools sort -m 50G | \
+            bcftools plugin fill-tags --threads {threads} | \
+            bcftools view --threads {threads} -i "AC!=0" -o {output.merge_merfin_vcf}
+
+        bcftools view --threads {threads} -i "HWE>=1e-6 && NS>1007" {output.merge_merfin_vcf} -o {output.merge_merfin_filter_vcf}
+        """
+
+
 
 
 

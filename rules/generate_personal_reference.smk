@@ -158,9 +158,18 @@ rule filtered_variants_ref_consensus:
         vcf = "c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz",
         ref = config['reference']
     output:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta"
+        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        chain = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
     shell:
         """
-        bcftools consensus -f {input.ref} -H 1 {input.vcf} > {output.consensus_fasta}
+        bcftools consensus -f {input.ref} -H 1 -c {output.chain} {input.vcf} > {output.consensus_fasta}
+
+        bwa index {output.consensus_fasta}
+        samtools faidx {output.consensus_fasta}
         """
-        
+
+
+
+
+
+

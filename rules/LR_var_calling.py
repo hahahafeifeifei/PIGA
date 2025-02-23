@@ -1,21 +1,21 @@
-def get_Q20_pbmm2_map_input_fastqs(wildcards):
-    return config["lr_Q20_fastqs"][wildcards.sample]
+def get_hifi_pbmm2_map_input_fastqs(wildcards):
+    return config["lr_hifi_fastqs"][wildcards.sample]
 def get_zmw_pbmm2_map_input_fastqs(wildcards):
     return config["lr_zmw_fastqs"][wildcards.sample]
 
 
-rule lr_Q20_pbmm2_map:
+rule lr_hifi_pbmm2_map:
     input:
-        fastqs = get_Q20_pbmm2_map_input_fastqs,
+        fastqs = get_hifi_pbmm2_map_input_fastqs,
         ref = config['reference']['CHM13']
     output:
-        Q20_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.Q20.pbmm2.bam"
+        hifi_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.hifi.pbmm2.bam"
     shell:
         """
         pbmm2 align -j 3 -J 1 \
             {input.ref} \
             {input.fastqs} \
-            {output.Q20_bam} \
+            {output.hifi_bam} \
             --preset CCS \
             --log-level INFO --sort \
             --rg "@RG\\tID:{wildcards.sample}.Q20\\tSM:{wildcards.sample}.Q20" \
@@ -41,7 +41,7 @@ rule lr_zmw_pbmm2_map:
 
 rule xxx:
     input:
-        Q20_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.Q20.pbmm2.bam",
+        hifi_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.hifi.pbmm2.bam",
         ref = config['reference']['CHM13']
     output:
         dv_vcf = "c2_call_lr_snv/lr_dv/{sample}/{sample}.deepvariant.vcf.gz",
@@ -56,7 +56,7 @@ rule xxx:
                 --num_shards {thread} \
                 --model_type=PACBIO \
                 --ref={input.ref} \
-                --reads={input.Q20_bam} \
+                --reads={input.hifi_bam} \
                 --output_gvcf={input.dv_gvcf} \
                 --output_vcf={input.dv_vcf} \
                 --make_examples_extra_args="vsc_min_count_snps=1,vsc_min_fraction_snps=0.12,vsc_min_count_indels=2,vsc_min_fraction_indels=0.06" \

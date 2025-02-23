@@ -2,11 +2,13 @@
 
 rule split_fa_by_chr:
     input:
-        hap1_fa = "c7_draft_assembly/{sample}/assembly/{sample}.hap1.fasta",
-        hap2_fa = "c7_draft_assembly/{sample}/assembly/{sample}.hap2.fasta"
+        hap1_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap1.fasta",
+        hap2_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap2.fasta"
+        hap1_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta",
+        hap2_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
     output:
-        chr_hap1_fasta = "c8_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta",
-        chr_hap2_fasta = "c8_graph_construction/chr_fa/{chr}/{sample}.hap2.fasta"
+        chr_hap1_fasta = "c7_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta",
+        chr_hap2_fasta = "c7_graph_construction/chr_fa/{chr}/{sample}.hap2.fasta"
     log:
         "logs/split_fa_by_chr/{chr}/{sample}.log"
     shell:
@@ -21,23 +23,23 @@ rule split_fa_by_chr:
 #TODO: reference 出现两遍
 rule generate_seqfile_by_chr:
     input:
-        samples_hap1_fa = expand("c8_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta", sample = config['samples'], allow_missing=True),
-        samples_hap2_fa = expand("c8_graph_construction/chr_fa/{chr}/{sample}.hap2.fasta", sample = config['samples'], allow_missing=True),
+        samples_hap1_fa = expand("c7_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta", sample = config['samples'], allow_missing=True),
+        samples_hap2_fa = expand("c7_graph_construction/chr_fa/{chr}/{sample}.hap2.fasta", sample = config['samples'], allow_missing=True),
         chm13_ref = config['reference']['CHM13'],
         grch38_ref = config['reference']['GRCh38']
     output:
-        seqfile = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile"
+        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile"
     log:
         "logs/generate_seqfile_by_chr/{chr}.log"
     shell:
         """
-        seqkit grep -w 0 -r -p "\b{wildcards.chr}\b" {input.chm13_ref} > c8_graph_construction/chr_fa/{wildcards.chr}/CHM13.{wildcards.chr}.fasta
-        echo -e "CHM13\tc8_graph_construction/chr_fa/{wildcards.chr}/CHM13.{wildcards.chr}.fasta" >> {output.seqfile}
+        seqkit grep -w 0 -r -p "\b{wildcards.chr}\b" {input.chm13_ref} > c7_graph_construction/chr_fa/{wildcards.chr}/CHM13.{wildcards.chr}.fasta
+        echo -e "CHM13\tc7_graph_construction/chr_fa/{wildcards.chr}/CHM13.{wildcards.chr}.fasta" >> {output.seqfile}
         
-        seqkit grep -w 0 -r -p "\b{wildcards.chr}\b" {input.grch38_ref} > c8_graph_construction/chr_fa/{wildcards.chr}/GRCh38.{wildcards.chr}.fasta
-        echo -e "GRCh38\tc8_graph_construction/chr_fa/{wildcards.chr}/GRCh38.{wildcards.chr}.fasta" >> {output.seqfile}
+        seqkit grep -w 0 -r -p "\b{wildcards.chr}\b" {input.grch38_ref} > c7_graph_construction/chr_fa/{wildcards.chr}/GRCh38.{wildcards.chr}.fasta
+        echo -e "GRCh38\tc7_graph_construction/chr_fa/{wildcards.chr}/GRCh38.{wildcards.chr}.fasta" >> {output.seqfile}
         
-        for fasta in `ls c8_graph_construction/chr_fa/{wildcards.chr}/*.fasta`;do \
+        for fasta in `ls c7_graph_construction/chr_fa/{wildcards.chr}/*.fasta`;do \
             sample=$(echo $fasta | awk '{{split($1,a,"/");print a[length(a)]}}' | cut -d '.' -f 1)
             hap=$(echo $fasta | awk '{{split($1,a,"/");print a[length(a)]}}' | cut -d '.' -f 2 | cut -d "p" -f 2)
             echo -e ${{sample}}.${{hap}}"\t"${{fasta}} >> {output.seqfile}
@@ -49,10 +51,10 @@ rule generate_seqfile_by_chr:
 #first sort by depth. Then run the minigraph
 rule minigraph_by_chr:
     input:
-        seqfile = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile",
+        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile",
         depth_file = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/CKCG.zmw.depth"
     output:
-        gfa = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa"
+        gfa = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa"
     log:
         "logs/minigraph_by_chr/{chr}.log"
     threads: 16
@@ -62,12 +64,12 @@ rule minigraph_by_chr:
         awk -v OFS='\t' '{{split($1,a,".");print a[1],$2}}' {input.seqfile} | \
         csvtk -H -t join -f 1 - {input.depth_file} | \
         sort -k 3nr | \
-        awk '{{print$2}}' > c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile
+        awk '{{print$2}}' > c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile
         
         minigraph -c -x ggs -l 10000 \
         -t {threads} \
         chr_gfa/t2t.grch38.58hifi.{chr}.gfa \
-        $(cat c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile) \
+        $(cat c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile) \
         > {output.gfa}
         
         """
@@ -77,9 +79,9 @@ rule minigraph_by_chr:
         
 rule extract_minigraph_call_region:
     input:
-        gfa = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa"
+        gfa = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa"
     output:
-        call_region_bed = "c8_graph_construction/chr_mc/{chr}/minigraph_cov/minigraph_call.merge.bed"
+        call_region_bed = "c7_graph_construction/chr_mc/{chr}/minigraph_cov/minigraph_call.merge.bed"
     log:
         "logs/extract_minigraph_call_region/{chr}.log"
     threads: 16
@@ -90,18 +92,18 @@ rule extract_minigraph_call_region:
             sample=$(echo $fasta | cut -d "/" -f 3 | cut -d "." -f 1-2)
             minigraph -c -x asm \
             --call --vc \
-            -t {threads} {input.gfa} ${{fasta}} | python3 ~/software/script/graph-construct/minigraph_call_bed_transform.py - ${{sample}} > c8_graph_construction/chr_mc/{chr}/minigraph_cov/${sample}.minigraph_call.bed
+            -t {threads} {input.gfa} ${{fasta}} | python3 ~/software/script/graph-construct/minigraph_call_bed_transform.py - ${{sample}} > c7_graph_construction/chr_mc/{chr}/minigraph_cov/${sample}.minigraph_call.bed
         done
         
-        cat c8_graph_construction/chr_mc/{chr}/minigraph_cov/*.minigraph_call.bed > {output.call_region_bed}
+        cat c7_graph_construction/chr_mc/{chr}/minigraph_cov/*.minigraph_call.bed > {output.call_region_bed}
         """
         
 rule minigraph_cov_filter:
     input:
-        gfa = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa",
-        call_region_bed = "c8_graph_construction/chr_mc/{chr}/minigraph_cov/minigraph_call.merge.bed"
+        gfa = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa",
+        call_region_bed = "c7_graph_construction/chr_mc/{chr}/minigraph_cov/minigraph_call.merge.bed"
     output:
-        filtered_gfa = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.unchop.gfa"
+        filtered_gfa = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.unchop.gfa"
     log:
         "logs/minigraph_cov_filter/{chr}.log"
     shell:
@@ -109,21 +111,21 @@ rule minigraph_cov_filter:
         python3 ~/software/script/graph-construct/minigraph_cov_filter.py \
         {input.call_region_bed} \
         {input.gfa} | \
-        gfatools view -R {chr} - > c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.gfa
+        gfatools view -R {chr} - > c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.gfa
         
         python3 ~/software/script/graph-construct/remove_gfa_tips.py \
-        c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.gfa \
-        > c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.gfa
+        c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.gfa \
+        > c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.gfa
         
-        vg convert -g c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.gfa | vg mod -u - | vg view - > {output.filtered_gfa}
+        vg convert -g c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.filter.rmtips.gfa | vg mod -u - | vg view - > {output.filtered_gfa}
         """
         
 rule minigraph_vg_snarls:
     input:
-        gfa = "c8_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa"
+        gfa = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa"
     output:
-        snarls = "c8_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls",
-        snarls_txt = "c8_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls.txt"
+        snarls = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls",
+        snarls_txt = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls.txt"
     log:
         "logs/minigraph_vg_snarls/{chr}.log"
     shell:
@@ -135,9 +137,9 @@ rule minigraph_vg_snarls:
 #TODO:check if the tools can run.(odgi)
 rule odgi_build:
     input:
-        gfa = "c8_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa"
+        gfa = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa"
     output:
-        og = "c8_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.og"
+        og = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.filter.rmtips.unchop.og"
     log:
         "logs/odgi_build/{chr}.log"
     threads: 16
@@ -152,14 +154,14 @@ rule odgi_build:
         
 rule border_node_select:
     input:
-        gfa="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa",
-        snarls_txt="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls.txt",
-        og="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.og"
+        gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.gfa",
+        snarls_txt="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.snarls.txt",
+        og="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.og"
     output:
-        node_split_gfa="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.gfa",
-        node_edge_split_gfa="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.gfa",
-        info="c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info",
-        node_split_rgfa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.rgfa"
+        node_split_gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.gfa",
+        node_edge_split_gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.gfa",
+        info="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info",
+        node_split_rgfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.rgfa"
     log:
         "logs/border_node_select/{chr}.log"
     shell:
@@ -180,32 +182,32 @@ rule border_node_select:
         
 rule cactus_graphmap:
     input:
-        node_split_rgfa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.rgfa"
+        node_split_rgfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.rgfa"
     output:
-        fa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.fa.gz",
-        paf = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
-        gaf = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.gaf.gz"
+        fa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.fa.gz",
+        paf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
+        gaf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.gaf.gz"
     params:
         mapCores = 4,
-        outputGAFDir = "c8_graph_construction/chr_mc/{chr}/01.graphmap",
+        outputGAFDir = "c7_graph_construction/chr_mc/{chr}/01.graphmap",
         reference = "CHM13",
         delFilter = 10000000,
-        logFile = "c8_graph_construction/chr_mc/{chr}/01.graphmap/01.graphmap.log",
-        tmpDir = "c8_graph_construction/chr_mc/{chr}/tmp_cactus"
+        logFile = "c7_graph_construction/chr_mc/{chr}/01.graphmap/01.graphmap.log",
+        tmpDir = "c7_graph_construction/chr_mc/{chr}/tmp_cactus"
     threads: 16
     shell:
         """
-        rm -r c8_graph_construction/chr_mc/{wildcards.chr}/jobstore
+        rm -r c7_graph_construction/chr_mc/{wildcards.chr}/jobstore
 
-        cactus-graphmap c8_graph_construction/chr_mc/{wildcards.chr}/jobstore {input.node_split_rgfa} {output.paf} --outputGAFDir {params.outputGAFDir} --outputFasta {output.fa} --reference {params.reference} --mapCores {params.mapCores} --delFilter {params.delFilter} --defaultPreemptable --maxNodes {threads} --logFile {params.logFile} --workDir {params.tmpDir}
+        cactus-graphmap c7_graph_construction/chr_mc/{wildcards.chr}/jobstore {input.node_split_rgfa} {output.paf} --outputGAFDir {params.outputGAFDir} --outputFasta {output.fa} --reference {params.reference} --mapCores {params.mapCores} --delFilter {params.delFilter} --defaultPreemptable --maxNodes {threads} --logFile {params.logFile} --workDir {params.tmpDir}
         """
         
 rule recover_29mb_edge:
     input:
-        info = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info",
-        node_edge_split_gfa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.gfa"
+        info = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info",
+        node_edge_split_gfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.gfa"
     output:
-        recover20mb_gfa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.recover20mb.gfa"
+        recover20mb_gfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.recover20mb.gfa"
     log:
         "logs/recover_29mb_edge/{chr}.log"
     shell:
@@ -218,28 +220,28 @@ rule recover_29mb_edge:
 # vg trunk will generate a list of subgraph.gfa files. Here I use subgraph_0.gfa as output to make sure the rule can work.
 rule vg_chunk:
     input:
-        recover20mb_gfa = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.recover20mb.gfa"
+        recover20mb_gfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.edge_split.recover20mb.gfa"
     output:
-        subgraph_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa"
+        subgraph_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa"
     log:
         "logs/vg_chunk/{chr}.log"
     params:
         prefix = config['prefix']
     shell:
         """
-        mkdir c8_graph_construction/chr_mc/{wildcards.chr}/subgraph
-        vg chunk -C -x {input.recover20mb_gfa} --prefix c8_graph_construction/chr_mc/{wildcards.chr}/subgraph/{params.prefix}.{wildcards.chr}.subgraph -O gfa
+        mkdir c7_graph_construction/chr_mc/{wildcards.chr}/subgraph
+        vg chunk -C -x {input.recover20mb_gfa} --prefix c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/{params.prefix}.{wildcards.chr}.subgraph -O gfa
         
         """
 
 rule generate_subgraph_bed:
     input:
-        subgraph_gfa = "c8_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa",
-        paf = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
-        gaf = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.gaf"
+        subgraph_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa",
+        paf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
+        gaf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.gaf"
     output:
-        subgraph_paf = "c8_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.paf",
-        subgraph_bed = "c8_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.bed"
+        subgraph_paf = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.paf",
+        subgraph_bed = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.bed"
     log:
         "logs/generate_subgraph_bed/{chr}.log"
     params:
@@ -247,24 +249,24 @@ rule generate_subgraph_bed:
     shell:
         """
         python3 scripts/graph-construct/subgraph_paf_fa.py \
-        c8_graph_construction/chr_mc/{chr}/subgraph/{params.prefix}.{chr}.subgraph \
+        c7_graph_construction/chr_mc/{chr}/subgraph/{params.prefix}.{chr}.subgraph \
         {input.paf} \
         {input.gaf} \
-        c8_graph_construction/chr_mc/{chr}/subgraph
+        c7_graph_construction/chr_mc/{chr}/subgraph
         """
 
 #TODO: here idk why it is not ok if I replace "t2t.grch38.58hifi.1064zmw" by config['prefix']
 rule process_subgraph:
     input:
-        seqfile = "c8_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile",
-        info = "c8_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info"
+        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile",
+        info = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.rmtips.unchop.node_split.info"
     output:
-        subgraph_seqfile = "c8_graph_construction/chr_mc/{chr}/subgraph/subgraph0/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_0.seqfile"
+        subgraph_seqfile = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph0/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_0.seqfile"
     log:
         "logs/process_subgraph/{chr}.log"
     params:
         prefix = config['prefix'],
-        chr_dir = "c8_graph_construction/chr_mc/{chr}"
+        chr_dir = "c7_graph_construction/chr_mc/{chr}"
     shell:
         """
         row=$[$(cat {input.info} | wc -l)-1]
