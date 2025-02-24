@@ -200,18 +200,30 @@ rule record_gfa_high_cov_region:
         45200 \
         200 \
         {output.high_cov_region}
-        """        
-        
+        """
+
+rule record_gfa_minigraph_unaligned_region:
+    input:
+        gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.norm.gfa"
+    output:
+        minigraph_unaligned_region = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.minigraph_unaligned.bed"
+    shell:
+        """
+        python3 gfa_minigraph_unaligned.py \
+        ${input.gfa} \
+        {output.minigraph_unaligned_region}
+        """
+
 #TODO: how to generate the mask region? 
 rule gfa_regions_merge:
     input:
-        mask="/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/clip_bed/mask_bed/{chr}.mask.bed",
+        minigraph_unaligned_region="c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.minigraph_unaligned.bed",
         high_cov_region = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.high_coverage.bed"
     output:
         merged_region = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.merge.bed"
     shell:
         """
-        cat {mask} {input.high_cov_region} | bedtools sort | bedtools merge -d 1000 > {output.merged_region}
+        cat {input.minigraph_unaligned_region} {input.high_cov_region} | bedtools sort | bedtools merge -d 1000 > {output.merged_region}
         
         """        
 rule gfa_filter:
