@@ -1,12 +1,12 @@
 # Pangenome-Informed Genome Assembly (PIGA)
-
+## Introduction
 This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **population-scale diploid genome assembly**, which employs a pangenome graph as a unified framework to integrate sequence information across individuals and perform joint diploid genome assembly. 
 
 Compared to the current assembly methods, the PIGA workflow fully utilizes multiple sources of information (long read, short read, internal population, external variant panels, external assembly panel) and is well adapted to low-coverage and modest-coverage situations.
 
 <img align="middle" width="1000" src="PIGA.jpg"/>
 
-## Install
+## Installation
 Installing PIGA and its required software with:
 ```bash
 git clone https://github.com/JianYang-Lab/PIGA.git
