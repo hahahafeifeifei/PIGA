@@ -4,7 +4,7 @@ This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **popula
 
 Compared to the current assembly methods, the PIGA workflow fully utilizes multiple sources of information (long read, short read, internal population, external variant panels, external assembly panel) and is well adapted to low-coverage and modest-coverage situations.
 
-<img align="middle" width="1000" src="PIGA.jpg"/>
+<img align="middle" width="500" src="PIGA.jpg"/>
 
 ## Installation
 Installing PIGA and its required software with:
