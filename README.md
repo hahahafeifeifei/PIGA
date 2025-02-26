@@ -1,97 +1,35 @@
 # Pangenome-Informed Genome Assembly (PIGA)
+## Introduction
+This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **population-scale diploid genome assembly**, which employs a pangenome graph as a unified framework to integrate sequence information across individuals and perform joint diploid genome assembly. 
 
-This is a workflow called Pangenome-Informed Genome Assembly (PIGA) for **population-scale diploid genome assembly**, which leverages pangenome graph to improve accuracy and resolve complex structural variations.
+Compared to the current assembly methods, the PIGA workflow fully utilizes multiple sources of information (long read, short read, internal population, external variant panels, external assembly panel) and is well adapted to low-coverage and modest-coverage situations.
 
+<img align="middle" width="1000" src="PIGA.jpg"/>
 
-
-***TODO***
-
-- successfully run the whole pipeline with **test files** (currently dry run is ok)
-- How to generate the files in `some_files` directory?
-- Refine the **name** of each rule,  add the **annotation** for each rule, maybe edit the **path** of files...
-
-## Features
-0_0
-
-## Install
-
-Please make sure the tools listed below have been installed and executable:
-- A
-- B
-- C
-
-## Documentation
-
-There are several step-by-step manuals available that describe all use cases currently supported for this pipeline.
-
-**Getting Started**  
-
-First-time users should start by reading the [tutorial](#tutorial-link).  If you encounter problems or "strange behaviour", check the [FAQ](#faq-link) for explanations and solutions. If unresolved, please open a [github issue](#github-issue-link).
-
-## Run Test Example
-
-Currently ony test example is ready to run.
+## Installation
+Installing PIGA and its required software with:
 ```bash
-snakemake -s Snakefile --cores 4 --configfile config.yaml
+git clone https://github.com/JianYang-Lab/PIGA.git
+conda env create -f environment.yml
 ```
 
-## Full Workflow Execution
-1. Configure parameters in `config.yaml`:
-     `samples`: sample list of the data.
+## Documentation
+The following modules are available in PIGA:
 
-     `training_samples`:
+- `call_sr_snv`: detect SNVs using short reads.
+- `call_lr_snv`: detect SNVs using long reads.
+- `merge_snv`: merge the short-read SNV callset and long-read SNV callset.
+- `phase_snv`: perform SNV haplotype phasing leveraging long-read and population information.
+- `generate_personal_reference`: generate personalized reference by modifying the reference genome with homozygous variants genotyped from the external pangenome.
+- `draft_assembly`: partiton long reads into haplotypes and produce draft diploid assemblies.
+- `split_minigraph`: generate Minigraph pangenome and split it into subgraphs.
+- `construct_pangenome`: construct and refine the base-level pangenome.
+- `simplify_ml_pangenome`: simplify the pangenome.
+- `merge_pangenome`: merge pangenome subgraphs into the final pangenome.
+- `infer_diploid_path`: reconstruct the final diploid assembly by inferring the diploid paths.
 
-     `test_samples`:
-
-     `sr_fastqs`: the path of short read sequencing data of each sample.
-
-     `lr_HIFI_fastqs`: the path of hifi read sequencing data of each sample.
-
-     `lr_ZMW_fastqs`: the path of zmw read sequencing data of each sample.
-
-     `reference`: the path of human reference genome(`GRCh38` and `CHM13`)
-
-     `GATK_Resource`: the path of reference panel from dbsnp,hapmap,omni,1000G and so on which would be useful in the GATK calling process.
-
-     `prefix`: (default: `1kcp`) 
-
-3. Run:
-
-    ```bash
-    snakemake --cores 64 --configfile config/config.yaml
-    ```
-## Input Requirements
-
-| **Input data**     | Format    | Description                           |
-| ------------------ | --------- | ------------------------------------- |
-| Short Reads (SR)   | `FASTQ`   | Illumina/WGS reads (gzip required)    |
-| Long Reads (LR)    | `FASTQ`   | PacBio HiFi/ZMW reads (gzip required) |
-| Outgroup Pangenome | Minigraph | Pre-built pangenome graph             |
-
-## Module Descriptions
-
-
-
-| Rule File                     | Inputs                                                       | Outputs                                     | Description |
-| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------- | ----------- |
-| `call_sr_snv`                 | population SR read                                           | population SR snv                           |             |
-| `call_lr_snv`                 | population LR read                                           | population LR snv                           |             |
-| `merge_snv`                   | population SR snv + population LR snv                        | population merge snv                        |             |
-| `phase_snv`                   | population merge snv + population LR read                    | population phased snv                       |             |
-| `generate_personal_reference` | individual SR + individual LR + outgroup pangenome +individual phased snv | personal reference + personal reference snv |             |
-| `draft_assembly`              | individual SR + individual LR + personal_reference + personal reference snv | individual draft assembly                   |             |
-| `split_minigraph`             | Population FASTA                                             | Split subgraph chunks                       |             |
-| `construct_pangenome`         | Split subgraph chunks                                        | Split subgraph pangenome                    |             |
-| `simplify_ml_pangenome`       | Split subgraph pangenome                                     | Simplified subgraph pangenome               |             |
-| `inject_snv_pangenome`        | Simplified subgraph pangenome                                | injected subgraph pangenome                 |             |
-| `merge_pangenome`             | all iniected subgraph pangenomes                             | merged pangenome                            |             |
-| `infer_diploid_path`          | individual SR + individual LR + individual draft assembly + merged pangenome | individual final assembly                   |             |
-
-## Citation
-
-
+The step-by-step documentation is available at [tutorial](#tutorial-link). If you encounter problems, please open a [github issue](#github-issue-link).
 
 ## License
-
 **License**: MIT License
 
