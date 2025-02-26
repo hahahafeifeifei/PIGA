@@ -1,25 +1,42 @@
-sr_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz"
-lr_vcf = "c2_call_lr_snv/lr_beagle/concat/CKCG.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz"
-
-rule all:
+rule all_merge_snv:
     input:
-        "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz",
-        "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.info.gz",
-        "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.shared.vcf.gz",
+        "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz",
+        "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex",
+        "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+        
+,
+        
+def get_sr_vcf_input(wildcards):
+    if "sr_vcf" in config:
+        return config["sr_vcf"]
+    else:
+        return f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz"
+
+def get_lr_vcf_input(wildcards):
+    if "lr_vcf" in config:
+        return config["lr_vcf"]
+    else:
+        return f"c2_call_lr_snv/lr_beagle/concat/CKCG.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz"
+        
+# rule all:
+#     input:
+#         "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz",
+#         "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.info.gz",
+#         "srs_lrs_compare/CKCG.analysis_set.call_set.consensus.shared.vcf.gz"
 
 # 初始处理步骤
 
+#TODO, if file provided by themselves, the code should be considered.
 rule process_sr:
     input:
-        sr = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz"
-
+        sr_vcf = get_sr_vcf_input
     output:
         sr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.vcf.gz"
     threads: 16
 
     shell:
         """
-        bcftools view --threads {threads} {input.sr} | \
+        bcftools view --threads {threads} {input.sr_vcf} | \
             bcftools view --threads {threads} -i "AC!=0" | \
             bcftools annotate --threads {threads} -x QUAL,INFO,FORMAT/AD,FORMAT/DP,FORMAT/GQ,FORMAT/PGT,FORMAT/PID,FORMAT/PL,FORMAT/PS |
             sed 's/-WGS//g' | bgzip -@ {threads} -c > {output.sr_callset_vcf}
@@ -27,7 +44,7 @@ rule process_sr:
 
 rule process_lr:
     input:
-        lr = "c2_call_lr_snv/lr_beagle/concat/CKCG.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz"
+        lr_vcf = get_lr_vcf_input
 
     output:
         lr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.lrs.vcf.gz"
@@ -35,7 +52,7 @@ rule process_lr:
 
     shell:
         """
-        zcat {input.lr} | sed 's/-CLR//g' | sed 's/-mix//g' | sed 's/-ccs//g' | bgzip -@ {threads} -c > {output.lr_callset_vcf}
+        zcat {input.lr_vcf} | sed 's/-CLR//g' | sed 's/-mix//g' | sed 's/-ccs//g' | bgzip -@ {threads} -c > {output.lr_callset_vcf}
         tabix -f {output.lr_callset_vcf}
         """
 
@@ -96,10 +113,10 @@ rule calc_hwe:
 
     shell:
         """
-        bcftools query {input.lr_shared_vcf} -f "%INFO/HWE\n" > {output.lr_hwe}
+        bcftools query {input.lr_shared_vcf} -f "%INFO/HWE\\n" > {output.lr_hwe}
         bcftools plugin fill-tags --threads {threads} {input.sr_shared_vcf} | \
-            bcftools query -f "%INFO/HWE\n" > {output.sr_hwe}
-        bcftools query {input.sr_shared_vcf} -f "%CHROM\t%POS\t%REF\t%ALT\n" > {output.info}
+            bcftools query -f "%INFO/HWE\\n" > {output.sr_hwe}
+        bcftools query {input.sr_shared_vcf} -f "%CHROM\\t%POS\\t%REF\\t%ALT\\n" > {output.info}
 
         paste {input.info} {input.sr_hwe} {input.lr_hwe} | awk -v OFS='\\t' '
             {{if($5==0 && $6==0) ratio=0; 
@@ -111,7 +128,7 @@ rule calc_hwe:
 
 
 # 生成筛选列表
-
+# The value of NS.
 rule generate_lrs_sub_lists:
     input:
         sr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.vcf",
@@ -141,7 +158,7 @@ rule lrs_sub_process:
         lrs_sub_list = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.sub.list.gz"
     output:
         sr_filter_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
-        lr_select_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.vcf.gz",
+        lr_select_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.vcf.gz"
     threads: 16
 
     shell:
@@ -205,12 +222,9 @@ rule final_merge:
     output:
         consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz"
     threads: 16
-
     shell:
         """
         echo -e '##INFO=<ID=CallsetPlatform,Number=.,Type=String,Description="Platforms of callsets that called this genotype">\\n##INFO=<ID=GenotypePlatform,Number=.,Type=String,Description="Platforms of callsets that use as the final genotype">' > c3_merge_snv/callset/srs_lrs_compare/header2
-
-        
 
         
         bcftools concat -a --threads {threads} \
@@ -232,14 +246,15 @@ rule generate_final_sr_scaffold:
     output:
         sr_scaffold_info = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.info.gz",
         sr_scaffold_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+    threads: 16
     shell:
         """
-        bcftools view --threads 16 -v snps -i "GenotypePlatform=='Illumina'" {input.consensus_vcf} | bcftools query -f "%CHROM\\t%POS\\t%REF\\t%ALT\\tSCAFFOLD\\n" | bgzip -c > {output.sr_scaffold_info}
+        bcftools view --threads {threads} -v snps -i "GenotypePlatform=='Illumina'" {input.consensus_vcf} | bcftools query -f "%CHROM\\t%POS\\t%REF\\t%ALT\\tSCAFFOLD\\n" | bgzip -c > {output.sr_scaffold_info}
 
         echo '##FILTER=<ID=SCAFFOLD,Description="The variant in the short-read phasing scaffold">' > c3_merge_snv/callset/srs_lrs_compare/header3
         
-        bcftools annotate --threads 16 -h c3_merge_snv/callset/srs_lrs_compare/header3 -a {output.sr_scaffold_info} -c CHROM,POS,REF,ALT,FILTER {input.concat_shapeit4_filter_vcf} | \
-            bcftools view --threads 16 -f SCAFFOLD -o {output.sr_scaffold_vcf}
+        bcftools annotate --threads {threads} -h c3_merge_snv/callset/srs_lrs_compare/header3 -a {output.sr_scaffold_info} -c CHROM,POS,REF,ALT,FILTER {input.concat_shapeit4_filter_vcf} | \
+            bcftools view --threads {threads} -f SCAFFOLD -o {output.sr_scaffold_vcf}
         """
 
 #bcftools view --threads 16 -v snps -i "GenotypePlatform=='Illumina'" CKCG.analysis_set.call_set.consensus.vcf.gz | bcftools query -f "%CHROM\t%POS\t%REF\t%ALT\tSCAFFOLD\n" > CKCG.analysis_set.call_set.consensus.srs_scaffold.info
@@ -275,7 +290,7 @@ rule prepare_sample_kmer:
     input:
         ngs_R1_fastq = get_sr_fastqs[0],
         ngs_R2_fastq = get_sr_fastqs[1],
-        hifi_fastq = get_Q20_pbmm2_map_input_fastqs
+        hifi_fastq = get_hifi_pbmm2_map_input_fastqs
     output:
         sample_meryl = "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex"
     threads: 4
@@ -301,7 +316,7 @@ rule merfin_filter:
     input:
         consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz",
         sample_consensus_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.vcf",
-        ref = config['CHM13'],
+        ref = config['reference']['CHM13'],
         ref_mer = directory("/storage/yangjianLab/wangyifei/resource/Reference/CHM13/CHM13_21mer_meryl"),
         sample_WGS_meryl = "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex",
         sample_consensus_miss_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.miss.vcf.gz"

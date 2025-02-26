@@ -9,28 +9,62 @@ def get_sex_specific_chr_list(wildcards):
 def get_sex(wildcards):
     sex = config['sex'][wildcards.sample]
     return sex 
-    
-    
-chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
-# rule all:
-#     input:
-#         expand("c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta", sample=config['samples']),
-#         expand("c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta", sample=config['samples'])
+def get_sr_input_fastqs(wildcards):
+    return config["sr_fastqs"][wildcards.sample]
+
+def get_hifi_input_fastqs(wildcards):
+    return config["lr_hifi_fastqs"][wildcards.sample]
+
+def get_hapl_input(wildcards):
+    if "hapl" in config:
+        return config["hapl"]
+    else:
+        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl"
+
+def get_gbz_input(wildcards):
+    if "gbz" in config:
+        return config["gbz"]
+    else:
+        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz"
+
+def get_gfa_input(wildcards):
+    if "gfa" in config:
+        return config["gfa"]
+    else:
+        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa"
+
+def get_variant_path_input(wildcards):
+    if "variant_path" in config:
+        return config["variant_path"]
+    else:
+        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path"
+        
+def get_hap1_adaptor_masked_fa_input(wildcards):
+    if "hap1_adaptor_masked_fa" in config:
+        return config["hap1_adaptor_masked_fa"]
+    else:
+        return "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
+
+def get_hap2_adaptor_masked_fa_input(wildcards):
+    if "hap2_adaptor_masked_fa" in config:
+        return config["hap2_adaptor_masked_fa"]
+    else:
+        return "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
+
+rule all_infer_diploid_path:
+    input:
+        expand("c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta", sample=config['samples']),
+        expand("c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta", sample=config['samples'])
 
 rule prepare_sample_kmer:
     input:
-        ngs_R1_fq = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.R1.fastq.gz",
-        ngs_R2_fq = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.R2.fastq.gz",
-        ngs_unpaired_R1_fq = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.unpaired.R1.fastq.gz",
-        ngs_unpaired_R2_fq = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.unpaired.R2.fastq.gz",
-        tgs_fq = "/storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/{sample}-CLR/{sample}-CLR.pbccs_all.Q20.success.fastq.gz"
+        ngs_R1_fq = get_sr_input_fastqs[0],
+        ngs_R2_fq = get_sr_input_fastqs[1],
+        hifi_fq = get_hifi_input_fastqs
     output:
         kmer_list = "c8_diploid_path_infer/result/{sample}/{sample}.kmer.list",
         kff = temp("c8_diploid_path_infer/result/{sample}/{sample}.kmer.kff")
-    params:
-        ngs_dir = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp",
-        tgs_dir = "/storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs"
     threads: 4
     resources:
         #30G
@@ -40,9 +74,7 @@ rule prepare_sample_kmer:
         > {output.kmer_list}
         echo {input.ngs_R1_fq} >> {output.kmer_list}
         echo {input.ngs_R2_fq} >> {output.kmer_list}
-        echo {input.ngs_unpaired_R1_fq} >> {output.kmer_list}
-        echo {input.ngs_unpaired_R2_fq} >> {output.kmer_list}
-        echo {input.tgs_fq} >> {output.kmer_list}
+        echo {input.hifi_fq} >> {output.kmer_list}
         
         mkdir c8_diploid_path_infer/result/{wildcards.sample}/tmp
         kmc -k29 -m28 -okff -t{threads} -hp @{output.kmer_list} {output.kmer} c8_diploid_path_infer/result/{wildcards.sample}/tmp
@@ -51,8 +83,8 @@ rule prepare_sample_kmer:
         
 rule get_sample_haplotype_path:
     input:
-        hapl = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl",
-        gbz = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz",
+        hapl = get_hapl_input,
+        gbz = get_gbz_input,
         sample_kff = "c8_diploid_path_infer/result/{sample}/{sample}.kmer.kff"
     output:
         sample_haplotype_gbz = temp("c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.gbz"),
@@ -89,8 +121,8 @@ rule sample_haplotype_mod:
         
 rule form_sample_merge_gfa_auto_X:
     input:
-        gfa = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa",
-        variant_path = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path",
+        gfa = get_gfa_input,
+        variant_path = get_variant_path_input,
         sample_haplotype_mod_gfa = "c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.mod.gfa"
     output:
         sample_merge_gfa = temp("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.merge.gfa")
@@ -108,8 +140,8 @@ rule form_sample_merge_gfa_auto_X:
 
 rule form_sample_merge_gfa_Y_M:
     input:
-        gfa = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa",
-        variant_path = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path",
+        gfa = get_gfa_input,
+        variant_path = get_variant_path_input,
         sample_haplotype_mod_gfa = "c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.mod.gfa"
     output:
         sample_merge_gfa = temp("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.merge.gfa")
@@ -159,7 +191,7 @@ rule sample_gfa_deconstruct:
 
 rule ref_fasta_concat:
     input:
-        ref_fastas = expand("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.ref.fasta", chr=chr_list, allow_missing=True)
+        ref_fastas = expand("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.ref.fasta", chr=[f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], allow_missing=True)
     output:
         concat_ref_fasta = "c8_diploid_path_infer/result/{sample}/{sample}.ref.fasta"
     params:
@@ -193,7 +225,7 @@ rule chr_vcf_norm:
     
 rule chr_vcf_concat:
     input:
-        norm_chr_vcfs = expand("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.norm.vcf.gz", chr=chr_list, allow_missing=True)
+        norm_chr_vcfs = expand("c8_diploid_path_infer/result/{sample}/{sample}.{chr}.norm.vcf.gz", chr=[f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], allow_missing=True)
     output:
         pan_vcf = temp("c8_diploid_path_infer/result/{sample}/{sample}.pan.vcf.gz")
     threads: 4
@@ -277,7 +309,7 @@ rule pangenie_phase_fix:
     threads: 10
     resources:
         #80G
-        mem_mb = 80000000
+        mem_mb = 80000
     shell:
         """
         python3 ~/software/script/graph-simplification/pangenie_phase_fix.py {input.phasing_vcf} c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan_phasing.fix.vcf
@@ -310,31 +342,31 @@ rule genotype_phase:
     threads: 10
     resources:
         #80G
-        mem_mb = 80000000
+        mem_mb = 80000
     shell:
         """
         bcftools merge -m all --force-samples \
-        {input.genotype_final_vcf} \
-        c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan_phasing.fix.vcf.gz | \
-        python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pangenie.phase.vcf
+            {input.genotype_final_vcf} \
+            c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan_phasing.fix.vcf.gz | \
+            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pangenie.phase.vcf
         
         bgzip -@ {threads} -f {wildcards.sample}.pangenie.phase.vcf
         tabix -f {output.phased_genotype_vcf}
         
         bcftools merge -m all --force-samples \
-        {input.genotype_final_vcf} \
-        c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
-        bcftools view -s sample,{wildcards.sample} | \
-        python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
+            {input.genotype_final_vcf} \
+            c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
+            bcftools view -s sample,{wildcards.sample} | \
+            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
         
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
         tabix -f {output.assembly_phase_vcf}
         
         bcftools merge -m all --force-samples \
-        {input.genotype_final_vcf} \
-        c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
-        bcftools view -s sample,{wildcards.sample}.snv | \
-        python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
+            {input.genotype_final_vcf} \
+            c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
+            bcftools view -s sample,{wildcards.sample}.snv | \
+            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
         
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
         tabix -f {output.snv_phase_vcf}
@@ -349,14 +381,14 @@ rule sample_ref_realign:
     threads: 10
     resources:
         #80G
-        mem_mb = 80000000
+        mem_mb = 80000
     shell:
         """
         minimap2 -t {threads} \
-        -ax map-pb \
-        -Y -L --eqx --cs \
-        {input.concat_ref_fasta} \
-        $(grep CLR {input.kmer_list} | sed 's/Q20.success/merge/g')  | samtools view -@ {threads} -hb - | samtools sort -@ {threads} -o {output.zmw_bam}
+            -ax map-pb \
+            -Y -L --eqx --cs \
+            {input.concat_ref_fasta} \
+            $(grep CLR {input.kmer_list} | sed 's/Q20.success/merge/g')  | samtools view -@ {threads} -hb - | samtools sort -@ {threads} -o {output.zmw_bam}
         
         samtools index -@ {threads} {output.zmw_bam}
         """  
@@ -370,16 +402,16 @@ rule hiphase_phase:
     threads: 10
     resources:
         #80G
-        mem_mb = 80000000
+        mem_mb = 80000
     shell:
         """
         hiphase -t {threads} \
-        --ignore-read-groups \
-        --reference {input.concat_ref_fasta} \
-        --vcf {input.genotype_final_vcf} \
-        --bam {input.zmw_bam} \
-        --output-vcf {output.hiphase_vcf} \
-        --global-realignment-cputime 600
+            --ignore-read-groups \
+            --reference {input.concat_ref_fasta} \
+            --vcf {input.genotype_final_vcf} \
+            --bam {input.zmw_bam} \
+            --output-vcf {output.hiphase_vcf} \
+            --global-realignment-cputime 600
         
         tabix -f {output.hiphase_vcf}
         """
@@ -394,13 +426,13 @@ rule margin_phase:
     shell:
         """
         margin phase \
-        {input.zmw_bam} \
-        {input.concat_ref_fasta} \
-        {input.genotype_final_vcf} \
-        ~/software/margin/params/phase/allParams.phase_vcf.ont.sv.json \
-        -M -t 1 \
-        -o c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.margin.{wildcards.chr} \
-        -r {wildcards.chr}
+            {input.zmw_bam} \
+            {input.concat_ref_fasta} \
+            {input.genotype_final_vcf} \
+            ~/software/margin/params/phase/allParams.phase_vcf.ont.sv.json \
+            -M -t 1 \
+            -o c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.margin.{wildcards.chr} \
+            -r {wildcards.chr}
         
         bgzip -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.margin.{wildcards.chr}.phased.vcf
         tabix -f {output.chr_margin_vcf}
@@ -408,9 +440,9 @@ rule margin_phase:
         """  
 rule concat_margin_phased_vcf:
     input:
-        chr_margin_vcfs = lambda wildcards: expand(
+        chr_margin_vcfs = expand(
             "c8_diploid_path_infer/result/{sample}/{sample}.margin.{chr}.phased.vcf.gz",
-            chr=get_sex_specific_chroms,
+            chr=get_sex_specific_chr_list,
             allow_missing=True
         )
     output:
@@ -440,13 +472,13 @@ rule integrate_phase:
     shell:
         """
         bcftools merge -m all --force-samples \
-        {input.genotype_final_vcf} \
-        {input.snv_phase_vcf} \
-        {input.assembly_phase_vcf} \
-        {input.pangenie_phase_vcf} \
-        {input.hiphase_vcf} \
-        {input.concat_margin_vcf} | \
-        python3 ~/software/script/graph-genotyping/graph_phase_intergrate.py - {output.integrate_phase_vcf} sample 2:sample,3:sample,4:sample,5:sample,6:sample > c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.integrate.phase.log
+            {input.genotype_final_vcf} \
+            {input.snv_phase_vcf} \
+            {input.assembly_phase_vcf} \
+            {input.pangenie_phase_vcf} \
+            {input.hiphase_vcf} \
+            {input.concat_margin_vcf} | \
+            python3 ~/software/script/graph-genotyping/graph_phase_intergrate.py - {output.integrate_phase_vcf} sample 2:sample,3:sample,4:sample,5:sample,6:sample > c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.integrate.phase.log
         
         bcftools view -a {output.integrate_phase_vcf} | bcftools view -i "ALT!='.'" -o {output.integrate_phase_filter_vcf}
         tabix {output.integrate_phase_filter_vcf}
@@ -495,7 +527,6 @@ rule complete_assembly:
         fi
         """  
         
-        
 
         
 rule merge_complete_assembly:
@@ -511,12 +542,12 @@ rule merge_complete_assembly:
         sed "s/chr/H2_chr/g" {input.complete_assembly_hap2_fa} >> {output.merge_complete_assembly_fa}
         """
 ### coorect by phase assembly
-#TODO: phase assembly?        
+      
 rule secphase_correct_bam:
     input:
         merge_complete_assembly_fa = "c8_diploid_path_infer/result/{sample}/{sample}.merge.complete_assembly.fasta",
-        phase_assembly_hap1 = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/06.phase_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta.gz",
-        phase_assembly_hap2 = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/06.phase_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta.gz"
+        phase_assembly_hap1 = get_hap1_adaptor_masked_fa_input,
+        phase_assembly_hap2 = get_hap2_adaptor_masked_fa_input
     output:
         complete_assembly_phase_assembly_bam = temp("c8_diploid_path_infer/result/{sample}/{sample}.merge.complete_assembly.phase_assembly.bam"),
         secphase_log = temp("c8_diploid_path_infer/result/{sample}/secphase_out_dir/secphase.out.log"),
@@ -525,13 +556,13 @@ rule secphase_correct_bam:
     shell:
         """
         minimap2 -t {threads} \
-        -I 8G \
-        -ax asm20 \
-        -Y -L --eqx --cs \
-        {input.merge_complete_assembly_fa}
-        {input.phase_assembly_hap1} \
-        {input.phase_assembly_hap2} | samtools sort -@ {threads} -n | samtools view -@ {threads} -hb \
-        > {output.complete_assembly_phase_assembly_bam}
+            -I 8G \
+            -ax asm20 \
+            -Y -L --eqx --cs \
+            {input.merge_complete_assembly_fa}
+            {input.phase_assembly_hap1} \
+            {input.phase_assembly_hap2} | samtools sort -@ {threads} -n | samtools view -@ {threads} -hb \
+            > {output.complete_assembly_phase_assembly_bam}
         
         secphase -@ {threads} --hifi -i {output.complete_assembly_phase_assembly_bam} -f {input.merge_complete_assembly_fa} -o c8_diploid_path_infer/result/{wildcards.sample}/secphase_out_dir
         

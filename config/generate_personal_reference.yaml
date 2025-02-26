@@ -1,0 +1,31 @@
+Generate_Personal_Reference: true
+
+samples:
+    - CKCG-00200
+    - CKCG-00201
+    - CKCG-00202
+    
+sr_fastqs:
+    CKCG-00200:
+                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R1.fastq.gz
+                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R2.fastq.gz
+    CKCG-00201:
+                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R1.fastq.gz
+                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R2.fastq.gz
+    CKCG-00202:
+                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R1.fastq.gz
+                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R2.fastq.gz
+
+
+lr_zmw_fastqs:
+    CKCG-00200:
+                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/CKCG-00200/CKCG-00200.pbccs_all.merge.fastq.gz
+
+reference:
+    CHM13:
+        /storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_maskedY_rCRS.fasta
+
+prefix:
+    1kcp
+
+

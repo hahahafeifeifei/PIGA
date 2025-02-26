@@ -1,12 +1,9 @@
+Call_SR_SNV: true
+
+
 samples:
     - CKCG-00200
     - CKCG-00201
-    - CKCG-00202
-    
-training_samples:
-    - CKCG-00202
-    
-test_samples:
     - CKCG-00202
     
 sr_fastqs:
@@ -19,13 +16,6 @@ sr_fastqs:
     CKCG-00202:
                 - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R1.fastq.gz
                 - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R2.fastq.gz
-lr_hifi_fastqs:
-    CKCG-00200:
-                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/${sample}/${sample}.pbccs_all.Q20.success.fastq.gz
-
-lr_zmw_fastqs:
-    CKCG-00200:
-                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/${sample}/${sample}.pbccs_all.merge.fastq.gz
 
 
 reference:
@@ -50,12 +40,7 @@ GATK_Resource:
     axiomPoly:
         /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
 
-
-genetic_map: "/storage/yangjianLab/wangyifei/resource/genetic_map/chm13_liftover/shapeit4/genetic_map_chm13_{chr}.reform.txt"
-
-topmed_east_asian: "/storage/yangjianLab/wangyifei/resource/TOPMed/east_asian/merge_vcf/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
-
+        
 prefix:
     1kcp
-
-
+    

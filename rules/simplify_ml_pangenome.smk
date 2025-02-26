@@ -1,8 +1,6 @@
 
 
 
-
-            
 def get_all_subgraph_assembly_gfa_files(wildcards, prefix):
     chr_subgraph_combination = checkpoints.check_chr_subgraph_combination.get().output[0]
     pairs = []
@@ -21,15 +19,23 @@ def get_all_subgraph_variant_path_files(wildcards, prefix):
             pairs.append(f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path")
     return pairs 
 
-# rule all:
-#         input:
-#             partial(get_all_subgraph_assembly_gfa_files, config['prefix']),
-#             partial(get_all_subgraph_variant_path_files, config['prefix'])
+rule all_simplify_ml_pangenome:
+        input:
+            partial(get_all_subgraph_assembly_gfa_files, config['prefix']),
+            partial(get_all_subgraph_variant_path_files, config['prefix'])
             
-            
+
+
+
+def get_linear_gfaffix_gfa_input(wildcards):
+    if "linear_gfaffix_gfa" in config:
+        return config["linear_gfaffix_gfa"]
+    else:
+        return "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa"
+
 rule prepare_training_set:
     input:
-        linear_gfaffix_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa"
+        linear_gfaffix_gfa = get_linear_gfaffix_gfa_input
     output:
         training_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.training.gfa"
     params:

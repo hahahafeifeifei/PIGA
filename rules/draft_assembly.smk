@@ -1,15 +1,38 @@
+rule all_draft_assembly:
+    input:
+        expand("c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta", sample = config['samples'])
+        expand("c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta", sample = config['samples'])
+
 def get_sr_fastqs(wildcards)):
     return config["sr_fastqs"][wildcards.sample]
 
-def get_sr_unmapped_fastqs(wildcards):
-    return config["sr_unmapped_fastqs"][wildcards.sample]
-
-def get_zmw_pbmm2_map_input_fastqs(wildcards):
+def get_zmw_input_fastqs(wildcards):
     return config["lr_zmw_fastqs"][wildcards.sample]        
 
-def get_hifi_pbmm2_map_input_fastqs(wildcards):
-    return config["lr_hifi_fastqs"][wildcards.sample]
-    
+def get_consensus_fasta_input(wildcards):
+    if "consensus_fasta" in config:
+        return config["consensus_fasta"]
+    else:
+        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta"
+
+def get_chain_input(wildcards):
+    if "chain" in config:
+        return config["chain"]
+    else:
+        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
+
+def get_sample_vcf_input(wildcards):
+    if "sample_vcf" in config:
+        return config["sample_vcf"]
+    else:
+        return "c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz"
+
+def get_sample_WGS_meryl_input(wildcards):
+    if "sample_WGS_meryl" in config:
+        return config["sample_WGS_meryl"]
+    else:
+        return "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl"
+
 def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     sex = config['sex'][wildcards.sample]
     chr_list = [f'chr{i}' for i in range(1, 23)]
@@ -23,15 +46,10 @@ def get_sex(wildcards):
 
 rule personal_ref_bwa_map:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        consensus_fasta = get_consensus_fasta_input,
         ngs_R1_fastq = get_sr_fastqs[0],
-        ngs_R2_fastq = get_sr_fastqs[1],
-        ngs_R1_unmapped_fastq = get_sr_unmapped_fastqs[0],
-        ngs_R2_unmapped_fastq = get_sr_unmapped_fastqs[1]
+        ngs_R2_fastq = get_sr_fastqs[1]
     output:
-        ngs_ref_01_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.01.srt.bam"),
-        ngs_ref_02_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.02.srt.bam"),
-        ngs_ref_03_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.03.srt.bam"),
         ngs_ref_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.bam")
     threads:
     resources:
@@ -39,19 +57,13 @@ rule personal_ref_bwa_map:
         mem_mb = 
     shell:
         """
-        bwa mem -t {threads} -Y -R '@RG\\tID:'{wildcards.sample}'\\tSM:'{wildcards.sample}'\\tPL:ILLUMINA' {input.consensus_fasta} {input.ngs_R1_fastq} {input.ngs_R2_fastq} | samtools view -uSh -@ {threads} - | samtools sort -O bam -@ {threads} -o {output.ngs_ref_01_bam} -
-
-        bwa mem -t {threads} -Y -R '@RG\\tID:'{wildcards.sample}'\\tSM:'{wildcards.sample}'\\tPL:ILLUMINA' {input.consensus_fasta} {input.ngs_R1_unmapped_fastq} | samtools view -uSh -@ {threads} - | samtools sort -O bam -@ {threads} -o {output.ngs_ref_02_bam} -
-
-        bwa mem -t {threads} -Y -R '@RG\\tID:'{wildcards.sample}'\\tSM:'{wildcards.sample}'\\tPL:ILLUMINA' {input.consensus_fasta} {input.ngs_R2_unmapped_fastq} | samtools view -uSh -@ {threads} - | samtools sort -O bam -@ {threads} -o {output.ngs_ref_03_bam} -
-
-        samtools merge -@ {threads} -O BAM -c -p -f {output.ngs_ref_bam} {output.ngs_ref_01_bam} {output.ngs_ref_02_bam} {output.ngs_ref_03_bam}
+        bwa mem -t {threads} -Y -R '@RG\\tID:'{wildcards.sample}'\\tSM:'{wildcards.sample}'\\tPL:ILLUMINA' {input.consensus_fasta} {input.ngs_R1_fastq} {input.ngs_R2_fastq} | samtools view -uSh -@ {threads} - | samtools sort -O bam -@ {threads} -o {output.ngs_ref_bam} -
         samtools index {output.ngs_ref_bam}
         """
 
 rule personal_ref_bam_dedup:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        consensus_fasta = get_consensus_fasta_input,
         ngs_ref_bam = "c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.bam"
     output:
         ngs_dedup_ref_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.dedup.bam"),
@@ -72,7 +84,7 @@ rule personal_ref_bam_dedup:
 
 rule personal_ref_dv:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        consensus_fasta = get_consensus_fasta_input,
         ngs_dedup_ref_bam = "c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.dedup.bam"
     output:
         personal_ref_dv_vcf = "c6_draft_assembly/personal_ref_dv/{sample}/{sample}.af_pangenome_polish.deepvariant.vcf.gz",
@@ -104,33 +116,11 @@ rule personal_ref_dv:
 
 
 
-rule prepare_sample_consensus_vcf:
-    input:
-        concat_consensus_whatshap_shapeit4_vcf = "c4_phase_snv/shapeit4/CKCG.consensus.whatshap.shapeit4.analysis_set.vcf.gz"
-    output:
-        sample_vcf = temp("c5_personal_ref/snv_liftover/{sample}/{sample}.shapeit4.vcf.gz")
-    shell:
-        """
-        bcftools view --threads {threads} \
-            -s {wildcards.sample} \
-            {input.concat_consensus_whatshap_shapeit4_vcf} | \
-            bcftools view --threads {threads} \
-            -i "GT!='RR'" \
-            -o {output.sample_vcf}
-
-        tabix -f {output.sample_vcf}
-        """
-
-
-
-
-
-
 rule sample_origin_snv_liftover:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        chain = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain",
-        sample_vcf = "c5_personal_ref/snv_liftover/{sample}/{sample}.shapeit4.vcf.gz"
+        consensus_fasta = get_consensus_fasta_input,
+        chain = get_chain_input,
+        sample_vcf = get_sample_vcf_input
     output:
         sample_assembly_vcf = "c6_draft_assembly/snv_liftover/{sample}/{sample}.assembly.shapeit4.vcf.gz"
     threads:
@@ -177,8 +167,8 @@ rule merge_variants:
 
 rule merfin_filter_merged_variants:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        sample_WGS_meryl = "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex",
+        consensus_fasta = get_consensus_fasta_input,
+        sample_WGS_meryl = get_sample_WGS_meryl_input,
         sample_assembly_merge_vcf = "c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.vcf.gz"
     output:
         sample_assembly_merge_filter_vcf = "c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.filter.vcf"
@@ -192,7 +182,7 @@ rule merfin_filter_merged_variants:
         """
         merfin -filter \
             -sequence {input.consensus_fasta} \
-            -readmers c3_merge_snv/meryl/{wildcards.sample}/{wildcards.sample}-WGS.meryl \
+            -readmers {input.sample_WGS_meryl} \
             -vcf {input.sample_assembly_merge_vcf} \
             -output c6_draft_assembly/snv_merge/{wildcards.sample}/{wildcards.sample}.assembly.merge \
             -threads {threads} \
@@ -203,11 +193,11 @@ rule merfin_filter_merged_variants:
 
 rule personal_ref_zmw_pbmm2:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        zmw_fastq = get_zmw_pbmm2_map_input_fastqs
+        consensus_fasta = get_consensus_fasta_input,
+        zmw_fastq = get_zmw_input_fastqs
     output:
         zmw_ref_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.assembly.zmw.pbmm2.bam")
-    threads:
+    threads: 4
     resources:
         #
         mem_mb = 
@@ -225,7 +215,7 @@ rule personal_ref_zmw_pbmm2:
 #TODO: why phase a vcf by vcf itself?
 rule sample_assembly_vcf_whatshap:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        consensus_fasta = get_consensus_fasta_input,
         sample_assembly_merge_filter_vcf = "c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.filter.vcf",
         zmw_ref_bam = "c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.assembly.zmw.pbmm2.bam"
     output:
@@ -325,8 +315,8 @@ rule correct_switch_error:
 #TODO: where to get pac here?
 rule personal_ref_CLR_all_pbmm2:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        pac = "pac=/storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/sample.list"
+        consensus_fasta = get_consensus_fasta_input,
+        pac = "/storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/sample.list"
     output:
         all_fofn = "c6_draft_assembly/result/{sample}/{sample}.CLR_all.fofn",
         all_ref_unsort_bam = "c6_draft_assembly/result/{sample}/{sample}.CLR_all.origin.bam",
@@ -346,8 +336,8 @@ rule personal_ref_CLR_all_pbmm2:
 
 rule personal_ref_hifi_pbmm2:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        hifi_fastq = get_hifi_pbmm2_map_input_fastqs
+        consensus_fasta = get_consensus_fasta_input,
+        hifi_fastq = get_hifi_input_fastqs
     output:
         hifi_ref_bam = temp("c6_draft_assembly/result/{sample}/{sample}.assembly.hifi.bam")
     threads:
@@ -369,7 +359,7 @@ rule personal_ref_hifi_pbmm2:
 rule liftover_chrX_par_region:
     input:
         chrX_par = "/storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_chrX_PAR.bed",
-        chain = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
+        chain = get_chain_input
     output:
         chrX_assembly_par = "c6_draft_assembly/result/{sample}/{sample}.assembly.chrX_PAR.bed"
     shell:
@@ -381,7 +371,7 @@ rule liftover_chrX_par_region:
 
 rule phase_assembly:
     input:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
+        consensus_fasta = get_consensus_fasta_input,
         ngs_dedup_ref_bam = "c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.dedup.bam",
         all_ref_bam = "c6_draft_assembly/result/{sample}/{sample}.CLR_all.bam",
         hifi_ref_bam = "c6_draft_assembly/result/{sample}/{sample}.assembly.hifi.bam",

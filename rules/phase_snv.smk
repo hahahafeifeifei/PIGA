@@ -1,20 +1,36 @@
+rule all_phase_snv:
+    input:
+        expand("c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz", sample = config['samples'])
 
 
-def get_sr_fastqs(wildcards):
-    return config["sr_fastqs"][wildcards.sample]
+def get_merge_merfin_filter_vcf_input(wildcards):
+    if "merge_merfin_filter_vcf" in config:
+        return config["merge_merfin_filter_vcf"]
+    else:
+        return "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz"
 
-    
-def get_hifi_pbmm2_map_input_fastqs(wildcards):
-    return config["lr_hifi_fastqs"][wildcards.sample]
+def get_sr_scaffold_vcf_input(wildcards):
+    if "sr_scaffold_vcf" in config:
+        return config["sr_scaffold_vcf"]
+    else:
+        return "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+
+def get_zmw_bam_input(wildcards):
+    if "zmw_bam" in config:
+        return config["zmw_bam"]
+    else:
+        return "c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam"
+
 
 rule generate_sample_vcf_to_phase:
         input:
-            merge_merfin_filter_vcf = "c4_phase_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz",
-            ref = config['CHM13'],
-            sr_scaffold_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+            merge_merfin_filter_vcf = get_merge_merfin_filter_vcf_input,
+            ref = config['reference']['CHM13'],
+            sr_scaffold_vcf = get_sr_scaffold_vcf_input
         output:
             unphase_sample_vcf = "c4_phase_snv/whatshap/{sample}/{sample}.consensus.analysis_set.vcf.gz",
             sample_sr_scaffold_vcf = "c4_phase_snv/whatshap/{sample}/{sample}.srs_scaffold.analysis_set.vcf.gz"
+        threads: 1
         shell:
             """
             bcftools view --threads {threads} -s {wildcards.sample} {input.merge_merfin_filter_vcf}| bcftools view --threads {threads} -e 'GT=="0/0" | GT=="0|0"' | bcftools norm --threads {threads} -m +any -f {input.ref} | whatshap unphase - | bgzip -@ {threads} -c > {output.unphase_sample_vcf}
@@ -24,10 +40,10 @@ rule generate_sample_vcf_to_phase:
 
 rule consensus_vcf_whatshap_phase:
     input:
-        ref = config['CHM13'],
+        ref = config['reference']['CHM13'],
         unphase_sample_vcf = "c4_phase_snv/whatshap/{sample}/{sample}.consensus.analysis_set.vcf.gz",
         sample_sr_scaffold_vcf = "c4_phase_snv/whatshap/{sample}/{sample}.srs_scaffold.analysis_set.vcf.gz",
-        zmw_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam"
+        zmw_bam = get_zmw_bam_input
     output:
         phase_sample_vcf = "c4_phase_snv/whatshap/{sample}/{sample}.consensus.whatshap.analysis_set.vcf.gz"
     threads: 1
@@ -48,7 +64,7 @@ rule consensus_vcf_whatshap_phase:
 rule merge_consensus_whatshap_vcf:
     input:
         phase_sample_vcfs = expand("c4_phase_snv/whatshap/{sample}/{sample}.consensus.whatshap.analysis_set.vcf.gz", sample = config['samples']),
-        ref = config['CHM13']
+        ref = config['reference']['CHM13']
     output:
         phase_sample_vcf_list = "c4_phase_snv/whatshap/merge/vcf.list",
         merge_whatshap_vcf = "c4_phase_snv/whatshap/merge/CKCG.consensus.whatshap.analysis_set.vcf.gz",
@@ -113,6 +129,24 @@ rule concat_consensus_vcf_shapeit4:
             --threads {threads} \
             -Oz \
             -o {output.concat_consensus_whatshap_shapeit4_vcf}
+        """
+
+
+rule prepare_sample_consensus_vcf:
+    input:
+        concat_consensus_whatshap_shapeit4_vcf = "c4_phase_snv/shapeit4/CKCG.consensus.whatshap.shapeit4.analysis_set.vcf.gz"
+    output:
+        sample_vcf = temp("c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz")
+    shell:
+        """
+        bcftools view --threads {threads} \
+            -s {wildcards.sample} \
+            {input.concat_consensus_whatshap_shapeit4_vcf} | \
+            bcftools view --threads {threads} \
+            -i "GT!='RR'" \
+            -o {output.sample_vcf}
+
+        tabix -f {output.sample_vcf}
         """
 
 # rule xxx:

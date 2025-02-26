@@ -1,9 +1,35 @@
 # chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
+def get_all_subgraph_seqfiles(wildcards, prefix):
+    subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
+    pairs = []
+    with open(chr_subgraph_combination) as f:
+        for line in f:
+            chr, subgraph_id = line.strip().split("\t")
+            subgraph_seqfile = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqfile"
+            pairs.append(subgraph_seqfile)
+    return pairs
+
+rule all_split_minigraph:
+    input:
+        partial(get_all_subgraph_seqfiles, prefix = config['prefix'])
+        
+
+def get_hap1_adaptor_masked_fa_input(wildcards):
+    if "hap1_adaptor_masked_fa" in config:
+        return config["hap1_adaptor_masked_fa"]
+    else:
+        return "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
+
+def get_hap2_adaptor_masked_fa_input(wildcards):
+    if "hap2_adaptor_masked_fa" in config:
+        return config["hap2_adaptor_masked_fa"]
+    else:
+        return "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
+
+
 rule split_fa_by_chr:
     input:
-        hap1_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap1.fasta",
-        hap2_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap2.fasta"
         hap1_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta",
         hap2_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
     output:
@@ -14,8 +40,8 @@ rule split_fa_by_chr:
     shell:
         """
 
-        seqkit grep -w 0 -r -p _{wildcards.chr}- {input.hap1_fa}  > {output.chr_hap1_fasta}
-        seqkit grep -w 0 -r -p _{wildcards.chr}- {input.hap2_fa}  > {output.chr_hap2_fasta}
+        seqkit grep -w 0 -r -p _{wildcards.chr}- {input.hap1_adaptor_masked_fa}  > {output.chr_hap1_fasta}
+        seqkit grep -w 0 -r -p _{wildcards.chr}- {input.hap2_adaptor_masked_fa}  > {output.chr_hap2_fasta}
         
         
         """
@@ -61,7 +87,7 @@ rule minigraph_by_chr:
     shell:
         """
         
-        awk -v OFS='\t' '{{split($1,a,".");print a[1],$2}}' {input.seqfile} | \
+        awk -v OFS='\\t' '{{split($1,a,".");print a[1],$2}}' {input.seqfile} | \
         csvtk -H -t join -f 1 - {input.depth_file} | \
         sort -k 3nr | \
         awk '{{print$2}}' > c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile
@@ -176,7 +202,7 @@ rule border_node_select:
         
         vg convert -g {output.node_split_gfa} -f -Q chr | \
         awk '{{if(substr($0,1,1)=="S" && $6!="SR:i:0")print$0"\tSN:Z:Other\tSO:i:0\tSR:i:1";else print$0}}' | \
-        awk -v OFS='\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' \
+        awk -v OFS='\\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' \
         > {output.node_split_rgfa}
         """
         
@@ -293,8 +319,19 @@ rule process_subgraph:
             
             awk '{{if($1=="S")print">id=_MINIGRAPH_|s"$2"\\n"$3}}' {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${i}.gfa > {params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta
 
-            echo -e _MINIGRAPH_"\t"{params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta >> {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${{i}}.seqfile
+            echo -e _MINIGRAPH_"\\t"{params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta >> {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${{i}}.seqfile
 
         done
         """
 
+
+#Here subgraph_seqfile only to show the graph splitting has been finished.
+checkpoint prepare_subgraph_list:
+    input:
+        subgraph_seqfile = expand("c7_graph_construction/chr_mc/{chr}/subgraph/subgraph0/{prefix}.{chr}.subgraph_0.seqfile", chr=chr_list, prefix=config['prefix'])
+    output:
+        subgraph_list = "c7_graph_construction/chr_mc/subgraph.list" 
+    shell:
+        """
+        for chr in `ls -d chr*`;do  for subgraph_id in `ls -d ${{chr}}/subgraph/subgraph*`;do idx=$(echo ${{subgraph_id}} | awk '{{split($1,a,"/");print a[length(a)]}}' | awk -v FS='subgraph' '{{print $2}}'); echo -e ${{chr}}"\\t"${{idx}}; done; done > c7_graph_construction/chr_mc/subgraph.list
+        """

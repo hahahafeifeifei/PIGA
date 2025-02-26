@@ -1,20 +1,34 @@
 
-chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
+# chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
-# rule all:
-#     input:
-#         "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.mergeassembly.hapl"
+rule all_merge_pangenome:
+    input:
+        "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl",
+        "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz",
+        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
+        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
+
+
 
 #for a given chromosome, generate all subgraph_id.
 def get_all_subgraph_assembly_gfa_files(wildcards, prefix):
-    chr_subgraph_combination = checkpoints.check_chr_subgraph_combination.get().output[0]
+    if "subgraph_list" in config:
+        chr_subgraph_combination_file = config["subgraph_list"]
+    else:
+        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
     chr_pairs = []
     with open(chr_subgraph_combination) as f:
         for line in f:
             chr, subgraph_id = line.strip().split("\t")
             if chr == wildcards.chr:
-                chr_pairs.append(f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa")
+                if "subgraph_assembly_gfa" in config:
+                    subgraph_assembly_gfa_file = config['subgraph_assembly_gfa'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
+                else:
+                    subgraph_assembly_gfa_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa"
+                
+                chr_pairs.append(subgraph_assembly_gfa_file)
     return chr_pairs
+
         
 ###TODO:how to get the ordered subgraph list?
 rule subgraph_gfa_merge:
@@ -37,17 +51,27 @@ rule subgraph_gfa_merge:
         c7_graph_construction/graph_merge/tmp.merge.{wildcards.chr} \
         {threads}
         """
-#for a given chromosome, generate all subgraph_id.
+
+
 def get_all_subgraph_variant_path_files(wildcards, prefix):
-    chr_subgraph_combination = checkpoints.check_chr_subgraph_combination.get().output[0]
+    if "subgraph_list" in config:
+        chr_subgraph_combination_file = config["subgraph_list"]
+    else:
+        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
     chr_pairs = []
     with open(chr_subgraph_combination) as f:
         for line in f:
             chr, subgraph_id = line.strip().split("\t")
             if chr == wildcards.chr:
-                chr_pairs.append(f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path")
-    return chr_pairs        
-        
+                if "subgraph_variant_path" in config:
+                    subgraph_variant_path_file = config['subgraph_variant_path'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
+                else:
+                    subgraph_variant_path_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path"
+                
+                chr_pairs.append(subgraph_assembly_gfa_file)
+    return chr_pairs
+
+
 rule subgraph_variant_path_merge:
     input:
         partial(get_all_subgraph_variant_path_files, prefix = config['prefix']),
@@ -130,9 +154,9 @@ rule haplotype_path:
     threads: 25
     shell:
         """
-        vg index -j {output.dist} -t 25 {input.gbz} -p
+        vg index -j {output.dist} -t {threads} {input.gbz} -p
         vg gbwt -r {output.ri} -Z {input.gbz}
-        vg haplotypes -t 25 --subchain-length 50000 -H {output.hapl} {input.gbz} -v 1
+        vg haplotypes -t {threads} --subchain-length 50000 -H {output.hapl} {input.gbz} -v 1
 
         """
         
