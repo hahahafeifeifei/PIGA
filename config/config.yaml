@@ -1,59 +1,68 @@
 samples:
-    - CKCG-00200
-    - CKCG-00201
-    - CKCG-00202
+    - 1KCP-00200
+    - 1KCP-00201
+    - 1KCP-00202
     
 training_samples:
-    - CKCG-00202
+    - 1KCP-00202
     
 test_samples:
-    - CKCG-00202
+    - 1KCP-00202
     
 sr_fastqs:
-    CKCG-00200:
-                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R2.fastq.gz
-    CKCG-00201:
-                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R2.fastq.gz
-    CKCG-00202:
-                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R2.fastq.gz
+    1KCP-00200:
+                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
+                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
+    1KCP-00201:
+                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
+                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
+    1KCP-00202:
+                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
+                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+
 lr_hifi_fastqs:
-    CKCG-00200:
-                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/${sample}/${sample}.pbccs_all.Q20.success.fastq.gz
+    1KCP-00200:
+                - test_data/1KCP-00200/1KCP-00200.lr_hifi.fastq.gz
+    1KCP-00201:
+                - test_data/1KCP-00201/1KCP-00201.lr_hifi.fastq.gz
+    1KCP-00202:
+                - test_data/1KCP-00202/1KCP-00202.lr_hifi.fastq.gz
 
 lr_zmw_fastqs:
-    CKCG-00200:
-                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/${sample}/${sample}.pbccs_all.merge.fastq.gz
-
+    1KCP-00200:
+                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
+    1KCP-00201:
+                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
+    1KCP-00202:
+                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
 
 reference:
     CHM13:
-        /storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_maskedY_rCRS.fasta
+        test/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        /storage/yangjianLab/wangyifei/resource/Reference/GRCh38/GRCh38_no_alt_analysis_set.fasta
+        test/reference/GRCh38_no_alt_analysis_set.fasta
+
 
 GATK_Resource:
     dbsnp:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/chm13v2.0_dbSNPv155.vcf.gz 
+        test/reference/gatk_bundle/chm13v2.0_dbSNPv155.vcf.gz 
     hapmap:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/hapmap_3.3.chm13_liftover.vcf.gz 
+        test/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz 
     omni:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/1000G_omni2.5.chm13_liftover.vcf.gz
+        test/reference/gatk_bundle/1000G_omni2.5.chm13_liftover.vcf.gz
     1000G:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
+        test/reference/gatk_bundle/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
     known_indel:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/Homo_sapiens_assembly38.known_indels.chm13_liftover.vcf.gz 
+        test/reference/gatk_bundle/Homo_sapiens_assembly38.known_indels.chm13_liftover.vcf.gz 
     mills:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz 
+        test/reference/gatk_bundle/CHM13/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz 
     axiomPoly:
-        /storage/yangjianLab/wangyifei/resource/gatk_bundle/CHM13/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
+        test/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
+        
 
+genetic_map: "test/genetic_map/genetic_map_chm13_{chr}.reform.txt"
 
-genetic_map: "/storage/yangjianLab/wangyifei/resource/genetic_map/chm13_liftover/shapeit4/genetic_map_chm13_{chr}.reform.txt"
-
-topmed_east_asian: "/storage/yangjianLab/wangyifei/resource/TOPMed/east_asian/merge_vcf/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
+topmed_east_asian: "test/variant_panel/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
 
 prefix:
     1kcp

@@ -2,13 +2,13 @@ Merge_Pangenome: true
 
 reference:
     CHM13:
-        /storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_maskedY_rCRS.fasta
+        test/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        /storage/yangjianLab/wangyifei/resource/Reference/GRCh38/GRCh38_no_alt_analysis_set.fasta
+        test/reference/GRCh38_no_alt_analysis_set.fasta
 
 
 prefix:
-    1kcp
+    test
 
 #?
 subgraph_order_list = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.list"

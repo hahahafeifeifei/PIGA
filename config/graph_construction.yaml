@@ -1,24 +1,22 @@
 Graph_Construction: true
 
 samples:
-    - CKCG-00200
-    - CKCG-00201
-    - CKCG-00202
+    - 1KCP-00200
+    - 1KCP-00201
+    - 1KCP-00202
     
-
 reference:
     CHM13:
-        /storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_maskedY_rCRS.fasta
+        test/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        /storage/yangjianLab/wangyifei/resource/Reference/GRCh38/GRCh38_no_alt_analysis_set.fasta
-
+        test/reference/GRCh38_no_alt_analysis_set.fasta
 
 prefix:
-    1kcp
+    test
 
 
 #?
-mask="/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/clip_bed/mask_bed/{chr}.mask.bed"
+mask="test/clip_bed/mask_bed/{chr}.mask.bed"
 
 
 #if no "subgraph_list" key, default input will be "c7_graph_construction/chr_mc/subgraph.list" 

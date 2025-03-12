@@ -1,30 +1,35 @@
 Merge_SNV: true
 
 samples:
-    - CKCG-00200
-    - CKCG-00201
-    - CKCG-00202
+    - 1KCP-00200
+    - 1KCP-00201
+    - 1KCP-00202
     
 sr_fastqs:
-    CKCG-00200:
-                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R2.fastq.gz
-    CKCG-00201:
-                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R2.fastq.gz
-    CKCG-00202:
-                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R1.fastq.gz
-                - test_data/CKCG-00202/CKCG-00201-WGS.fastp.R2.fastq.gz
-lr_hifi_fastqs:
-    CKCG-00200:
-                - /storage/yangjianLab/wangyifei/project/01.CKCG/03.CCS+CLR/result/pbccs/CKCG-00200/CKCG-00200.pbccs_all.Q20.success.fastq.gz
+    1KCP-00200:
+                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
+                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
+    1KCP-00201:
+                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
+                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
+    1KCP-00202:
+                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
+                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+
+lr_zmw_fastqs:
+    1KCP-00200:
+                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
+    1KCP-00201:
+                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
+    1KCP-00202:
+                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
 
 reference:
     CHM13:
-        /storage/yangjianLab/wangyifei/resource/Reference/CHM13/chm13v2.0_maskedY_rCRS.fasta
+        test/reference/chm13v2.0_maskedY_rCRS.fasta
         
 prefix:
-    1kcp
+    test
 
 
 
