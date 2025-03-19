@@ -1,8 +1,9 @@
 # The pipeline of SNV detection 
 This pipeline performs **population-level SNV detection** by leveraging PacBio long reads and Illumina short reads.
-<img align="middle" width="1000" src="snv_detection.jpg"/>
 
-## `call_sr_snv`
+<img align="middle" width="600" src="snv_detection.jpg"/>
+
+## call_sr_snv
 ### Description
 -  Detect SNVs using Illumina reads with GATK.
 ### Requirement
@@ -15,7 +16,7 @@ This pipeline performs **population-level SNV detection** by leveraging PacBio l
 snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/SR_var_calling.yaml
 ```
 
-## `call_lr_snv`
+## call_lr_snv
 ### Description
 -  Detect candidate SNVs using PacBio HiFi reads with DeepVariant.
 -  Jointly call SNVs at the population level with GLnexus.
@@ -34,7 +35,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/LR_var_calling.yaml
 ```
 
-## `merge_snv`
+## merge_snv
 ### Description
 -  Merge the Long-read (LR) and Short-read (SR) SNV callsets and select the SNV genotypes based on Hardy–Weinberg equilibrium P-value.
 -  Filter the SNVs for each individual based on kmers from short reads and HiFi reads with Merfin.
