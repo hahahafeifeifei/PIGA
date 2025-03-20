@@ -1,4 +1,4 @@
-# Pangenome construction and simplification pipeline
+# Pangenome construction and simplification
 This pipeline performs pangenome construction and simplification.
 
 <img align="middle" width="800" src="pangenome_construction.jpg"/>
@@ -34,7 +34,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  smoothxg
 -  VG
 -  GFAffix  
-**(8) graph_construction**
+### Usage
 ```shell
 snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/graph_construction.yaml
 ```
@@ -60,7 +60,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  Merge the subgraph pangenome into the final pangenome graph.
 ### Requirement
 -  VG
-**(8) graph_construction**
+### Usage
 ```shell
 snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/merge_pangenome.yaml
 ```

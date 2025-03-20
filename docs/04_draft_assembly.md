@@ -1,4 +1,4 @@
-# Draft diploid assembly pipeline
+# Draft diploid assembly
 This pipeline performs reference-guided draft diploid genome assembly.
 
 <img align="middle" width="800" src="draft_assembly.jpg"/>

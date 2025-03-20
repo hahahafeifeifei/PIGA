@@ -1,4 +1,4 @@
-# Personalized reference generation pipeline
+# Personalized reference generation
 This pipeline generates personalized reference and SNV haplotype for each individual.
 
 <img align="middle" width="800" src="personal_reference.jpg"/>

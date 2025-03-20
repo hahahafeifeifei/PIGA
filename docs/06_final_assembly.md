@@ -1,9 +1,9 @@
-# Final diploid assembly reconstruction pipeline
+# Final diploid assembly reconstruction
 This pipeline reconstructs the final diploid assembly by inferring the diploid path from pangenome.
 
 <img align="middle" width="800" src="final_assembly.jpg"/>
 
-## final assembly
+## infer_diploid_path
 ### Description
 -  Sample the candidate haplotypes from pangenome based on kmers with VG.
 -  Select the haplotype path with top score as haploid reference.
@@ -26,7 +26,7 @@ This pipeline reconstructs the final diploid assembly by inferring the diploid p
 -  Merfin
 -  Bedtools
 -  Samtools
-**(8) graph_construction**
+### Usage
 ```shell
 snakemake -s Snakefile --cores 64 --configfile config/config.yaml --configfile config/tools.yaml --configfile config/infer_diploid_path.yaml
 ```
