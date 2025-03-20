@@ -1,7 +1,7 @@
 # Final diploid assembly reconstruction
 This pipeline reconstructs the final diploid assembly by inferring the diploid path from pangenome.
 
-<img align="middle" width="800" src="final_assembly.jpg"/>
+<img align="middle" width="667" src="final_assembly.jpg"/>
 
 ## infer_diploid_path
 ### Description

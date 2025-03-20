@@ -1,7 +1,7 @@
 # SNV phasing
 This pipeline performs SNV phasing by integrating information from long reads and population.
 
-<img align="middle" width="800" src="snv_phasing.jpg"/>
+<img align="middle" width="645" src="snv_phasing.jpg"/>
 
 ## phase_snv
 ### Description

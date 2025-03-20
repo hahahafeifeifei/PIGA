@@ -1,7 +1,7 @@
 # Pangenome construction and simplification
 This pipeline performs pangenome construction and simplification.
 
-<img align="middle" width="800" src="pangenome_construction.jpg"/>
+<img align="middle" width="740" src="pangenome_construction.jpg"/>
 
 ## split_minigraph
 ### Description

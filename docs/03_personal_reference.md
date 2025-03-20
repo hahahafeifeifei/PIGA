@@ -1,7 +1,7 @@
 # Personalized reference generation
 This pipeline generates personalized reference and SNV haplotype for each individual.
 
-<img align="middle" width="800" src="personal_reference.jpg"/>
+<img align="middle" width="968" src="personal_reference.jpg"/>
 
 ## generate_personal_reference
 ### Description
