@@ -50,7 +50,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 ### Requirement
 -  PyTorch
 -  VG
-**(8) graph_construction**
+### Usage
 ```shell
 snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/simplify_ml_pangenome.yaml
 ```
