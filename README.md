@@ -7,7 +7,7 @@ Compared to the current assembly methods, the PIGA workflow fully utilizes multi
 <img align="middle" width="1000" src="PIGA.jpg"/>
 
 ## Installation
-Installing PIGA and its required software with:
+Installing PIGA with:
 ```bash
 git clone https://github.com/JianYang-Lab/PIGA.git
 ```
