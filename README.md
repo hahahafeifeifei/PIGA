@@ -28,7 +28,7 @@ The following modules are available in PIGA:
 - `merge_pangenome`: merge pangenome subgraphs into the final pangenome.
 - `infer_diploid_path`: reconstruct the final diploid assembly by inferring the diploid paths.
 
-The step-by-step documentation is available at [tutorial](docs/TUTORIAL.md). If you encounter problems, please open a [github issue](https://github.com/JianYang-Lab/1KCP-analysis/issues).
+The step-by-step documentation is available at [tutorial](docs/tutorial.md). If you encounter problems, please open a [github issue](https://github.com/JianYang-Lab/1KCP-analysis/issues).
 
 ## License
 **License**: MIT License
