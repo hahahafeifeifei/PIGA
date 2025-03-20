@@ -1,5 +1,5 @@
 # SNV detection pipeline
-This pipeline performs **population-level SNV detection** by leveraging PacBio long reads and Illumina short reads.
+This pipeline performs population-level SNV detection by leveraging PacBio long reads and Illumina short reads.
 
 <img align="middle" width="800" src="snv_detection.jpg"/>
 

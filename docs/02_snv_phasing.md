@@ -1,12 +1,12 @@
 # SNV phasing pipeline
-This pipeline performs **SNV phasing** by integrating information from long reads and population.
+This pipeline performs SNV phasing by integrating information from long reads and population.
 
 <img align="middle" width="800" src="snv_phasing.jpg"/>
 
 ## phase_snv
 ### Description
 -  Generate long read-based SNV phasing blocks for each individual with WhatsHap.
--  Perform statistical phasing with Shapeit4 by intergrating the prior haplotype information from long read and external variant panel.
+-  Perform statistical phasing by intergrating the prior haplotype information from long read and external haplotype panel with Shapeit4.
 ### Requirement
 -  Bcftools
 -  WhatsHap
