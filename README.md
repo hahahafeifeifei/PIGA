@@ -10,7 +10,6 @@ Compared to the current assembly methods, the PIGA workflow fully utilizes multi
 Installing PIGA and its required software with:
 ```bash
 git clone https://github.com/JianYang-Lab/PIGA.git
-conda env create -f environment.yml
 ```
 
 ## Documentation
