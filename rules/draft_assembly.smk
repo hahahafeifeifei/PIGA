@@ -1,60 +1,19 @@
 rule all_draft_assembly:
     input:
-        expand("c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta", sample = config['samples'])
+        expand("c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta", sample = config['samples']),
         expand("c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta", sample = config['samples'])
-
-def get_sr_fastqs(wildcards)):
-    return config["sr_fastqs"][wildcards.sample]
-
-def get_zmw_input_fastqs(wildcards):
-    return config["lr_zmw_fastqs"][wildcards.sample]        
-
-def get_consensus_fasta_input(wildcards):
-    if "consensus_fasta" in config:
-        return config["consensus_fasta"]
-    else:
-        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta"
-
-def get_chain_input(wildcards):
-    if "chain" in config:
-        return config["chain"]
-    else:
-        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
-
-def get_sample_vcf_input(wildcards):
-    if "sample_vcf" in config:
-        return config["sample_vcf"]
-    else:
-        return "c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz"
-
-def get_sample_WGS_meryl_input(wildcards):
-    if "sample_WGS_meryl" in config:
-        return config["sample_WGS_meryl"]
-    else:
-        return "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl"
-
-def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
-    sex = config['sex'][wildcards.sample]
-    chr_list = [f'chr{i}' for i in range(1, 23)]
-    if gender == 'female':
-        return chr_list + ['chrX']
-    return chr_list
-
-def get_sex(wildcards):
-    sex = config['sex'][wildcards.sample]
-    return sex 
 
 rule personal_ref_bwa_map:
     input:
         consensus_fasta = get_consensus_fasta_input,
-        ngs_R1_fastq = get_sr_fastqs[0],
-        ngs_R2_fastq = get_sr_fastqs[1]
+        ngs_R1_fastq = lambda wildcards: get_sr_input_fastqs(wildcards)[0],
+        ngs_R2_fastq = lambda wildcards: get_sr_input_fastqs(wildcards)[1]
     output:
         ngs_ref_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.bam")
-    threads:
+    threads: 16
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         bwa mem -t {threads} -Y -R '@RG\\tID:'{wildcards.sample}'\\tSM:'{wildcards.sample}'\\tPL:ILLUMINA' {input.consensus_fasta} {input.ngs_R1_fastq} {input.ngs_R2_fastq} | samtools view -uSh -@ {threads} - | samtools sort -O bam -@ {threads} -o {output.ngs_ref_bam} -
@@ -68,10 +27,10 @@ rule personal_ref_bam_dedup:
     output:
         ngs_dedup_ref_bam = temp("c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.srt.dedup.bam"),
         ngs_ref_bam_dup_matric = "c6_draft_assembly/personal_ref_mapping/{sample}/{sample}.dedup.metrics"
-    threads:
+    threads: 16
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         ~/software/gatk-4.2.6.1/gatk MarkDuplicates \
@@ -82,6 +41,7 @@ rule personal_ref_bam_dedup:
         samtools index {output.ngs_dedup_ref_bam}
         """
 
+#TODO:what is the REF_DIR here? I forgot it.
 rule personal_ref_dv:
     input:
         consensus_fasta = get_consensus_fasta_input,
@@ -89,15 +49,15 @@ rule personal_ref_dv:
     output:
         personal_ref_dv_vcf = "c6_draft_assembly/personal_ref_dv/{sample}/{sample}.af_pangenome_polish.deepvariant.vcf.gz",
         personal_ref_dv_filter_vcf = "c6_draft_assembly/personal_ref_dv/{sample}/{sample}.af_pangenome_polish.deepvariant.filter.vcf.gz"
-    threads:
+    threads: 16
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         mkdir -p c6_draft_assembly/personal_ref_dv/{wildcards.sample}/tmp
         
-        singularity exec -B -B $(pwd):/project \
+        singularity exec -B $(pwd):/project \
             -B $(pwd)/c6_draft_assembly/personal_ref_dv/{wildcards.sample}/tmp:/tmp \
             -B ${{REF_DIR}}:${{REF_DIR}} \
             ~/software/deepvariant/deepvariant_v1.3_sandbox \
@@ -123,10 +83,10 @@ rule sample_origin_snv_liftover:
         sample_vcf = get_sample_vcf_input
     output:
         sample_assembly_vcf = "c6_draft_assembly/snv_liftover/{sample}/{sample}.assembly.shapeit4.vcf.gz"
-    threads:
+    threads: 1
     resources:
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         gatk CreateSequenceDictionary -R {input.consensus_fasta}
@@ -148,10 +108,10 @@ rule merge_variants:
         sample_assembly_vcf = "c6_draft_assembly/snv_liftover/{sample}/{sample}.assembly.shapeit4.vcf.gz"
     output:
         sample_assembly_merge_vcf = temp("c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.vcf.gz")
-    threads:
+    threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         bcftools merge \
@@ -168,7 +128,7 @@ rule merge_variants:
 rule merfin_filter_merged_variants:
     input:
         consensus_fasta = get_consensus_fasta_input,
-        sample_WGS_meryl = get_sample_WGS_meryl_input,
+        sample_meryl = get_sample_meryl_input,
         sample_assembly_merge_vcf = "c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.vcf.gz"
     output:
         sample_assembly_merge_filter_vcf = "c6_draft_assembly/snv_merge/{sample}/{sample}.assembly.merge.filter.vcf"
@@ -182,7 +142,7 @@ rule merfin_filter_merged_variants:
         """
         merfin -filter \
             -sequence {input.consensus_fasta} \
-            -readmers {input.sample_WGS_meryl} \
+            -readmers {os.path.dirname(input.sample_meryl)} \
             -vcf {input.sample_assembly_merge_vcf} \
             -output c6_draft_assembly/snv_merge/{wildcards.sample}/{wildcards.sample}.assembly.merge \
             -threads {threads} \
@@ -200,7 +160,7 @@ rule personal_ref_zmw_pbmm2:
     threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         pbmm2 align -j {threads} -J 4 \
@@ -221,10 +181,10 @@ rule sample_assembly_vcf_whatshap:
     output:
         sample_assembly_merge_filter_whatshap_vcf = "c6_draft_assembly/whatshap/{sample}/{sample}.assembly.merge.whatshap_phase.vcf.gz",
         sample_phase_block_list = "c6_draft_assembly/whatshap/{sample}/{sample}.phase_block.list"
-    threads:
+    threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         whatshap phase \
@@ -247,10 +207,10 @@ rule largest_haplotype_extract:
         sample_phase_block_list = "c6_draft_assembly/whatshap/{sample}/{sample}.phase_block.list"
     output:
         sample_chr_assembly_merge_final_phase_vcf = "c6_draft_assembly/whatshap/{sample}/{sample}.assembly.merge.final_phase.{chr}.vcf.gz"
-    threads:
-    resources:
+    threads: 4
+    resources: 
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         phase_ps=$(awk -v OFS='\\t' -v chr={wildcards.chr} 'BEGIN{{ps=0;number=0}} {{if($2==chr && $6>=number) {{ps=$3;number=$6}} }} END{{print ps}}' {output.sample_phase_block_list})
@@ -263,10 +223,10 @@ rule concat_final_phase_vcf:
         sample_chr_assembly_merge_final_phase_vcfs = expand("c6_draft_assembly/whatshap/{sample}/{sample}.assembly.merge.final_phase.{chr}.vcf.gz", chr=concat_final_phase_vcf_sex_specific_chrlist, allow_missing=True)
     output:
         sample_assembly_merge_final_phase_vcf = "c6_draft_assembly/whatshap/{sample}/{sample}.assembly.merge.final_phase.vcf.gz"
-    threads:
-    resources:
+    threads: 8
+    resources: 
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         bcftools concat --threads {threads} \
@@ -286,10 +246,10 @@ rule correct_switch_error:
         sample_switch_correct_dv_vcf = temp("c6_draft_assembly/switch_err_correct/{sample}/{sample}.assembly.switch_correct.deepvariant.vcf.gz"),
         sample_switch_correct_shapeit4_vcf = temp("c6_draft_assembly/switch_err_correct/{sample}/{sample}.assembly.switch_correct.shapeit4.vcf.gz"),
         sample_switch_correct_final_vcf = temp("c6_draft_assembly/switch_err_correct/{sample}/{sample}.assembly.merge.final_phase.switch_correct.vcf.gz")
-    threads:
+    threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         bcftools merge -m none --force-sample \
@@ -321,10 +281,10 @@ rule personal_ref_CLR_all_pbmm2:
         all_fofn = "c6_draft_assembly/result/{sample}/{sample}.CLR_all.fofn",
         all_ref_unsort_bam = "c6_draft_assembly/result/{sample}/{sample}.CLR_all.origin.bam",
         all_ref_bam = temp("c6_draft_assembly/result/{sample}/{sample}.CLR_all.bam")
-    threads:
+    threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         grep {wildcards.sample} {input.pac} | cut -f 2 | tr " " "\n" > {output.all_fofn}
@@ -340,10 +300,10 @@ rule personal_ref_hifi_pbmm2:
         hifi_fastq = get_hifi_input_fastqs
     output:
         hifi_ref_bam = temp("c6_draft_assembly/result/{sample}/{sample}.assembly.hifi.bam")
-    threads:
+    threads: 4
     resources:
         #
-        mem_mb = 
+        mem_mb = 64000
     shell:
         """
         pbmm2 align -j {threads} \
@@ -378,13 +338,15 @@ rule phase_assembly:
         sample_switch_correct_final_vcf = "c6_draft_assembly/switch_err_correct/{sample}/{sample}.assembly.merge.final_phase.switch_correct.vcf.gz",
         chrX_assembly_par = "c6_draft_assembly/result/{sample}/{sample}.assembly.chrX_PAR.bed"
     output:
+        hap1_fa = "c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.fasta",
+        hap2_fa = "c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.fasta",
     params:
         sex = get_sex,
         tmp_dir = "c6_draft_assembly/result/{sample}/{sample}_tmp"
     threads: 28
     resources:
         #200G
-        mem_mb = 200000 
+        mem_mb = 200000
     shell:
         """
         python3 ~/software/script/phase-assembly/phase_assembly.version2.py \

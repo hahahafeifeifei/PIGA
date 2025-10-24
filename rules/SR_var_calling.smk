@@ -1,19 +1,20 @@
 rule all_SR_var_calling:
     input:
-        "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz",
+        f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz",
         
 def get_sr_input_fastqs(wildcards):
     return config["sr_fastqs"][wildcards.sample]
 
+
 rule sr_bwa_map:
     input:
         fastqs = get_sr_input_fastqs,
-        ref = config['reference']['CHM13'] 
+        ref = config['reference']['CHM13']
     output:
         bam = "c1_call_sr_snv/sr_mapping/{sample}/{sample}.srt.bam",
         bai = "c1_call_sr_snv/sr_mapping/{sample}/{sample}.srt.bam.bai"
     log:
-        "logs/sr_bwa_map/{sample}.log" 
+        "logs/sr_bwa_map/{sample}.log"
     params:
         bwa = TOOLS['bwa']
     threads: 4
@@ -245,14 +246,14 @@ rule HaplotypeCaller_chrM:
 
 rule male_merge_vcfs:
     input:
-        ref = config['reference']['CHM13']
+        ref = config['reference']['CHM13'],
         autosomes = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.auto_chr.g.vcf.gz",
         chrX_PAR = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrX_PAR.g.vcf.gz",
         chrX_nonPAR = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrX_nonPAR.g.vcf.gz",
         chrY = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrY.g.vcf.gz",
         chrM = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrM.g.vcf.gz"
     output:
-        vcf = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
+        vcf = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.male.gatk.g.vcf.gz"
     log:
         "logs/male_merge_vcfs/{sample}.log"
     params:
@@ -275,12 +276,12 @@ rule male_merge_vcfs:
 
 rule female_merge_vcfs:
     input:
-        ref = config['reference']['CHM13']
+        ref = config['reference']['CHM13'],
         autosomes = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.auto_chr.g.vcf.gz",
         chrX = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrX.g.vcf.gz",
         chrM = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.chrM.g.vcf.gz"
     output:
-        vcf = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
+        vcf = "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.female.gatk.g.vcf.gz"
     log:
         "logs/female_merge_vcfs/{sample}.log"
     params:
@@ -299,7 +300,7 @@ rule female_merge_vcfs:
             2> {log}
         """        
 
-# based on the sex, select the rules.
+#based on the sex, select the rules.
 def dynamic_merge_vcfs_input(wildcards):
     if get_sex(wildcards) == "male":
         return rules.male_merge_vcfs.output
@@ -307,16 +308,25 @@ def dynamic_merge_vcfs_input(wildcards):
     else:
         return rules.female_merge_vcfs.output
 
-use rule $(dynamic_merge_vcfs_input) as dynamic_step with:
-    output: "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
+# use rule $(dynamic_merge_vcfs_input) as dynamic_step with:
+#     output: "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
 
+rule merge_vcfs:
+  input:
+    dynamic_merge_vcfs_input
+  output:
+    "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
+  shell:
+    """
+    mv {input} {output}
+    """
 
 
 rule construct_gvcf_map:
     input:
         gvcf = expand("c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz",sample = config['samples'])
     output:
-        gvcf_map = "c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map"
+        gvcf_map = f"c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map"
     threads: 1
     shell:
         """
@@ -344,7 +354,7 @@ rule construct_gvcf_map:
         
 rule GenomicsDB_GenotypeGVCFs_interval:
     input:
-        gvcf_map = "c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map" 
+        gvcf_map = f"c1_call_sr_snv/sr_gvcf/{config['prefix']}.analysis_set.gvcf.map" 
     output:
         vcf = "c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz"
     log:
@@ -389,7 +399,7 @@ rule merge_intervals:
         vcfs = expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",interval = config['intervals'])
     output:
         vcf_list = "c1_call_sr_snv/merged_vcf/interval.vcf.list",
-        merged_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz"
+        merged_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz"
     log:
         "logs/merge_intervals/merge_intervals.log"
     params:
@@ -404,7 +414,7 @@ rule merge_intervals:
 
 rule merged_vcf_snp_VQSR:
     input:
-        vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz",
+        vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.analysis_set.vcf.gz",
         ref = config['reference']['CHM13'],
         hapmap = config['GATK_Resource']['hapmap'],
         omni = config['GATK_Resource']['omni'],
@@ -412,7 +422,7 @@ rule merged_vcf_snp_VQSR:
         dbsnp = config['GATK_Resource']['dbsnp'],
         known_indel = config['GATK_Resource']['known_indel']
     output:
-        snp_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz"
+        snp_recalibrated_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz"
     log:
         "logs/merged_vcf_snp_VQSR/merged_vcf_snp_VQSR.log"
     params:
@@ -455,13 +465,13 @@ rule merged_vcf_snp_VQSR:
 
 rule merged_vcf_indel_VQSR:
     input:
-        vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz",
+        vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.snp_recalibrated.analysis_set.vcf.gz",
         ref = config['reference']['CHM13'],
         mills = config['GATK_Resource']['mills'],
         axiomPoly = config['GATK_Resource']['axiomPoly'],
         dbsnp = config['GATK_Resource']['dbsnp']
     output:
-        snp_indel_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz"
+        snp_indel_recalibrated_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz"
     log:
         "logs/merged_vcf_indel_VQSR/merged_vcf_indel_VQSR.log"
     params:
@@ -503,11 +513,11 @@ rule merged_vcf_indel_VQSR:
 #snp_indel_recalibrated_filter_chrX_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.chrX.vcf.gz"
 rule gatk_vcf_filter:
     input:
-        snp_indel_recalibrated_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz",
+        snp_indel_recalibrated_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.analysis_set.vcf.gz",
         ref = config['reference']['CHM13']
     output:
-        snp_indel_recalibrated_filter_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz",
-        snp_indel_recalibrated_filter_hwe_vcf = "c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz"
+        snp_indel_recalibrated_filter_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz",
+        snp_indel_recalibrated_filter_hwe_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.hwe_missing_filter.analysis_set.biallelic.vcf.gz"
     params:
         variant_samples_number = 1034
     threads: 16

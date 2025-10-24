@@ -17,22 +17,22 @@ rule all_split_minigraph:
 
 def get_hap1_adaptor_masked_fa_input(wildcards):
     if "hap1_adaptor_masked_fa" in config:
-        return config["hap1_adaptor_masked_fa"]
+        return config["hap1_adaptor_masked_fa"][wildcards.sample]
     else:
-        return "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
+        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
 
 def get_hap2_adaptor_masked_fa_input(wildcards):
     if "hap2_adaptor_masked_fa" in config:
-        return config["hap2_adaptor_masked_fa"]
+        return config["hap2_adaptor_masked_fa"][wildcards.sample]
     else:
-        return "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
+        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
 
 
 #TODO: use adaptor_masked fa or not?
 rule split_fa_by_chr:
     input:
-        hap1_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta",
-        hap2_adaptor_masked_fa = "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
+        hap1_adaptor_masked_fa = get_hap1_adaptor_masked_fa_input,
+        hap2_adaptor_masked_fa = get_hap2_adaptor_masked_fa_input
     output:
         chr_hap1_fasta = "c7_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta",
         chr_hap2_fasta = "c7_graph_construction/chr_fa/{chr}/{sample}.hap2.fasta"
@@ -55,7 +55,7 @@ rule generate_seqfile_by_chr:
         chm13_ref = config['reference']['CHM13'],
         grch38_ref = config['reference']['GRCh38']
     output:
-        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile"
+        seqfile = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.seqfile"
     log:
         "logs/generate_seqfile_by_chr/{chr}.log"
     shell:
@@ -78,21 +78,21 @@ rule generate_seqfile_by_chr:
 #first sort by depth. Then run the minigraph
 rule minigraph_by_chr:
     input:
-        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile"
+        seqfile = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.seqfile"
     output:
-        gfa = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.gfa"
+        gfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.gfa"
     log:
         "logs/minigraph_by_chr/{chr}.log"
     threads: 16
     shell:
         """
 
-        awk -v OFS='\t' '{{print $2}}' {input.seqfile} > c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile
+        awk -v OFS='\t' '{{print $2}}' {input.seqfile} > c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.seqfile
         
         minigraph -c -x ggs -l 10000 \
         -t {threads} \
         chr_gfa/t2t.grch38.58hifi.{chr}.gfa \
-        $(cat c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.minigraph.seqfile) \
+        $(cat c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.seqfile) \
         > {output.gfa}
         
         """
@@ -100,10 +100,10 @@ rule minigraph_by_chr:
         
 rule minigraph_vg_snarls:
     input:
-        gfa = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.minigraph.gfa"
+        gfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.gfa"
     output:
-        snarls = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.minigraph.snarls",
-        snarls_txt = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.minigraph.snarls.txt"
+        snarls = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.snarls",
+        snarls_txt = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.snarls.txt"
     log:
         "logs/minigraph_vg_snarls/{chr}.log"
     shell:
@@ -115,9 +115,9 @@ rule minigraph_vg_snarls:
 #TODO:check if the tools can run.(odgi)
 rule odgi_build:
     input:
-        gfa = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.minigraph.gfa"
+        gfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.gfa"
     output:
-        og = "c7_graph_construction/chr_mc/{config['prefix']}.{chr}.minigraph.og"
+        og = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.og"
     log:
         "logs/odgi_build/{chr}.log"
     threads: 16
@@ -132,14 +132,14 @@ rule odgi_build:
         
 rule border_node_select:
     input:
-        gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.gfa",
-        snarls_txt="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.snarls.txt",
-        og="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.og"
+        gfa=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.gfa",
+        snarls_txt=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.snarls.txt",
+        og=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.og"
     output:
-        node_split_gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.gfa",
-        node_edge_split_gfa="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.edge_split.gfa",
-        info="c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.info",
-        node_split_rgfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.rgfa"
+        node_split_gfa=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.gfa",
+        node_edge_split_gfa=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.edge_split.gfa",
+        info=f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.info",
+        node_split_rgfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.rgfa"
     log:
         "logs/border_node_select/{chr}.log"
     shell:
@@ -160,12 +160,12 @@ rule border_node_select:
         
 rule cactus_graphmap:
     input:
-        node_split_rgfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.rgfa"
+        node_split_rgfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.rgfa"
     output:
-        fa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.fa.gz",
-        paf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
-        gaf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.gaf.gz",
-        filter_gaf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.gaf"
+        fa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.fa.gz",
+        paf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.paf",
+        gaf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.gaf.gz",
+        filter_gaf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.filter.gaf"
     params:
         mapCores = 4,
         outputGAFDir = "c7_graph_construction/chr_mc/{chr}/graphmap",
@@ -189,9 +189,9 @@ rule cactus_graphmap:
 # vg trunk will generate a list of subgraph.gfa files. Here I use subgraph_0.gfa as output to make sure the rule can work.
 rule vg_chunk:
     input:
-        node_edge_split_gfa = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.edge_split.gfa"
+        node_edge_split_gfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.edge_split.gfa"
     output:
-        subgraph_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa"
+        subgraph_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/{config['prefix']}.{{chr}}.subgraph_0.gfa"
     log:
         "logs/vg_chunk/{chr}.log"
     params:
@@ -205,12 +205,12 @@ rule vg_chunk:
 
 rule generate_subgraph_bed:
     input:
-        subgraph_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.gfa",
-        paf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.paf",
-        gaf = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.filter.gaf"
+        subgraph_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/{config['prefix']}.{{chr}}.subgraph_0.gfa",
+        paf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.paf",
+        gaf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.filter.gaf"
     output:
-        subgraph_paf = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.paf",
-        subgraph_bed = "c7_graph_construction/chr_mc/{chr}/subgraph/{config['prefix']}.{chr}.subgraph_0.bed"
+        subgraph_paf = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/{config['prefix']}.{{chr}}.subgraph_0.paf",
+        subgraph_bed = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/{config['prefix']}.{{chr}}.subgraph_0.bed"
     log:
         "logs/generate_subgraph_bed/{chr}.log"
     params:
@@ -218,19 +218,19 @@ rule generate_subgraph_bed:
     shell:
         """
         python3 scripts/graph-construct/subgraph_paf_fa.py \
-        c7_graph_construction/chr_mc/{chr}/subgraph/{params.prefix}.{chr}.subgraph \
+        c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/{params.prefix}.{wildcards.chr}.subgraph \
         {input.paf} \
         {input.gaf} \
-        c7_graph_construction/chr_mc/{chr}/subgraph
+        c7_graph_construction/chr_mc/{wildcards.chr}/subgraph
         """
 
 #TODO: here idk why it is not ok if I replace "t2t.grch38.58hifi.1064zmw" by config['prefix']
 rule process_subgraph:
     input:
-        seqfile = "c7_graph_construction/chr_mc/{chr}/t2t.grch38.58hifi.1064zmw.{chr}.seqfile",
-        info = "c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.node_split.info"
+        seqfile = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.seqfile",
+        info = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.info"
     output:
-        subgraph_seqfile = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph0/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_0.seqfile"
+        subgraph_seqfile = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph0/CKCG.{chr}.subgraph_0.seqfile"
     log:
         "logs/process_subgraph/{chr}.log"
     params:
@@ -276,5 +276,7 @@ checkpoint prepare_subgraph_list:
         subgraph_list = "c7_graph_construction/chr_mc/subgraph.list" 
     shell:
         """
-        for chr in `ls -d chr*`;do  for subgraph_id in `ls -d ${{chr}}/subgraph/subgraph*`;do idx=$(echo ${{subgraph_id}} | awk '{{split($1,a,"/");print a[length(a)]}}' | awk -v FS='subgraph' '{{print $2}}'); echo -e ${{chr}}"\\t"${{idx}}; done; done > c7_graph_construction/chr_mc/subgraph.list
+        for chr in `ls -d chr*`;do \
+          for subgraph_id in `ls -d ${{chr}}/subgraph/subgraph*`;do idx=$(echo ${{subgraph_id}} | awk '{{split($1,a,"/");print a[length(a)]}}' | awk -v FS='subgraph' '{{print $2}}'); echo -e ${{chr}}"\\t"${{idx}}; done;
+        done > c7_graph_construction/chr_mc/subgraph.list
         """

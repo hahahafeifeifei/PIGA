@@ -5,7 +5,7 @@ rule all_merge_pangenome:
     input:
         "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl",
         "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz",
-        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
+        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]),
         expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
 
 
@@ -81,7 +81,7 @@ rule subgraph_variant_path_merge:
     shell:
         """
         > {output.merged_variant_path}
-        awk -v chr={wildcards.chr} '{if($1==chr) print$2}' {input.subgraph_order_list} | while read subgraph_id
+        awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.subgraph_order_list} | while read subgraph_id
         do
         cat c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph${{subgraph_id}}/t2t.grch38.58hifi.1064zmw.{wildcards.chr}.subgraph_${{subgraph}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path >> {output.merged_variant_path}
         done
@@ -105,8 +105,8 @@ rule form_chr_gbz:
 #TODO: where do the gbz files come from?
 rule form_merged_gbz:
     input:
-        chr_gfas = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr=chr_list),
-        chr_gbzs = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gbz", chr=chr_list)
+        chr_gfas = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]),
+        chr_gbzs = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gbz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
     output:
         merge_xg = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.nopath.xg",
         merge_gbwt = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbwt",

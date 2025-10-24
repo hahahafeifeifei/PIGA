@@ -1,14 +1,8 @@
 rule all_LR_var_calling:
     input:
         "c2_call_lr_snv/lr_beagle/concat/CKCG.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz"
-,
 
-
-def get_hifi_input_fastqs(wildcards):
-    return config["lr_hifi_fastqs"][wildcards.sample]
-def get_zmw_input_fastqs(wildcards):
-    return config["lr_zmw_fastqs"][wildcards.sample]
-
+chr_list = [f'chr{i}' for i in range(1, 23)] + ['chrX']
 
 rule lr_hifi_pbmm2_map:
     input:
@@ -103,7 +97,6 @@ rule lr_glnexus:
         chr_bed = "c2_call_lr_snv/lr_glnexus/chr_bed/CHM13.{chr}.bed",
         dv_gvcfs = expand("c2_call_lr_snv/lr_dv/{sample}/{sample}.deepvariant.gvcf.gz", sample=config['samples'])
     output:
-        dv_gvcf_list = "c2_call_lr_snv/lr_glnexus/CKCG.deepvariant.gvcf.list",
         glnexus_bcf = "c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.{chr}.bcf",
         glnexus_vcf = "c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.{chr}.vcf.gz",
         glnexus_snp_vcf = "c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.biallelic_snp.{chr}.vcf.gz"
@@ -117,7 +110,7 @@ rule lr_glnexus:
         bcftools = TOOLS['bcftools']
     shell:
         """
-        if [ ! -s {output.dv_gvcf_list} ];then \
+        if [ ! -s c2_call_lr_snv/lr_glnexus/CKCG.deepvariant.gvcf.list ];then \
             ls c2_call_lr_snv/lr_dv/*/*.deepvariant.gvcf.gz > {output.dv_gvcf_list}
         fi
         
@@ -129,7 +122,7 @@ rule lr_glnexus:
         --bed c2_call_lr_snv/lr_glnexus/chr_bed/CHM13.{wildcards.chr}.bed \
         --threads {threads} \
         --mem-gbytes {params.mem} \
-        $(cat CKCG.deepvariant.gvcf.list) > {output.glnexus_bcf}
+        $(cat c2_call_lr_snv/lr_glnexus/CKCG.deepvariant.gvcf.list) > {output.glnexus_bcf}
 
         bcftools view --threads {threads} {output.glnexus_bcf} | \
             bcftools norm --threads {threads} -m -any |\
@@ -198,7 +191,7 @@ rule lr_whatshap_vcf_merge:
         merge_whatshap_snp_vcf = "c2_call_lr_snv/lr_whatshap/merge/CKCG.deepvariant.whatshap.analysis_set.biallelic_snp.vcf.gz"
     threads: 16
     resources:
-        mem_mb = 
+        mem_mb = 30000
     shell:
         """
         ls c2_call_lr_snv/lr_whatshap/*/*.deepvariant.whatshap.biallelic_snp.reform.vcf.gz > {output.sample_whatshap_reform_snp_vcf_list}
@@ -215,7 +208,7 @@ rule lr_whatshap_vcf_merge:
 
 rule lr_longshot_genotype:
     input:
-        sample_snp_vcf = "c2_call_lr_snv/lr_whatshap/{sample}/{sample}.deepvariant.biallelic_snp.vcf.gz",
+        sample_snp_vcf = "c2_call_lr_snv/lr_glnexus/{sample}/{sample}.deepvariant.biallelic_snp.vcf.gz",
         zmw_bam = "c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam",
         ref = config['reference']['CHM13']
     output:

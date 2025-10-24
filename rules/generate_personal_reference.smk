@@ -5,11 +5,6 @@ rule all_generate_personal_reference:
         expand("c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz", sample=config['samples'])
 
 
-def get_zmw_input_fastqs(wildcards):
-    return config["lr_zmw_fastqs"][wildcards.sample]
-def get_sr_input_fastqs(wildcards):
-    return config["sr_fastqs"][wildcards.sample]
-
 rule lr_GraphAligner_mapping:
     input:
         pbcc_fastq = get_zmw_input_fastqs

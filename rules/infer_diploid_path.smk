@@ -1,66 +1,13 @@
-def get_sex_specific_chr_list(wildcards):
-    sex = config['sex'][wildcards.sample]
-    
-    chr_list = [f'chr{i}' for i in range(1, 23)] + ['chrX']
-    if gender == 'male':
-        return chr_list + ['chrY']
-    return chr_list
-
-def get_sex(wildcards):
-    sex = config['sex'][wildcards.sample]
-    return sex 
-
-def get_sr_input_fastqs(wildcards):
-    return config["sr_fastqs"][wildcards.sample]
-
-def get_hifi_input_fastqs(wildcards):
-    return config["lr_hifi_fastqs"][wildcards.sample]
-
-def get_hapl_input(wildcards):
-    if "hapl" in config:
-        return config["hapl"]
-    else:
-        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl"
-
-def get_gbz_input(wildcards):
-    if "gbz" in config:
-        return config["gbz"]
-    else:
-        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz"
-
-def get_gfa_input(wildcards):
-    if "gfa" in config:
-        return config["gfa"]
-    else:
-        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa"
-
-def get_variant_path_input(wildcards):
-    if "variant_path" in config:
-        return config["variant_path"]
-    else:
-        return "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path"
-        
-def get_hap1_adaptor_masked_fa_input(wildcards):
-    if "hap1_adaptor_masked_fa" in config:
-        return config["hap1_adaptor_masked_fa"]
-    else:
-        return "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
-
-def get_hap2_adaptor_masked_fa_input(wildcards):
-    if "hap2_adaptor_masked_fa" in config:
-        return config["hap2_adaptor_masked_fa"]
-    else:
-        return "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
 
 rule all_infer_diploid_path:
     input:
         expand("c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta", sample=config['samples']),
         expand("c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta", sample=config['samples'])
 
-rule prepare_sample_kmer:
+rule kmc_prepare_sample_kmer:
     input:
-        ngs_R1_fq = get_sr_input_fastqs[0],
-        ngs_R2_fq = get_sr_input_fastqs[1],
+        ngs_R1_fq = lambda wildcards: get_sr_input_fastqs(wildcards)[0],
+        ngs_R2_fq = lambda wildcards: get_sr_input_fastqs(wildcards)[1],
         hifi_fq = get_hifi_input_fastqs
     output:
         kmer_list = "c8_diploid_path_infer/result/{sample}/{sample}.kmer.list",
@@ -88,7 +35,7 @@ rule get_sample_haplotype_path:
         sample_kff = "c8_diploid_path_infer/result/{sample}/{sample}.kmer.kff"
     output:
         sample_haplotype_gbz = temp("c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.gbz"),
-        sample_haplotype_gfa = temp("c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.gfa")    
+        sample_haplotype_gfa = temp("c8_diploid_path_infer/result/{sample}/{sample}.haplotypes.gfa")
     threads: 4
     resources:
         #450G

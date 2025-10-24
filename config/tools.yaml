@@ -1,2 +1,9 @@
-bwa:
-    - 1KCP-00202
+tools:
+  bwa: ""
+  gatk: ""
+  pbmm2: ""
+  singularity: ""
+  deepvariant: ""
+  glnexus: ""
+  bcftools: ""
+  samtools: ""

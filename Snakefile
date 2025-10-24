@@ -1,25 +1,46 @@
 import os
 
+configfile: "config/config.yaml"
 configfile: "config/tools.yaml"
 
-# check the path of tools
-def validate_tool(tool_path):
-    
-    if not os.path.exists(tool_path):
-        raise ValueError(f"Tool path {tool_path} does not exist!")
-    return tool_path
-
-# set a dictionary to check and store the path of tools.
 TOOLS = {
-    tool: validate_tool(path) for tool, path in config['tools'][category].items() for category in config['tools']
+    tool: path
+     for tool, path in config['tools'].items()
 }
-# from functools import partial
+# 
+# # check the path of tools
+# def validate_tool(tool_path):
+#     
+#     if not os.path.exists(tool_path):
+#         raise ValueError(f"Tool path {tool_path} does not exist!")
+#     return tool_path
+# 
+# # set a dictionary to check and store the path of tools.
+# TOOLS = {
+#     tool: validate_tool(path) for tool, path in config['tools'][category].items() for category in config['tools']
+# }
+# # from functools import partial
 
 with open('CHM13.20mb.interval') as f:
     intervals_list = [line.split("\t")[0].strip() for line in f]
 config['intervals'] = intervals_list
 
 # prefix = "t2t.grch38.58hifi.1064zmw"
+
+#load the included snakemake files.
+
+include: "rules/utils.smk"
+include: "rules/SR_var_calling.smk"
+include: "rules/LR_var_calling.smk"
+include: "rules/merge_snv.smk"
+include: "rules/phase_snv.smk"
+include: "rules/generate_personal_reference.smk"
+include: "rules/draft_assembly.smk"
+include: "rules/split_minigraph.smk"
+include: "rules/graph_construction.smk"
+include: "rules/simplify_ml_pangenome.smk"
+include: "rules/merge_pangenome.smk"
+include: "rules/infer_diploid_path.smk"
 
 Call_SR_SNV = config.get("Call_SR_SNV", False)
 Call_LR_SNV = config.get("Call_LR_SNV", False)
@@ -47,6 +68,7 @@ elif Call_LR_SNV:
             rules.all_LR_var_calling.input
     
 elif Merge_SNV:
+
     rule all:
         input:
             rules.all_merge_snv.input
@@ -105,17 +127,4 @@ else:
             rules.all_infer_diploid_path.input
 
         
-#load the included snakemake files.
-include: "rules/SR_var_calling.smk"
-include: "rules/LR_var_calling.smk"
-include: "rules/merge_snv.smk"
-include: "rules/phase_snv.smk"
-include: "rules/generate_personal_reference.smk"
-include: "rules/draft_assembly.smk"
-include: "rules/split_minigraph.smk"
-include: "rules/graph_construction.smk"
-include: "rules/simplify_ml_pangenome.smk"
-include: "rules/merge_pangenome.smk"
-include: "rules/infer_diploid_path.smk"
-
 #allow_missing=True

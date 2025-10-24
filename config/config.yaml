@@ -1,70 +1,65 @@
 samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
-    
+  - CKCG-00200
+  - CKCG-00201
+  - CKCG-00202
+
 training_samples:
-    - 1KCP-00202
-    
+  - CKCG-00202
+
 test_samples:
-    - 1KCP-00202
-    
+  - CKCG-00202
+
+validate_samples:
+  - CKCG-00202
+
+sex:
+  CKCG-00200: "female"
+  CKCG-00201: "male"
+  CKCG-00202: "female"
+
 sr_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
-                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
-                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
-                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+  CKCG-00200:
+    - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R1.fastq.gz
+    - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R2.fastq.gz
+  CKCG-00201:
+    - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R1.fastq.gz
+    - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R2.fastq.gz
+  CKCG-00202:
+    - test_data/CKCG-00202/CKCG-00202-WGS.fastp.R1.fastq.gz
+    - test_data/CKCG-00202/CKCG-00202-WGS.fastp.R2.fastq.gz
 
 lr_hifi_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_hifi.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_hifi.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_hifi.fastq.gz
+  CKCG-00200:
+    - test_data/CKCG-00200/CKCG-00200-CLR.pbccs_all.merge.fastq.gz
+  CKCG-00201:
+    - test_data/CKCG-00201/CKCG-00201-CLR.pbccs_all.merge.fastq.gz
+  CKCG-00202:
+    - test_data/CKCG-00202/CKCG-00202-CLR.pbccs_all.merge.fastq.gz
 
 lr_zmw_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
+  CKCG-00200:
+    - test_data/CKCG-00200/CKCG-00200-CLR.pbccs_all.merge.fastq.gz
+  CKCG-00201:
+    - test_data/CKCG-00201/CKCG-00201-CLR.pbccs_all.merge.fastq.gz
+  CKCG-00202:
+    - test_data/CKCG-00202/CKCG-00202-CLR.pbccs_all.merge.fastq.gz
 
 reference:
-    CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
-    GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
+  CHM13: test_data/reference/chm13v2.0_maskedY_rCRS.fa
+  GRCh38: test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai
 
+kmer:
+  CHM13: test_data/reference/CHM13_21mer_meryl/
 
 GATK_Resource:
-    dbsnp:
-        test/reference/gatk_bundle/chm13v2.0_dbSNPv155.vcf.gz 
-    hapmap:
-        test/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz 
-    omni:
-        test/reference/gatk_bundle/1000G_omni2.5.chm13_liftover.vcf.gz
-    1000G:
-        test/reference/gatk_bundle/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
-    known_indel:
-        test/reference/gatk_bundle/Homo_sapiens_assembly38.known_indels.chm13_liftover.vcf.gz 
-    mills:
-        test/reference/gatk_bundle/CHM13/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz 
-    axiomPoly:
-        test/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
-        
+  dbsnp: test_data/reference/gatk_bundle/chm13v2.0_dbSNPv155.vcf.gz
+  hapmap: test_data/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz
+  omni: test_data/reference/gatk_bundle/1000G_omni2.5.chm13_liftover.vcf.gz
+  1000G: test_data/reference/gatk_bundle/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
+  known_indel: test_data/reference/gatk_bundle/Homo_sapiens_assembly38.known_indels.chm13_liftover.vcf.gz
+  mills: test_data/reference/gatk_bundle/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz
+  axiomPoly: test_data/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
 
-genetic_map: "test/genetic_map/genetic_map_chm13_{chr}.reform.txt"
+genetic_map: "test_data/genetic_map/genetic_map_chm13_{chr}.reform.txt"
 
-topmed_east_asian: "test/variant_panel/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
-
-prefix:
-    1kcp
-
-
+prefix: CKCG
