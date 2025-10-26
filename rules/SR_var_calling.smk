@@ -83,7 +83,6 @@ rule sr_bam_BQSR:
         """
 
 
-#TODO: consider the variant calling of chrX, chrY and also chrM.
 rule HaplotypeCaller_autosomes:
     input:
         bam = "c1_call_sr_snv/sr_bqsr/{sample}/{sample}.bqsr.bam",
@@ -406,9 +405,9 @@ rule merge_intervals:
         gatk = TOOLS['gatk']
     shell:
         """
-        ls c1_call_sr_snv/interval_vcf/*.raw_variant.vcf.gz > {input.vcf_list}
+        ls c1_call_sr_snv/interval_vcf/*.raw_variant.vcf.gz > {output.vcf_list}
         {params.gatk} MergeVcfs \
-            -I {input.vcf_list} \
+            -I {output.vcf_list} \
             -O {output.merged_vcf} 2> {log}
         """
 
@@ -433,7 +432,7 @@ rule merged_vcf_snp_VQSR:
         min_mem_mb = 100000    
     shell:
         """
-        {params.gatk} --java-options "-Xmx{resources.max_mem_gb}M -Xms{resources.min_mem_gb}M" \
+        {params.gatk} --java-options "-Xmx{resources.max_mem_mb}M -Xms{resources.min_mem_mb}M" \
             VariantRecalibrator \
             -R {input.ref} \
             -V {input.vcf} \
@@ -450,7 +449,7 @@ rule merged_vcf_snp_VQSR:
             --tranches-file c1_call_sr_snv/merged_vcf/snps.tranches \
             2> {log}
         
-        {params.gatk} --java-options "-Xmx{resources.max_mem_gb}M -Xms{resources.min_mem_gb}M" \
+        {params.gatk} --java-options "-Xmx{resources.max_mem_mb}M -Xms{resources.min_mem_mb}M" \
             ApplyVQSR \
             -R {input.ref} \
             -V {input.vcf} \

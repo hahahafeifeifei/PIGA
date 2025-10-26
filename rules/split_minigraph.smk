@@ -13,19 +13,6 @@ def get_all_subgraph_seqfiles(wildcards, prefix):
 rule all_split_minigraph:
     input:
         partial(get_all_subgraph_seqfiles, prefix = config['prefix'])
-        
-
-def get_hap1_adaptor_masked_fa_input(wildcards):
-    if "hap1_adaptor_masked_fa" in config:
-        return config["hap1_adaptor_masked_fa"][wildcards.sample]
-    else:
-        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
-
-def get_hap2_adaptor_masked_fa_input(wildcards):
-    if "hap2_adaptor_masked_fa" in config:
-        return config["hap2_adaptor_masked_fa"][wildcards.sample]
-    else:
-        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
 
 
 #TODO: use adaptor_masked fa or not?
@@ -47,7 +34,6 @@ rule split_fa_by_chr:
         
         """
 
-#TODO: reference 出现两遍
 rule generate_seqfile_by_chr:
     input:
         samples_hap1_fa = expand("c7_graph_construction/chr_fa/{chr}/{sample}.hap1.fasta", sample = config['samples'], allow_missing=True),
@@ -84,15 +70,17 @@ rule minigraph_by_chr:
     log:
         "logs/minigraph_by_chr/{chr}.log"
     threads: 16
+    params:
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
 
-        awk -v OFS='\t' '{{print $2}}' {input.seqfile} > c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.seqfile
+        awk -v OFS='\t' '{{print $2}}' {input.seqfile} > c7_graph_construction/chr_mc/{{wildcards.chr}}/{params.prefix}.{{wildcards.chr}}.minigraph.seqfile
         
         minigraph -c -x ggs -l 10000 \
         -t {threads} \
-        chr_gfa/t2t.grch38.58hifi.{chr}.gfa \
-        $(cat c7_graph_construction/chr_mc/{chr}/{config['prefix']}.{chr}.minigraph.seqfile) \
+        chr_gfa/t2t.grch38.58hifi.{wildcards.chr}.gfa \
+        $(cat c7_graph_construction/chr_mc/{wildcards.chr}/{params.prefix}.{wildcards.chr}.minigraph.seqfile) \
         > {output.gfa}
         
         """
@@ -112,7 +100,7 @@ rule minigraph_vg_snarls:
         vg view -R {output.snarls} > {output.snarls_txt}
         """
 
-#TODO:check if the tools can run.(odgi)
+#check if the tools can run.(odgi)
 rule odgi_build:
     input:
         gfa = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.gfa"
@@ -168,11 +156,11 @@ rule cactus_graphmap:
         filter_gaf = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.filter.gaf"
     params:
         mapCores = 4,
-        outputGAFDir = "c7_graph_construction/chr_mc/{chr}/graphmap",
+        outputGAFDir = "c7_graph_construction/chr_mc/{wildcards.chr}/graphmap",
         reference = "CHM13",
         delFilter = 10000000,
-        logFile = "c7_graph_construction/chr_mc/{chr}/graphmap/graphmap.log",
-        tmpDir = "c7_graph_construction/chr_mc/{chr}/tmp_cactus"
+        logFile = "c7_graph_construction/chr_mc/{wildcards.chr}/graphmap/graphmap.log",
+        tmpDir = "c7_graph_construction/chr_mc/{wildcards.chr}/tmp_cactus"
     threads: 16
     shell:
         """
@@ -195,7 +183,7 @@ rule vg_chunk:
     log:
         "logs/vg_chunk/{chr}.log"
     params:
-        prefix = config['prefix']
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
         mkdir c7_graph_construction/chr_mc/{wildcards.chr}/subgraph
@@ -214,7 +202,7 @@ rule generate_subgraph_bed:
     log:
         "logs/generate_subgraph_bed/{chr}.log"
     params:
-        prefix = config['prefix']
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
         python3 scripts/graph-construct/subgraph_paf_fa.py \
@@ -224,18 +212,17 @@ rule generate_subgraph_bed:
         c7_graph_construction/chr_mc/{wildcards.chr}/subgraph
         """
 
-#TODO: here idk why it is not ok if I replace "t2t.grch38.58hifi.1064zmw" by config['prefix']
 rule process_subgraph:
     input:
         seqfile = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.seqfile",
         info = f"c7_graph_construction/chr_mc/{{chr}}/{config['prefix']}.{{chr}}.minigraph.node_split.info"
     output:
-        subgraph_seqfile = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph0/CKCG.{chr}.subgraph_0.seqfile"
+        subgraph_seqfile = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph0/{config['prefix']}.{{chr}}.subgraph_0.seqfile"
     log:
         "logs/process_subgraph/{chr}.log"
     params:
-        prefix = config['prefix'],
-        chr_dir = "c7_graph_construction/chr_mc/{chr}"
+        prefix = lambda wildcards: config['prefix'],
+        chr_dir = "c7_graph_construction/chr_mc/{wildcards.chr}"
     shell:
         """
         row=$[$(cat {input.info} | wc -l)-1]
@@ -260,7 +247,7 @@ rule process_subgraph:
 
             done
             
-            awk '{{if($1=="S")print">id=_MINIGRAPH_|s"$2"\\n"$3}}' {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${i}.gfa > {params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta
+            awk '{{if($1=="S")print">id=_MINIGRAPH_|s"$2"\\n"$3}}' {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${{i}}.gfa > {params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta
 
             echo -e _MINIGRAPH_"\\t"{params.chr_dir}/subgraph/subgraph${{i}}/fa/_MINIGRAPH_.subgraph${{i}}.fasta >> {params.chr_dir}/subgraph/subgraph${{i}}/{params.prefix}.{wildcards.chr}.subgraph_${{i}}.seqfile
 

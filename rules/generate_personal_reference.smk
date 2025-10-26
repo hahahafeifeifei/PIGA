@@ -5,6 +5,7 @@ rule all_generate_personal_reference:
         expand("c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz", sample=config['samples'])
 
 
+#TODO: pangenome provided by us or uses themselves?
 rule lr_GraphAligner_mapping:
     input:
         pbcc_fastq = get_zmw_input_fastqs
@@ -44,8 +45,8 @@ rule sr_giraffe_mapping:
         -g {params.pangenome_name}.gg \
         -m {params.pangenome_name}.min \
         -d {params.pangenome_name}.dist \
+        -f {input.ngs_fastq[0]} \
         -f {input.ngs_fastq[1]} \
-        -f {input.ngs_fastq[2]} \
         > {output.ngs_gam}
         """
         
@@ -104,6 +105,7 @@ rule gam_merge:
         cat {input.pbcc_gam} {input.ngs_gam} > {output.ngs_merged_gam}
 
         """
+#TODO: pangenome provided by us or uses themselves?
 rule gam_call_variants:
     input:
         gam = "c5_personal_ref/merged_gam/{sample}/{sample}.merge.gam"

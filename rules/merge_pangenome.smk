@@ -3,31 +3,11 @@
 
 rule all_merge_pangenome:
     input:
-        "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl",
-        "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz",
-        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]),
-        expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
+        f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl",
+        f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz",
+        expand("c7_graph_construction/graph_merge/{prefix}.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix']),
+        expand("c7_graph_construction/graph_merge/{prefix}.{chr}.variant.path", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix'])
 
-
-
-#for a given chromosome, generate all subgraph_id.
-def get_all_subgraph_assembly_gfa_files(wildcards, prefix):
-    if "subgraph_list" in config:
-        chr_subgraph_combination_file = config["subgraph_list"]
-    else:
-        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
-    chr_pairs = []
-    with open(chr_subgraph_combination) as f:
-        for line in f:
-            chr, subgraph_id = line.strip().split("\t")
-            if chr == wildcards.chr:
-                if "subgraph_assembly_gfa" in config:
-                    subgraph_assembly_gfa_file = config['subgraph_assembly_gfa'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
-                else:
-                    subgraph_assembly_gfa_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa"
-                
-                chr_pairs.append(subgraph_assembly_gfa_file)
-    return chr_pairs
 
         
 ###TODO:how to get the ordered subgraph list?
@@ -36,13 +16,15 @@ rule subgraph_gfa_merge:
         partial(get_all_subgraph_assembly_gfa_files, prefix = config['prefix']),
         subgraph_order_list = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.list"
     output:
-        merged_gfa = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa"
+        merged_gfa = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa"
     threads: 8
+    params:
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
-        awk -v chr={wildcards.chr} '{if($1==chr) print$2}' {input.subgraph_order_list} | while read subgraph_id
+        awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.subgraph_order_list} | while read subgraph_id
         do
-        echo c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph${{subgraph_id}}/t2t.grch38.58hifi.1064zmw.{wildcards.chr}.subgraph_${{subgraph}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa
+        echo c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph${{subgraph_id}}/{params.prefix}.{wildcards.chr}.subgraph_${{subgraph}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa
         done > c7_graph_construction/graph_merge/{wildcards.chr}.gfa.list
         
         python3 scripts/graph-simplification/gfa_merge.py \
@@ -52,38 +34,20 @@ rule subgraph_gfa_merge:
         {threads}
         """
 
-
-def get_all_subgraph_variant_path_files(wildcards, prefix):
-    if "subgraph_list" in config:
-        chr_subgraph_combination_file = config["subgraph_list"]
-    else:
-        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
-    chr_pairs = []
-    with open(chr_subgraph_combination) as f:
-        for line in f:
-            chr, subgraph_id = line.strip().split("\t")
-            if chr == wildcards.chr:
-                if "subgraph_variant_path" in config:
-                    subgraph_variant_path_file = config['subgraph_variant_path'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
-                else:
-                    subgraph_variant_path_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path"
-                
-                chr_pairs.append(subgraph_assembly_gfa_file)
-    return chr_pairs
-
-
 rule subgraph_variant_path_merge:
     input:
         partial(get_all_subgraph_variant_path_files, prefix = config['prefix']),
         subgraph_order_list = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.list"
     output:
-        merged_variant_path = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path"
+        merged_variant_path = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
+    params:
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
         > {output.merged_variant_path}
         awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.subgraph_order_list} | while read subgraph_id
         do
-        cat c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph${{subgraph_id}}/t2t.grch38.58hifi.1064zmw.{wildcards.chr}.subgraph_${{subgraph}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path >> {output.merged_variant_path}
+        cat c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph${{subgraph_id}}/{params.prefix}.{wildcards.chr}.subgraph_${{subgraph}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path >> {output.merged_variant_path}
         done
         """
 
@@ -91,9 +55,9 @@ rule subgraph_variant_path_merge:
 #TODO:assembly.gfa or assembly.rmtips.gfa?
 rule form_chr_gbz:
     input:
-        gfa = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa"
+        gfa = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa"
     output:
-        chr_gbz = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gbz"
+        chr_gbz = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gbz"
     shell:
         """
         vg gbwt --set-tag "reference_samples=CHM13" -G {input.gfa} --gbz-format -g {output.chr_gbz} --max-node 0 -p
@@ -102,29 +66,30 @@ rule form_chr_gbz:
     
     
     
-#TODO: where do the gbz files come from?
 rule form_merged_gbz:
     input:
-        chr_gfas = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]),
-        chr_gbzs = expand("c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gbz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"])
+        chr_gfas = expand("c7_graph_construction/graph_merge/{prefix}.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix']),
+        chr_gbzs = expand("c7_graph_construction/graph_merge/{prefix}.{chr}.assembly.gbz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix'])
     output:
-        merge_xg = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.nopath.xg",
-        merge_gbwt = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbwt",
-        merge_gbz = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz"
+        merge_xg = f"c7_graph_construction/graph_merge/{config['prefix']}.nopath.xg",
+        merge_gbwt = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbwt",
+        merge_gbz = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
+    params:
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
-        > c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.nopath.gfa
+        > c7_graph_construction/graph_merge/{params.prefix}.nopath.gfa
         for chr in chr{{{{1..22}},X,Y,M}}
         do
-            grep "^S\\|^L" c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.${{chr}}.assembly.gfa >> c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.nopath.gfa
+            grep "^S\\|^L" c7_graph_construction/graph_merge/{params.prefix}.${{chr}}.assembly.gfa >> c7_graph_construction/graph_merge/{params.prefix}.nopath.gfa
         done
-        vg convert -g c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.nopath.gfa -x > {output.merge_xg}
+        vg convert -g c7_graph_construction/graph_merge/{params.prefix}.nopath.gfa -x > {output.merge_xg}
         
         for chr in chr{{{{1..22}},X,Y,M}}
         do
-            vg gbwt -Z c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.${{chr}}.assembly.gbz -o c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.${{chr}}.assembly.gbwt
+            vg gbwt -Z c7_graph_construction/graph_merge/{params.prefix}.${{chr}}.assembly.gbz -o c7_graph_construction/graph_merge/{params.prefix}.${{chr}}.assembly.gbwt
         done
-        vg gbwt -f c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.chr{{{{1..22}},X,Y,M}}.assembly.gbwt -o {output.merge_gbwt}
+        vg gbwt -f c7_graph_construction/graph_merge/{params.prefix}.chr{{{{1..22}},X,Y,M}}.assembly.gbwt -o {output.merge_gbwt}
         
         vg gbwt -x {output.merge_xg} {output.merge_gbwt} --gbz-format -g {output.merge_gbz}
         """
@@ -146,11 +111,11 @@ rule form_merged_gbz:
 
 rule haplotype_path:
     input:
-        gbz = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz"
+        gbz = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
     output:
-        dist = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.dist",
-        ri = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.ri",
-        hapl = "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl"
+        dist = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.dist",
+        ri = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.ri",
+        hapl = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
     threads: 25
     shell:
         """

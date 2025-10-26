@@ -54,25 +54,24 @@ rule lr_hifi_dv:
         dv_gvcf = "c2_call_lr_snv/lr_dv/{sample}/{sample}.deepvariant.gvcf.gz"
     params:
         singularity = TOOLS['singularity'],
-        deepvariant = TOOLS['deepvariant']
+        deepvariant = TOOLS['deepvariant'],
+        REF_DIR = lambda wildcards, input: os.path.dirname(input.ref)
     shell:
         """
         mkdir -p c2_call_lr_snv/lr_dv/{wildcards.sample}/dv_intermediate_outputs/
         mkdir -p c2_call_lr_snv/lr_dv/{wildcards.sample}/tmp
 
-        REF_DIR={os.path.dirname(input.ref)}
-        
         singularity exec -B $(pwd):/project \
             -B $(pwd)/c2_call_lr_snv/lr_dv/{wildcards.sample}/tmp:/tmp \
-            -B ${{REF_DIR}}:${{REF_DIR}} \
+            -B {params.REF_DIR}:{params.REF_DIR} \
                 ~/software/deepvariant/deepvariant_v1.3_sandbox \
                 /opt/deepvariant/bin/run_deepvariant \
                 --num_shards {threads} \
                 --model_type=PACBIO \
                 --ref={input.ref} \
                 --reads=/project/{input.hifi_bam} \
-                --output_gvcf=/project/{input.dv_gvcf} \
-                --output_vcf=/project/{input.dv_vcf} \
+                --output_gvcf=/project/{output.dv_gvcf} \
+                --output_vcf=/project/{output.dv_vcf} \
                 --make_examples_extra_args="vsc_min_count_snps=1,vsc_min_fraction_snps=0.12,vsc_min_count_indels=2,vsc_min_fraction_indels=0.06" \
                 --intermediate_results_dir=/project/c2_call_lr_snv/lr_gvcf/{wildcards.sample}/dv_intermediate_outputs/
                 --sample_name {wildcards.sample}
@@ -111,7 +110,7 @@ rule lr_glnexus:
     shell:
         """
         if [ ! -s c2_call_lr_snv/lr_glnexus/CKCG.deepvariant.gvcf.list ];then \
-            ls c2_call_lr_snv/lr_dv/*/*.deepvariant.gvcf.gz > {output.dv_gvcf_list}
+            ls c2_call_lr_snv/lr_dv/*/*.deepvariant.gvcf.gz > c2_call_lr_snv/lr_glnexus/CKCG.deepvariant.gvcf.list
         fi
         
         mkdir -p c2_call_lr_snv/lr_glnexus/chr_db/{wildcards.chr}_db
@@ -152,8 +151,8 @@ rule glnexus_vcf_merge:
     threads: 28
     shell:
         """
-        bcftools concat --threads {threads} -Oz -o {output.merged_glnexus_vcf} $(ls c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.chr{{1..22},X,Y,M}.vcf.gz)
-        bcftools concat --threads {threads} -Oz -o {output.merged_glnexus_snp_vcf} $(ls c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.biallelic_snp.chr{{1..22},X,Y,M}.vcf.gz)
+        bcftools concat --threads {threads} -Oz -o {output.merged_glnexus_vcf} $(ls c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.chr{{{{1..22}},X,Y,M}}.vcf.gz)
+        bcftools concat --threads {threads} -Oz -o {output.merged_glnexus_snp_vcf} $(ls c2_call_lr_snv/lr_glnexus/chr_result/CKCG.deepvariant.analysis_set.biallelic_snp.chr{{{{1..22}},X,Y,M}}.vcf.gz)
 
         bcftools norm --threads {threads} -f {input.ref} -o {output.merged_glnexus_norm_snp_vcf}
         """
@@ -176,7 +175,7 @@ rule lr_whatshap_genotype:
         """
         bcftools view --threads {threads} -I -s {wildcards.sample} {input.merged_glnexus_norm_snp_vcf} -o {output.sample_snp_vcf}
 
-        whatshap genotype -o {output.sample_whatshap_snp_vcf} -r {input.ref} --ignore-read-groups --sample {wildcards.sample} {input.sample_snp_vcf} {input.zmw_bam}
+        whatshap genotype -o {output.sample_whatshap_snp_vcf} -r {input.ref} --ignore-read-groups --sample {wildcards.sample} {output.sample_snp_vcf} {input.zmw_bam}
         tabix -f {output.sample_whatshap_snp_vcf}
 
         bash scripts/snv_phase/whatshap_vcf_reform.sh {output.sample_whatshap_snp_vcf} {params.sex} | bgzip -c > {output.sample_whatshap_reform_snp_vcf}
@@ -271,8 +270,8 @@ rule lr_genotyped_vcf_gdis_filter:
         """
         bcftools merge --force-samples -m any \
             --threads {threads} \
-            {output.merge_whatshap_snp_vcf} \
-            {output.merge_longshot_snp_vcf} | \
+            {input.merge_whatshap_snp_vcf} \
+            {input.merge_longshot_snp_vcf} | \
             grep -v "^#" | \
             awk -v OFS='\\t' '{{if(substr($0,1,1)=="#")print$0;else {{sum_cor=0; for(i=1;i<=1089;i++) {{split($(i+9),a,":");split($(i+1098),b,":"); if(a[1]==b[1] || (a[1]=="0/1" && b[1]=="1/0") || (a[1]=="1/0" && b[1]=="0/1" || (a[1]=="1/1" && b[1]=="1/1") ) ) sum_cor+=1 }} if(sum_cor<=980) print $1,$2,$4,$5,"GDIS"}} }}' > c2_call_lr_snv/gdis_filter/CKCG.deepvariant.whatshap.analysis_set.biallelic_snp.gdis.list
 

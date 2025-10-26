@@ -24,7 +24,7 @@ rule kmc_prepare_sample_kmer:
         echo {input.hifi_fq} >> {output.kmer_list}
         
         mkdir c8_diploid_path_infer/result/{wildcards.sample}/tmp
-        kmc -k29 -m28 -okff -t{threads} -hp @{output.kmer_list} {output.kmer} c8_diploid_path_infer/result/{wildcards.sample}/tmp
+        kmc -k29 -m28 -o kff -t {threads} -hp @{output.kmer_list} {output.kff} c8_diploid_path_infer/result/{wildcards.sample}/tmp
         rm -rf c8_diploid_path_infer/result/{wildcards.sample}/tmp
         """
         
@@ -80,7 +80,7 @@ rule form_sample_merge_gfa_auto_X:
         > {output.sample_merge_gfa}
         grep "^S\\|^L\\|{wildcards.sample}" {input.gfa} >> {output.sample_merge_gfa}
         
-        grep "{wildcards.sample}" {variant_path} >> {output.sample_merge_gfa}
+        grep "{wildcards.sample}" {input.variant_path} >> {output.sample_merge_gfa}
         
         grep -P "{wildcards.chr}\\t" {input.sample_haplotype_mod_gfa} >> {output.sample_merge_gfa}
         """
@@ -102,7 +102,7 @@ rule form_sample_merge_gfa_Y_M:
         grep -P "{wildcards.chr}\\t" {input.sample_haplotype_mod_gfa} >> {output.sample_merge_gfa}
         """
 
-
+#TODO: copy the script into github.
 rule sample_gfa_deconstruct:
     input:
         sample_merge_gfa = "c8_diploid_path_infer/result/{sample}/{sample}.{chr}.merge.gfa"
@@ -122,9 +122,9 @@ rule sample_gfa_deconstruct:
         mem_mb = 85000
     shell:
         """
-        python3 ~/software/script/graph-simplification/gfa_remove_ac0_reverse.py {input.sample_merge_gfa} {output.rmac0_gfa}
+        python3 scripts/graph-simplification/gfa_remove_ac0_reverse.py {input.sample_merge_gfa} {output.rmac0_gfa}
 
-        python3 ~/software/script/graph-genotyping/gfa_fa.py {output.rmac0_gfa} recombination_ref 0 {output.ref_fasta}
+        python3 scripts/graph-genotyping/gfa_fa.py {output.rmac0_gfa} recombination_ref 0 {output.ref_fasta}
         
         vg mod -u {output.rmac0_gfa} > {output.unchop_vg}
 
@@ -147,11 +147,11 @@ rule ref_fasta_concat:
         """
         if [ {params.sex} -eq "female" ];
         then \
-                cat c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{1..22},X,M}.ref.fasta > {output.concat_ref_fasta}
+                cat c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,M}}.ref.fasta > {output.concat_ref_fasta}
         else \
-                cat c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{1..22},X,Y,M}.ref.fasta > {output.concat_ref_fasta}
+                cat c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,Y,M}}.ref.fasta > {output.concat_ref_fasta}
         fi        
-        rm c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{1..22},X,Y,M}.ref.fasta
+        rm c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,Y,M}}.ref.fasta
         """
         
 rule chr_vcf_norm:
@@ -178,9 +178,9 @@ rule chr_vcf_concat:
     threads: 4
     shell:
         """
-        bcftools concat --threads {threads} {input.chr_vcfs} -o {output.pan_vcf}
+        bcftools concat --threads {threads} {input.norm_chr_vcfs} -o {output.pan_vcf}
         tabix -f {output.pan_vcf}
-        """  
+        """
 
 rule pan_vcf_vcfbub:
     input:
@@ -278,10 +278,12 @@ rule genotype_refine:
         bcftools view -a c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan_genotyping.refine.vcf | bcftools view -i "ALT!='.'" -o {output.genotype_final_vcf}
         tabix -f {output.genotype_final_vcf}
         """  
+
+#TODO: script
 rule genotype_phase:
     input:
         genotype_final_vcf = "c8_diploid_path_infer/result/{sample}/{sample}.genotype.vcf.gz",
-        phasing_fix_vcf = "c8_diploid_path_infer/result/{sample}/{sample}.pan_phasing.fix.vcf.gz"
+        phasing_fix_vcf = "c8_diploid_path_infer/result/{sample}/{sample}.pan_phasing.fix.vcf.gz",
     output:
         pangenie_phase_vcf = "c8_diploid_path_infer/result/{sample}/{sample}.pangenie.phase.vcf.gz",
         assembly_phase_vcf = "c8_diploid_path_infer/result/{sample}/{sample}.assembly.phase.vcf.gz",
@@ -294,17 +296,17 @@ rule genotype_phase:
         """
         bcftools merge -m all --force-samples \
             {input.genotype_final_vcf} \
-            c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan_phasing.fix.vcf.gz | \
-            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pangenie.phase.vcf
+            {input.phasing_fix_vcf} | \
+            python3 scripts/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pangenie.phase.vcf
         
         bgzip -@ {threads} -f {wildcards.sample}.pangenie.phase.vcf
-        tabix -f {output.phased_genotype_vcf}
+        tabix -f {output.pangenie_phase_vcf}
         
         bcftools merge -m all --force-samples \
             {input.genotype_final_vcf} \
             c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
             bcftools view -s sample,{wildcards.sample} | \
-            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
+            python3 scripts/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
         
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.assembly.phase.vcf
         tabix -f {output.assembly_phase_vcf}
@@ -313,12 +315,12 @@ rule genotype_phase:
             {input.genotype_final_vcf} \
             c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.pan.vcfbub.vcf.gz | \
             bcftools view -s sample,{wildcards.sample}.snv | \
-            python3 ~/software/script/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
+            python3 scripts/graph-genotyping/genotype_phase.py - c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
         
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.snv.phase.vcf
         tabix -f {output.snv_phase_vcf}
         """  
-# TODO: the way to specify the long read fastq path should be editted.       
+
 rule sample_ref_realign:
     input:
         concat_ref_fasta = "c8_diploid_path_infer/result/{sample}/{sample}.ref.fasta",
@@ -443,33 +445,33 @@ rule complete_assembly:
         sex = get_sex
     resources:
         #30G
-        mem_mb = 30000000
+        mem_mb = 30000
     shell:
         """
         if [ {params.sex} -eq "female" ]; then
             > {output.complete_assembly_hap1_fa}
-            samtools faidx {input.concat_ref_fasta} chr{1..22} | \
+            samtools faidx {input.concat_ref_fasta} chr{{1..22}} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
             samtools faidx {input.concat_ref_fasta} chrX | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
                 
             > {output.complete_assembly_hap2_fa}
-            samtools faidx {input.concat_ref_fasta} chr{1..22} | \
+            samtools faidx {input.concat_ref_fasta} chr{{1..22}} | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
-            samtools faidx {input.concat_ref_fasta} chr{X,M} | \
+            samtools faidx {input.concat_ref_fasta} chr{{X,M}} | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
                 
         else 
             > {output.complete_assembly_hap1_fa}
-            samtools faidx {input.concat_ref_fasta} chr{1..22} | \
+            samtools faidx {input.concat_ref_fasta} chr{{1..22}} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
             samtools faidx {input.concat_ref_fasta} chrY | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
                 
             > {output.complete_assembly_hap2_fa}
-            samtools faidx {input.concat_ref_fasta} chr{1..22} | \
+            samtools faidx {input.concat_ref_fasta} chr{{1..22}} | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
-            samtools faidx {input.concat_ref_fasta} chr{X,M} | \
+            samtools faidx {input.concat_ref_fasta} chr{{X,M}} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
         fi
         """  
@@ -551,7 +553,7 @@ rule get_phase_assembly_vcf:
         minimap2 -t {threads} \
             -c --cs -x asm20 -B 2 -E 3,1 -O 6,100 \
             {input.complete_assembly_hap1_fa} \
-            {output.phase_assembly_correct_hap1} | sort -k6,6 -k8,8n | paftools.js call \
+            {input.phase_assembly_correct_hap1} | sort -k6,6 -k8,8n | paftools.js call \
             -f {input.complete_assembly_hap1_fa} -l 5000 -L 5000 - \
             > c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.hap1.complete_assembly.phase_assembly.vcf
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.hap1.complete_assembly.phase_assembly.vcf
@@ -560,7 +562,7 @@ rule get_phase_assembly_vcf:
         minimap2 -t {threads} \
             -c --cs -x asm20 -B 2 -E 3,1 -O 6,100 \
             {input.complete_assembly_hap2_fa} \
-            {output.phase_assembly_correct_hap2} | sort -k6,6 -k8,8n | paftools.js call \
+            {input.phase_assembly_correct_hap2} | sort -k6,6 -k8,8n | paftools.js call \
             -f {input.complete_assembly_hap2_fa} -l 5000 -L 5000 - \
             > c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.hap2.complete_assembly.phase_assembly.vcf
         bgzip -@ {threads} -f c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.hap2.complete_assembly.phase_assembly.vcf
@@ -738,19 +740,21 @@ rule complete_assembly_polish_region_consensus:
         bcftools consensus -H 2 -f {input.complete_assembly_hap2_fa} {input.complete_assembly_phase_assembly_hap2_polish_region_vcf} > {output.complete_assembly_hap2_polish_fa}
         samtools faidx {output.complete_assembly_hap2_polish_fa}
         """
-#TODO:the path should be change to absolute path.; And the path of meryl should be prepared.      
+
 rule complete_assembly_polish_region_merqury_clip:
     input:
         complete_assembly_hap1_polish_fa = "c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.fasta",
         complete_assembly_hap1_polish_fai = "c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.fasta.fai",
         complete_assembly_hap2_polish_fa = "c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.fasta",
         complete_assembly_hap2_polish_fai = "c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.fasta.fai",
-        sample_WGS_meryl = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/03.meryl/result/{sample}/{sample}-WGS.meryl"
+        sample_WGS_meryl = "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex"
     output:
         complete_assembly_hap1_polish_clip_region = "c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.clip.region",
         complete_assembly_hap2_polish_clip_region = "c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.clip.region",
         final_hap1_fa = "c8_diploid_path_infer/result/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta",
         final_hap2_fa = "c8_diploid_path_infer/result/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta"
+    params:
+        sample_WGS_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_WGS_meryl)
     threads: 4
     resources:
         #30G
@@ -759,15 +763,14 @@ rule complete_assembly_polish_region_merqury_clip:
         """
         mkdir c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.merqury
         cd c8_diploid_path_infer/result/{wildcards.sample}/{wildcards.sample}.merqury
-        merqury.sh {input.sample_WGS_meryl} {input.complete_assembly_hap1_fa} {input.complete_assembly_hap2_fa} merqury
+        merqury.sh {params.sample_WGS_meryl_dir} {input.complete_assembly_hap1_polish_fa} {input.complete_assembly_hap2_polish_fa} merqury
         
-        bedtools merge -i {wildcards.sample}.hap1.complete_assembly.polish_only.bed -d 2000 | awk '{{if($3-$2>10000)print$0}}' | bedtools complement -i - -g ../{wildcards.sample}.hap1.complete_assembly.polish.fasta.fai | awk '{{if($3-$2>=10000) print $1":"$2+1"-"$3}}' > ../{wildcards.sample}.hap1.complete_assembly.polish.clip.region
+        bedtools merge -i {wildcards.sample}.hap1.complete_assembly.polish_only.bed -d 2000 | awk '{{if($3-$2>10000)print$0}}' | bedtools complement -i - -g {input.complete_assembly_hap1_polish_fai} | awk '{{if($3-$2>=10000) print $1":"$2+1"-"$3}}' > {output.complete_assembly_hap1_polish_clip_region}
+        bedtools merge -i {wildcards.sample}.hap2.complete_assembly.polish_only.bed -d 2000 | awk '{{if($3-$2>10000)print$0}}' | bedtools complement -i - -g {input.complete_assembly_hap2_polish_fai} | awk '{{if($3-$2>=10000) print $1":"$2+1"-"$3}}' > {output.complete_assembly_hap2_polish_clip_region}
         
-        bedtools merge -i {wildcards.sample}.hap2.complete_assembly.polish_only.bed -d 2000 | awk '{{if($3-$2>10000)print$0}}' | bedtools complement -i - -g ../{wildcards.sample}.hap2.complete_assembly.polish.fasta.fai | awk '{{if($3-$2>=10000) print $1":"$2+1"-"$3}}' > ../{wildcards.sample}.hap2.complete_assembly.polish.clip.region
+        samtools faidx {input.complete_assembly_hap1_polish_fa} -r {output.complete_assembly_hap1_polish_clip_region} | awk -v sample={wildcards.sample} 'BEGIN{{sum=1}}{{if(substr($0,1,1)==">"){{split($1,a,">");split(a[2],b,":");print ">"sample"_hap1_ctg"sum"_"b[1];sum+=1}} else print $0}}' > {output.final_hap1_fa}
         
-        samtools faidx ../{wildcards.sample}.hap1.complete_assembly.polish.fasta -r {output.complete_assembly_hap1_polish_clip_region} | awk -v sample={wildcards.sample} 'BEGIN{{sum=1}}{{if(substr($0,1,1)==">"){{split($1,a,">");split(a[2],b,":");print ">"sample"_hap1_ctg"sum"_"b[1];sum+=1}} else print $0}}' > ../{wildcards.sample}.hap1.complete_assembly.polish.clip.fasta
-        
-        samtools faidx ../{wildcards.sample}.hap2.complete_assembly.polish.fasta -r {output.complete_assembly_hap2_polish_clip_region} | awk -v sample={wildcards.sample} 'BEGIN{{sum=1}}{{if(substr($0,1,1)==">"){{split($1,a,">");split(a[2],b,":");print ">"sample"_hap2_ctg"sum"_"b[1];sum+=1}} else print $0}}' > ../{wildcards.sample}.hap2.complete_assembly.polish.clip.fasta
+        samtools faidx {input.complete_assembly_hap2_polish_fa} -r {output.complete_assembly_hap2_polish_clip_region} | awk -v sample={wildcards.sample} 'BEGIN{{sum=1}}{{if(substr($0,1,1)==">"){{split($1,a,">");split(a[2],b,":");print ">"sample"_hap2_ctg"sum"_"b[1];sum+=1}} else print $0}}' > {output.final_hap2_fa}
         """
         
 # rule xxx:

@@ -137,12 +137,13 @@ rule merfin_filter_merged_variants:
         #90G
         mem_mb = 90000
     params:
+        sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl),
         mems = 90
     shell:
         """
         merfin -filter \
             -sequence {input.consensus_fasta} \
-            -readmers {os.path.dirname(input.sample_meryl)} \
+            -readmers {params.sample_meryl_dir} \
             -vcf {input.sample_assembly_merge_vcf} \
             -output c6_draft_assembly/snv_merge/{wildcards.sample}/{wildcards.sample}.assembly.merge \
             -threads {threads} \
@@ -172,7 +173,6 @@ rule personal_ref_zmw_pbmm2:
 
 
 
-#TODO: why phase a vcf by vcf itself?
 rule sample_assembly_vcf_whatshap:
     input:
         consensus_fasta = get_consensus_fasta_input,
@@ -213,7 +213,7 @@ rule largest_haplotype_extract:
         mem_mb = 30000
     shell:
         """
-        phase_ps=$(awk -v OFS='\\t' -v chr={wildcards.chr} 'BEGIN{{ps=0;number=0}} {{if($2==chr && $6>=number) {{ps=$3;number=$6}} }} END{{print ps}}' {output.sample_phase_block_list})
+        phase_ps=$(awk -v OFS='\\t' -v chr={wildcards.chr} 'BEGIN{{ps=0;number=0}} {{if($2==chr && $6>=number) {{ps=$3;number=$6}} }} END{{print ps}}' {input.sample_phase_block_list})
         bcftools view --threads {threads} -i "PS==${{phase_ps}}" {input.sample_assembly_merge_filter_whatshap_vcf} {wildcards.chr} -o {output.sample_chr_assembly_merge_final_phase_vcf}
         tabix -f {output.sample_chr_assembly_merge_final_phase_vcf}
         """
@@ -342,7 +342,7 @@ rule phase_assembly:
         hap2_fa = "c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.fasta",
     params:
         sex = get_sex,
-        tmp_dir = "c6_draft_assembly/result/{sample}/{sample}_tmp"
+        tmp_dir = "c6_draft_assembly/result/{wildcards.sample}/{wildcards.sample}_tmp"
     threads: 28
     resources:
         #200G
@@ -363,6 +363,7 @@ rule phase_assembly:
             -t {threads}
         """
 
+#TODO: We directly provide the adaptor.fa or any other way?
 rule draft_assembly_adaptor_mask:
     input:
         hap1_fa = "c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.fasta",

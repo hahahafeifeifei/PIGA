@@ -1,8 +1,9 @@
 rule all_merge_snv:
     input:
-        "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz",
+        f"c3_merge_snv/merfin/merge/{config['prefix']}.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz",
+        "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex",
         "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex",
-        "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+        f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
         
 
         
@@ -15,12 +16,11 @@ rule all_merge_snv:
 
 # 初始处理步骤
 
-#TODO, if file provided by themselves, the code should be considered.
 rule process_sr:
     input:
         sr_vcf = get_sr_vcf_input
     output:
-        sr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.vcf.gz"
+        sr_callset_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.vcf.gz"
     threads: 16
 
     shell:
@@ -36,7 +36,7 @@ rule process_lr:
         lr_vcf = get_lr_vcf_input
 
     output:
-        lr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.lrs.vcf.gz"
+        lr_callset_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.lrs.vcf.gz"
     threads: 16
 
     shell:
@@ -47,10 +47,10 @@ rule process_lr:
 
 rule split_srs:
     input:
-        sr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.vcf.gz"
+        sr_callset_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.vcf.gz"
     output:
-        sr_callset_snp_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.snp.vcf.gz",
-        sr_callset_indel_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.indel.vcf.gz"
+        sr_callset_snp_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.snp.vcf.gz",
+        sr_callset_indel_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.indel.vcf.gz"
     threads: 16
 
     shell:
@@ -64,20 +64,20 @@ rule split_srs:
 
 rule sr_lr_bcftools_isec:
     input:
-        sr_callset_snp_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.snp.vcf.gz",
-        lr_callset_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.lrs.vcf.gz"
+        sr_callset_snp_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.snp.vcf.gz",
+        lr_callset_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.lrs.vcf.gz"
     output:
-        sr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_specific.vcf",
-        lr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_specific.vcf",
-        sr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.vcf",
-        lr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.vcf"
+        sr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_specific.vcf",
+        lr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_specific.vcf",
+        sr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.vcf",
+        lr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.vcf"
     threads: 40
 
     shell:
         """
         bcftools isec --threads {threads} \
-            {input.srs_snp} \
-            {input.lrs} \
+            {input.sr_callset_snp_vcf} \
+            {input.lr_callset_vcf} \
             -p c3_merge_snv/callset/srs_lrs_compare
 
         mv c3_merge_snv/callset/srs_lrs_compare/0000.vcf {output.sr_spec_vcf}
@@ -91,13 +91,13 @@ rule sr_lr_bcftools_isec:
 
 rule calc_hwe:
     input:
-        sr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.vcf",
-        lr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.vcf"
+        sr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.vcf",
+        lr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.vcf"
     output:
-        sr_hwe = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.hwe",
-        lr_hwe = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.hwe",
-        info = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.info",
-        hwe_info = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.hwe.info"
+        sr_hwe = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.hwe",
+        lr_hwe = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.hwe",
+        info = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.shared.info",
+        hwe_info = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.shared.hwe.info"
     threads: 16
 
     shell:
@@ -107,12 +107,21 @@ rule calc_hwe:
             bcftools query -f "%INFO/HWE\\n" > {output.sr_hwe}
         bcftools query {input.sr_shared_vcf} -f "%CHROM\\t%POS\\t%REF\\t%ALT\\n" > {output.info}
 
-        paste {input.info} {input.sr_hwe} {input.lr_hwe} | awk -v OFS='\\t' '
-            {{if($5==0 && $6==0) ratio=0; 
-            else {if($5==0) ratio=50;
-            else {if($6==0) ratio=-50; 
-            else ratio=-1*log($5/$6)/log(10)}};
-            print $1,$2,$3,$4,ratio}}' > {output.hwe_info}
+        paste {output.info} {output.sr_hwe} {output.lr_hwe} | awk -v OFS='\\t' '
+    {{
+        if ($5 == 0 && $6 == 0) {{
+            ratio = 0;
+        }} else if ($5 == 0) {{
+            ratio = 50;
+        }} else if ($6 == 0) {{
+            ratio = -50;
+        }} else {{
+            ratio = -1 * log($5 / $6) / log(10);
+        }}
+        
+        print $1, $2, $3, $4, ratio;
+    }}' > {output.hwe_info}
+
         """
 
 
@@ -120,21 +129,22 @@ rule calc_hwe:
 # The value of NS.
 rule generate_lrs_sub_lists:
     input:
-        sr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.vcf",
-        hwe_info = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.hwe.info"
+        sr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.vcf",
+        hwe_info = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.shared.hwe.info"
     output:
-        lrs_sub_list = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.sub.list.gz"
+        lrs_sub_list = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.shared.sub.list.gz"
     threads: 16
-
+    params:
+        prefix = lambda wildcards: config['prefix']
     shell:
         """
-        awk -v OFS='\\t' '{{if($5>=3)print $1,$2,$3,$4,"LRS_SUB"}}' {input.hwe_info} > c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.hwe_sub.list
+        awk -v OFS='\\t' '{{if($5>=3)print $1,$2,$3,$4,"LRS_SUB"}}' {input.hwe_info} > c3_merge_snv/callset/srs_lrs_compare/{params.prefix}.analysis_set.call_set.shared.hwe_sub.list
 
-        bcftools plugin fill-tags --threads {threads} {input.sr_shared_vcf} | 
-        bcftools view -H -i "NS<=1007" | 
-        awk -v OFS='\\t' '{{print $1,$2,$4,$5,"LRS_SUB"}}' > c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.miss_sub.list
+        bcftools plugin fill-tags --threads {threads} {input.sr_shared_vcf} |
+        bcftools view -H -i "NS<=1007" |
+        awk -v OFS='\\t' '{{print $1,$2,$4,$5,"LRS_SUB"}}' > c3_merge_snv/callset/srs_lrs_compare/{params.prefix}.analysis_set.call_set.shared.miss_sub.list
 
-        cat c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.hwe_sub.list c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.miss_sub.list | sort -k1,1V -k2,2n | bgzip -@ {threads} -c > {output.lrs_sub_list}
+        cat c3_merge_snv/callset/srs_lrs_compare/{params.prefix}.analysis_set.call_set.shared.hwe_sub.list c3_merge_snv/callset/srs_lrs_compare/{params.prefix}.analysis_set.call_set.shared.miss_sub.list | sort -k1,1V -k2,2n | bgzip -@ {threads} -c > {output.lrs_sub_list}
         tabix -s1 -b2 -e2 {output.lrs_sub_list}
         """
 
@@ -142,12 +152,12 @@ rule generate_lrs_sub_lists:
 # based on the lrs_sub_list, remove those variants in sr_callset and select out those variants in lr_callset.
 rule lrs_sub_process:
     input:
-        sr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.vcf",
-        lr_shared_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.vcf",
-        lrs_sub_list = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.shared.sub.list.gz"
+        sr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.vcf",
+        lr_shared_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.vcf",
+        lrs_sub_list = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.shared.sub.list.gz"
     output:
-        sr_filter_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
-        lr_select_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.vcf.gz"
+        sr_filter_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
+        lr_select_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.sub_select.vcf.gz"
     threads: 16
 
     shell:
@@ -172,18 +182,18 @@ rule lrs_sub_process:
 
 rule anno_merge:
     input:
-        sr_filter_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
-        lr_select_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.vcf.gz",
-        sr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_specific.vcf",
-        lr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_specific.vcf",
-        sr_callset_indel_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.indel.vcf.gz"
+        sr_filter_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
+        lr_select_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.sub_select.vcf.gz",
+        sr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_specific.vcf",
+        lr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_specific.vcf",
+        sr_callset_indel_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.indel.vcf.gz"
     output:
-        sr_filter_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.sub_filter.anno",
-        lr_select_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.anno",
-        sr_spec_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_specific.anno",
-        lr_spec_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_specific.anno",
-        sr_indel_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs.indel.anno",
-        consensus_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.anno.gz"
+        sr_filter_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.sub_filter.anno",
+        lr_select_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.sub_select.anno",
+        sr_spec_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_specific.anno",
+        lr_spec_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_specific.anno",
+        sr_indel_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs.indel.anno",
+        consensus_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.anno.gz"
     threads: 16
     shell:
         """
@@ -202,14 +212,14 @@ rule anno_merge:
 
 rule final_merge:
     input:
-        sr_filter_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
-        lr_select_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_shared.sub_select.vcf.gz",
-        sr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.srs_specific.vcf",
-        lr_spec_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.lrs_specific.vcf",
-        sr_callset_indel_vcf = "c3_merge_snv/callset/CKCG.analysis_set.call_set.srs.indel.vcf.gz",
-        consensus_anno = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.anno.gz"
+        sr_filter_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_shared.sub_filter.vcf.gz",
+        lr_select_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_shared.sub_select.vcf.gz",
+        sr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.srs_specific.vcf",
+        lr_spec_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.lrs_specific.vcf",
+        sr_callset_indel_vcf = f"c3_merge_snv/callset/{config['prefix']}.analysis_set.call_set.srs.indel.vcf.gz",
+        consensus_anno = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.anno.gz"
     output:
-        consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz"
+        consensus_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.vcf.gz"
     threads: 16
     shell:
         """
@@ -255,7 +265,7 @@ rule final_merge:
 
 rule generate_sample_consensus_vcf:
     input:
-        consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz"
+        consensus_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.vcf.gz"
     output:
         sample_consensus_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.vcf",
         sample_consensus_miss_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.miss.vcf.gz"
@@ -281,6 +291,7 @@ rule prepare_sample_kmer:
         ngs_R2_fastq = lambda wildcards: get_sr_input_fastqs(wildcards)[1],
         hifi_fastq = get_hifi_input_fastqs
     output:
+        sample_WGS_meryl = "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl/merylIndex",
         sample_meryl = "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex"
     threads: 4
     resources:
@@ -303,7 +314,7 @@ rule prepare_sample_kmer:
 
 rule merfin_filter:
     input:
-        consensus_vcf = "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.vcf.gz",
+        consensus_vcf = f"c3_merge_snv/callset/srs_lrs_compare/{config['prefix']}.analysis_set.call_set.consensus.vcf.gz",
         sample_consensus_vcf = "c3_merge_snv/samples/{sample}/{sample}.consensus.vcf",
         ref = config['reference']['CHM13'],
         ref_mer = config['kmer']['CHM13'],
@@ -340,8 +351,8 @@ rule merge_merfin_vcf:
         expand("c3_merge_snv/merfin/{sample}/{sample}.consensus.final.vcf.gz", sample = config['samples'])
     output:
         merfin_vcf_list = "c3_merge_snv/merfin/merge/vcf.list",
-        merge_merfin_vcf = "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.vcf.gz",
-        merge_merfin_filter_vcf = "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz"
+        merge_merfin_vcf = f"c3_merge_snv/merfin/merge/{config['prefix']}.CHM13.consensus.phase1.call_set.vcf.gz",
+        merge_merfin_filter_vcf = f"c3_merge_snv/merfin/merge/{config['prefix']}.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz"
     threads: 28
     resources:
         #50G
