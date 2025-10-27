@@ -23,7 +23,16 @@ TOOLS = {
 
 with open('CHM13.20mb.interval') as f:
     intervals_list = [line.split("\t")[0].strip() for line in f]
-config['intervals'] = intervals_list
+
+sample_sex_dict = {}
+with open(config['samples']) as f:
+    samples_list = [line.strip().split()[0] for line in f if line.strip()]
+    sex_list = [line.strip().split()[1] for line in f if line.strip()]
+    sample_sex_dict = {line.strip().split()[0]:line.strip().split()[1] for line in f if line.strip()}
+
+wildcard_constraints:
+    sample='|'.join(samples_list)
+    interval='|'.join(intervals_list)
 
 # prefix = "t2t.grch38.58hifi.1064zmw"
 
