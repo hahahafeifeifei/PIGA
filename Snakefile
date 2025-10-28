@@ -1,12 +1,14 @@
+shell.prefix = ['set -e']
+
 import os
 
-configfile: "config/config.yaml"
-configfile: "config/tools.yaml"
+# configfile: "config/config.yaml"
+# configfile: "config/tools.yaml"
 
-TOOLS = {
-    tool: path
-     for tool, path in config['tools'].items()
-}
+# TOOLS = {
+#     tool: path
+#      for tool, path in config['tools'].items()
+# }
 # 
 # # check the path of tools
 # def validate_tool(tool_path):
@@ -24,14 +26,22 @@ TOOLS = {
 with open('CHM13.20mb.interval') as f:
     intervals_list = [line.split("\t")[0].strip() for line in f]
 
-sample_sex_dict = {}
+samples_list, sex_list, sample_sex_dict = [], [], {}
 with open(config['samples']) as f:
-    samples_list = [line.strip().split()[0] for line in f if line.strip()]
-    sex_list = [line.strip().split()[1] for line in f if line.strip()]
-    sample_sex_dict = {line.strip().split()[0]:line.strip().split()[1] for line in f if line.strip()}
+    for line in f:
+        if not line.strip():
+            continue
+
+        sample = line.strip().split()[0]
+        sex = line.strip().split()[1]
+
+        samples_list.append(sample)
+        sex_list.append(sex)
+        sample_sex_dict[sample] = sex
+config['sex'] = sample_sex_dict
 
 wildcard_constraints:
-    sample='|'.join(samples_list)
+    sample='|'.join(samples_list),
     interval='|'.join(intervals_list)
 
 # prefix = "t2t.grch38.58hifi.1064zmw"
