@@ -23,13 +23,13 @@ def get_sr_vcf_input(wildcards):
     if "sr_vcf" in config:
         return config["sr_vcf"]
     else:
-        return f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz"
+        return f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.biallelic.vcf.gz"
 
 def get_lr_vcf_input(wildcards):
     if "lr_vcf" in config:
         return config["lr_vcf"]
     else:
-        return f"c2_call_lr_snv/lr_beagle/concat/CKCG.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz"
+        return f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz"
 
 def get_merge_merfin_filter_vcf_input(wildcards):
     if "merge_merfin_filter_vcf" in config:
