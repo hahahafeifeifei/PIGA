@@ -440,7 +440,7 @@ rule gatk_vcf_filter:
         bcftools norm --threads {threads} -m -any -f {input.ref} | \
         bcftools view --threads {threads} -e "ALT=='*'" | \
         bcftools plugin fill-tags --threads {threads} | \
-        bcftools view --threads {threads} -e 'HWE<1e-6 || F_MISSING>0.1' -o {output.snp_indel_recalibrated_filter_vcf}
+        bcftools view --threads {threads} -e "(HWE<1e-6 && ExcHet<0.1) || F_MISSING>0.1" -o {output.snp_indel_recalibrated_filter_vcf}
         """
 
 
