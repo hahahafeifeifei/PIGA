@@ -12,8 +12,6 @@ reference:
         test/reference/chm13v2.0_maskedY_rCRS.fasta
 
 GATK_Resource:
-    dbsnp:
-        test/reference/gatk_bundle/chm13v2.0_dbSNPv155.vcf.gz 
     hapmap:
         test/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz 
     omni:
