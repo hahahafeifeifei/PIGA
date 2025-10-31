@@ -37,8 +37,8 @@ rule lr_zmw_pbmm2_map:
             {input.zmw_fq} \
             {output.zmw_bam} \
             --log-level INFO --sort \
-            --rg "@RG\\tID:{wildcards.sample}.zmw\\tSM:{wildcards.sample}.zmw" \
-            --sample {wildcards.sample}.zmw
+            --rg "@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}" \
+            --sample {wildcards.sample}
         """
 
 #How to run
@@ -249,8 +249,10 @@ rule concat_beagle_vcf:
     shell:
         """        
         bcftools concat --threads {threads} -a {input.chr_beagle_vcfs} | \
+        bcftools annotate -x FORMAT/DS,FORMAT/GP | \
         bcftools plugin fill-tags --threads {threads} | \
         bcftools view --threads {threads} -i "AC!=0" -o {output.concat_beagle_vcf}
+        tabix {output.concat_beagle_vcf}
         """
 # rule xxx:
 #     input:
