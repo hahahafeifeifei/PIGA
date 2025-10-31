@@ -13,7 +13,7 @@ rule sr_bwa_map:
     threads: 4
     shell:
         """
-        bwa mem -t {threads} -Y -R '@RG\tID:'{wildcards.sample}'\tSM:'{wildcards.sample}'\tPL:ILLUMINA' {input.ref} {input.sr_fq1} {input.sr_fq2} | \
+        bwa mem -t {threads} -Y -R '@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}\\tPL:ILLUMINA' {input.ref} {input.sr_fq1} {input.sr_fq2} | \
         samtools view -uSh -@ {threads} - | \
         samtools sort -O bam -@ {threads} -o {output.bam} -
         samtools index -@ {threads} {output.bam}
@@ -31,7 +31,7 @@ rule sr_bam_dedup:
     threads: 4
     shell:
         """
-        gatk MarkDuplicates -R {input.ref} -I {input.bam} -O {output.md_bam} -M {output.md_metric} 2> {log}
+        gatk MarkDuplicates -R {input.ref} -I {input.bam} -O {output.md_bam} -M {output.md_metric}
         samtools index -@ {threads} {output.md_bam}
         """
 
@@ -58,7 +58,7 @@ rule sr_bam_BQSR:
         -R {input.ref} \
         -I {input.md_bam} \
         -O {output.bqsr_bam} \
-        {output.recal_table}
+        --bqsr-recal-file {output.recal_table}
         """
 
 rule HaplotypeCaller_autosomes:
@@ -66,13 +66,13 @@ rule HaplotypeCaller_autosomes:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         ref = config['reference']['CHM13']
     output:
-        auto_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.auto_chr.g.vcf.gz"
+        auto_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.auto_chr.g.vcf.gz")
     params:
         ploidy = 2,
         intervals = " ".join([f"-L chr{i}" for i in range(1, 23)])
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -80,8 +80,8 @@ rule HaplotypeCaller_autosomes:
             -R {input.ref} \
             -I {input.bam} \
             -O {output.auto_gvcf} \
-            -ERC GVCF \
-            2> {log}
+            -ERC GVCF
+
         tabix -f {output.auto_gvcf}
         """
 
@@ -90,14 +90,14 @@ rule HaplotypeCaller_male_chrX:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         ref = config['reference']['CHM13']
     output:
-        chrX_PAR_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX_PAR.g.vcf.gz",
-        chrX_nonPAR_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX_nonPAR.g.vcf.gz"
+        chrX_PAR_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX_PAR.g.vcf.gz"),
+        chrX_nonPAR_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX_nonPAR.g.vcf.gz")
     params:
         PAR_ploidy = 2,
         nonPAR_ploidy = 1
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -124,12 +124,12 @@ rule HaplotypeCaller_female_chrX:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         ref = config['reference']['CHM13']
     output:
-        chrX_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX.g.vcf.gz"
+        chrX_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrX.g.vcf.gz")
     params:
         ploidy = 2
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -148,12 +148,12 @@ rule HaplotypeCaller_male_chrY:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         ref = config['reference']['CHM13']
     output:
-        chrY_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrY.g.vcf.gz"
+        chrY_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrY.g.vcf.gz")
     params:
         ploidy = 1
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -171,12 +171,12 @@ rule HaplotypeCaller_chrM:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         ref = config['reference']['CHM13']
     output:
-        chrM_gvcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrM.g.vcf.gz"
+        chrM_gvcf = temp("c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.chrM.g.vcf.gz")
     params:
         ploidy = 1
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -202,7 +202,7 @@ rule male_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.male.gatk.g.vcf.gz"
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" MergeVcfs \
@@ -225,7 +225,7 @@ rule female_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.female.gatk.g.vcf.gz"
     threads: 2
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" MergeVcfs \
@@ -254,7 +254,8 @@ rule merge_vcfs:
     "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
   shell:
     """
-    cp {input} {output}
+    mv {input} {output}
+    tabix -f {output}
     """
 
 
@@ -267,6 +268,7 @@ rule construct_gvcf_map:
     shell:
         """
         ls {input.gvcf} > {output.gvcf_map}
+        awk -F "/" '{{print $(NF-1)"\\t"$0}}' {output.gvcf_map} > c1_call_sr_snv/sample_gvcf/tmp.gvcf.map && mv c1_call_sr_snv/sample_gvcf/tmp.gvcf.map {output.gvcf_map}
         """
 
 # rule generate_intervals:
@@ -290,12 +292,12 @@ rule construct_gvcf_map:
         
 rule GenomicsDB_GenotypeGVCFs_interval:
     input:
-        gvcf_map = f"c1_call_sr_snv/sr_gvcf/{config['prefix']}.gvcf.map",
+        gvcf_map = f"c1_call_sr_snv/sample_gvcf/{config['prefix']}.gvcf.map",
         ref = config['reference']['CHM13']
     output:
         vcf = "c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz"
     resources:
-        max_mem_gb = 30
+        max_mem_gb = 20
     threads: 2
     params:
         interval_tmp = "c1_call_sr_snv/interval_vcf/{interval}_tmp",
@@ -352,8 +354,8 @@ rule merged_vcf_snp_VQSR:
         snp_recal = "c1_call_sr_snv/merged_vcf/snps.recal",
         snp_tranches = "c1_call_sr_snv/merged_vcf/snps.tranches"
     resources:
-        max_mem_gb = 200,
-        min_mem_gb = 100    
+        max_mem_gb = 60,
+        min_mem_gb = 40    
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
@@ -394,8 +396,8 @@ rule merged_vcf_indel_VQSR:
         indel_recal = "c1_call_sr_snv/merged_vcf/indels.recal",
         indel_tranches = "c1_call_sr_snv/merged_vcf/indels.tranches"
     resources:
-        max_mem_gb = 200,
-        min_mem_gb = 100    
+        max_mem_gb = 60,
+        min_mem_gb = 40    
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
@@ -444,3 +446,6 @@ rule gatk_vcf_filter:
         bcftools view --threads {threads} -v snps -e "(HWE<1e-6 && ExcHet<0.1) || F_MISSING>0.1 || AC<1" -o {output.snp_indel_recalibrated_filter_vcf}
         tabix {output.snp_indel_recalibrated_filter_vcf}
         """
+
+
+
