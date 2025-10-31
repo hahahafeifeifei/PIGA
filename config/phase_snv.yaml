@@ -1,50 +1,30 @@
 Phase_SNV: true
 
 samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
+    test_data/samples.list
     
 sr_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
-                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
-                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
-                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+    - test_data/{sample}/{sample}.sr.R1.fastq.gz
+    - test_data/{sample}/{sample}.sr.R2.fastq.gz
+
+lr_hifi_fastqs:
+    - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
 lr_zmw_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
+    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 reference:
     CHM13:
         test/reference/chm13v2.0_maskedY_rCRS.fasta
-    GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
 
 genetic_map: "test/genetic_map/genetic_map_chm13_{chr}.reform.txt"
-
-topmed_east_asian: "test/variant_panel/{chr}/TOPMed_WGS_freeze.8.east_asian.merge.{chr}.filter.snps.liftover_chm13.shapeit4.vcf.gz",
 
 prefix:
     test
 
 
-
-
 #if no "merge_merfin_filter_vcf" key, default input will be c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz
 merge_merfin_filter_vcf: ""
-
-#if no "sr_scaffold_vcf" key, default input will be c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz
-sr_scaffold_vcf: ""
 
 # Please standardize the paths of all samples to the same format, with only the sample names differing, and use the "{sample}" wildcard as a placeholder.
 #if no "zmw_bam" key, default input will be c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam

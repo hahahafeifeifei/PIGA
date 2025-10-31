@@ -35,19 +35,13 @@ def get_merge_merfin_filter_vcf_input(wildcards):
     if "merge_merfin_filter_vcf" in config:
         return config["merge_merfin_filter_vcf"]
     else:
-        return "c3_merge_snv/merfin/merge/CKCG.CHM13.consensus.phase1.call_set.hwe_missing_filter.vcf.gz"
-
-def get_sr_scaffold_vcf_input(wildcards):
-    if "sr_scaffold_vcf" in config:
-        return config["sr_scaffold_vcf"]
-    else:
-        return "c3_merge_snv/callset/srs_lrs_compare/CKCG.analysis_set.call_set.consensus.srs_scaffold.vcf.gz"
+        return f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
 
 def get_zmw_bam_input(wildcards):
     if "zmw_bam" in config:
         return config["zmw_bam"]
     else:
-        return "c2_call_lr_snv/lr_mapping/{sample}/{sample}.zmw.pbmm2.bam"
+        return "c2_call_lr_snv/sample_bam/{sample}/{sample}.zmw.srt.bam"
 
 def get_consensus_fasta_input(wildcards):
     if "consensus_fasta" in config:
