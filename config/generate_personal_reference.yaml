@@ -1,28 +1,14 @@
 Generate_Personal_Reference: true
 
 samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
+    test_data/samples.list
     
 sr_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
-                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
-                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
-                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+    - test_data/{sample}/{sample}.sr.R1.fastq.gz
+    - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_zmw_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
+    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 reference:
     CHM13:

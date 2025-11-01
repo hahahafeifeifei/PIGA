@@ -1,175 +1,109 @@
 rule all_generate_personal_reference:
     input:
-        expand("c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta", sample=config['samples']),
-        expand("c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain", sample=config['samples']),
-        expand("c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz", sample=config['samples'])
+        expand("c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta", sample=samples_list),
+        expand("c5_personal_ref/consensus_fasta/{sample}/{sample}.personal_ref.chain", sample=samples_list)
 
-
-#TODO: pangenome provided by us or uses themselves?
-rule lr_GraphAligner_mapping:
+rule external_pangenome_index:
     input:
-        pbcc_fastq = get_zmw_input_fastqs
+        external_pangenome = config['external_pangenome']
     output:
-        pbcc_gam = temp("c5_personal_ref/pbcc_gam/{sample}/{sample}-CLR.graphaligner.gam")
-    threads: 16
-    resources: 
-        #200G
-        mem_mb = 200000
-    params:
-        pangenome_name = "/storage/yangjianLab/wangyifei/project/02.HanGenome/Pangenome/01.Cactus/v4/06.graphmap-join-clip.min12/t2t.grch38.62chineses.clip.min12"
-    shell:
-        """
-        /storage/yangjianLab/duanzhongqu/miniconda3/bin/GraphAligner \
-        -t {threads} \
-        -g {params.pangenome_name}.vg \
-        -f {input.pbcc_fastq} \
-        -a {output.pbcc_gam} \
-        -x vg
-        """
-rule sr_giraffe_mapping:
-    input:
-        ngs_fastq = get_sr_input_fastqs
-    output:
-        ngs_gam = temp("c5_personal_ref/ngs_gam/{sample}/{sample}-WGS.giraffe.gam")
-    threads: 16
-    resources: 
-        #200G
-        mem_mb = 200000
-    params:
-        pangenome_name = "/storage/yangjianLab/wangyifei/project/02.HanGenome/Pangenome/01.Cactus/v4/06.graphmap-join-clip.min12/t2t.grch38.62chineses.clip.min12"
-    shell:
-        """
-        vg giraffe \
-        -t {threads} \
-        -H {params.pangenome_name}.gbwt \
-        -g {params.pangenome_name}.gg \
-        -m {params.pangenome_name}.min \
-        -d {params.pangenome_name}.dist \
-        -f {input.ngs_fastq[0]} \
-        -f {input.ngs_fastq[1]} \
-        > {output.ngs_gam}
-        """
-        
-# rule sr_giraffe_R1_unpair_mapping:
-#     input:
-#         ngs_unpair_fastq_1 = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.unpaired.R1.fastq.gz"
-#     output:
-#         ngs_gam = "c5_personal_ref/ngs_gam/{sample}/{sample}-WGS.giraffe.2.gam"
-#     threads: 16
-#     resources: 
-#         mem_mb = 200000
-#     params:
-#         pangenome_name = "/storage/yangjianLab/wangyifei/project/02.HanGenome/Pangenome/01.Cactus/v4/06.graphmap-join-clip.min12/t2t.grch38.62chineses.clip.min12"
-#     shell:
-#         """
-#         vg giraffe \
-#         -t {threads} \
-#         -H {params.pangenome_name}.gbwt \
-#         -g {params.pangenome_name}.gg \
-#         -m {params.pangenome_name}.min \
-#         -d {params.pangenome_name}.dist \
-#         -f {input.ngs_unpair_fastq_1} \
-#         > {output.ngs_gam}
-#         """
-        
-# rule sr_giraffe_R2_unpair_mapping:
-#     input:
-#         ngs_unpair_fastq_2 = "/storage/yangjianLab/sharedata/CKCG/preprocess.data/WGS/fastp/{sample}-WGS/{sample}-WGS.fastp.unpaired.R2.fastq.gz"
-#     output:
-#         ngs_gam = "c5_personal_ref/ngs_gam/{sample}/{sample}-WGS.giraffe.3.gam"
-#     threads: 16
-#     resources: 
-#         mem_mb = 200000
-#     params:
-#         pangenome_name = "/storage/yangjianLab/wangyifei/project/02.HanGenome/Pangenome/01.Cactus/v4/06.graphmap-join-clip.min12/t2t.grch38.62chineses.clip.min12"
-#     shell:
-#         """
-#         vg giraffe \
-#         -t {threads} \
-#         -H {params.pangenome_name}.gbwt \
-#         -g {params.pangenome_name}.gg \
-#         -m {params.pangenome_name}.min \
-#         -d {params.pangenome_name}.dist \
-#         -f {input.ngs_unpair_fastq_2} \
-#         > {output.ngs_gam}
-#         """
-        
-rule gam_merge:
-    input:
-        pbcc_gam = "c5_personal_ref/pbcc_gam/{sample}/{sample}-CLR.graphaligner.gam",
-        ngs_gam = "c5_personal_ref/ngs_gam/{sample}/{sample}-WGS.giraffe.gam",
-    output:
-        ngs_merged_gam = "c5_personal_ref/merged_gam/{sample}/{sample}.merge.gam"
-    shell:
-        """
-        cat {input.pbcc_gam} {input.ngs_gam} > {output.ngs_merged_gam}
-
-        """
-#TODO: pangenome provided by us or uses themselves?
-rule gam_call_variants:
-    input:
-        gam = "c5_personal_ref/merged_gam/{sample}/{sample}.merge.gam"
-    output:
-        vcf = "c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.vcf"
+        pangenome_gbz = f"c5_personal_ref/external_pangenome/external.gbz",
+        pangenome_dist = f"c5_personal_ref/external_pangenome/external.dist",
+        pangenome_ri = f"c5_personal_ref/external_pangenome/external.ri",
+        pangenome_hapl = f"c5_personal_ref/external_pangenome/external.hapl"
     threads: 16
     resources:
-        mem_mb = 200000
-    params:
-        pangenome_name = "/storage/yangjianLab/wangyifei/project/02.HanGenome/Pangenome/01.Cactus/v4/06.graphmap-join-clip.min12/t2t.grch38.62chineses.clip.min12"
+        max_mem_gb = 200
     shell:
         """
-        vg pack \
-        -t {threads} \
-        -x {params.pangenome_name}.vg \
-        -g {input.gam} \
-        -o c5_personal_ref/vg_call/{wildcards.sample}/{wildcards.sample}.merge.pack
-        
-        vg call \
-        -t {threads} \
-        -m 3,6 \
-        {params.pangenome_name}.vg \
-        -r {params.pangenome_name}.snarls \
-        -g {params.pangenome_name}.gbwt \
-        -k c5_personal_ref/vg_call/{wildcards.sample}/{wildcards.sample}.merge.pack \
-        -s {wildcards.sample} \
-        > {output.vcf}
-        
-        rm c5_personal_ref/vg_call/{wildcards.sample}/{wildcards.sample}.merge.pack
+        cp {input.external_pangenome} {output.gbz}
+        vg index -t {threads} -j {output.dist} --no-nested-distance {output.gbz}
+        vg gbwt --num-threads {threads} -r {output.ri} -Z {output.gbz}
+        vg haplotypes -t {threads} -H {output.hapl} {output.gbz}
         """
-        
+    
+rule personal_pangenome:
+    input:
+        pangenome_gbz = f"c5_personal_ref/external_pangenome/external.gbz",
+        pangenome_hapl = f"c5_personal_ref/external_pangenome/external.hapl",
+        sr_fq1 = config['sr_fastqs'][0],
+        sr_fq2 = config['sr_fastqs'][1],
+        lr_hifi_fastqs = config['lr_hifi_fastqs']
+    output:
+        kmer_fq_list = "c5_personal_ref/sample_reference/{sample}/{sample}.fq.list",
+        sample_kff = "c5_personal_ref/sample_reference/{sample}/{sample}.kff",
+        sample_chop_gbz = "c5_personal_ref/sample_reference/{sample}/{sample}.chop.gbz",
+        sample_gfa = "c5_personal_ref/sample_reference/{sample}/{sample}.gfa",
+        sample_gbz = "c5_personal_ref/sample_reference/{sample}/{sample}.gbz",
+        sample_min = "c5_personal_ref/sample_reference/{sample}/{sample}.min",
+        sample_dist = "c5_personal_ref/sample_reference/{sample}/{sample}.dist",
+        sample_zipcodes = "c5_personal_ref/sample_reference/{sample}/{sample}.zipcodes"
+    params:
+        prefix = "c5_personal_ref/sample_reference/{sample}/{sample}"
+    threads: 8
+    resources:
+        max_mem_gb = 150
+    shell:
+        """
+        ls {input.sr_fq1} {input.sr_fq2} {input.lr_hifi_fastqs} > {output.kmer_fq_list}
+        mkdir {params.prefix}_tmp
+        kmc -k29 -m{resource.max_mem_gb} -okff -t{threads} -hp @{output.kmer_fq_list} {params.prefix} {params.prefix}_tmp
+        rm -rf {params.prefix}_tmp
+
+        vg haplotypes -t {threads} --include-reference --num-haplotypes 8 --linear-structure -i {input.pangenome_hapl} -k {output.sample_kff} -g {output.sample_chop_gbz} {input.pangenome_gbz}
+        vg view {output.sample_chop_gbz} | vg mod -u - | vg view - > {output.sample_gfa}
+        vg autoindex -g {output.sample_gfa} -w giraffe -t {threads} -p {params.prefix}
+        """
+
+rule graph_call:
+    input:
+        lr_zmw_fastqs = config['lr_zmw_fastqs'],
+        sr_fq1 = config['sr_fastqs'][0],
+        sr_fq2 = config['sr_fastqs'][1],
+        sample_gfa = "c5_personal_ref/sample_reference/{sample}/{sample}.gfa",
+        sample_gbz = "c5_personal_ref/sample_reference/{sample}/{sample}.gbz",
+        sample_min = "c5_personal_ref/sample_reference/{sample}/{sample}.min",
+        sample_dist = "c5_personal_ref/sample_reference/{sample}/{sample}.dist",
+        sample_zipcodes = "c5_personal_ref/sample_reference/{sample}/{sample}.zipcodes"
+    output:
+        sample_gam = "c5_personal_ref/sample_reference/{sample}/{sample}.gam",
+        sample_pack = "c5_personal_ref/sample_reference/{sample}/{sample}.pack",
+        sample_vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.vcf"
+    threads: 8
+    resources: 
+        max_mem_gb = 100
+    shell:
+        """
+        GraphAligner -t {threads} -g {input.sample_gfa} -f {input.lr_zmw_fastqs} -a {output.sample_gam} -x vg --multimap-score-fraction 1
+        vg giraffe --named-coordinates -Z {input.sample_gbz} -m {input.sample_min} -z {input.sample_zipcodes} -d {input.sample_dist} -f {input.sr_fq1} -f {input.sr_fq2} >> {output.sample_gam}
+        vg pack -t {threads} -x {input.sample_gfa} -g {output.sample_gam} -o {ouput.sample_pack}
+        vg call -t {threads} {input.sample_gfa} -k {ouput.sample_pack} -s {wildcards.sample} > {output.sample_vcf}
+        """
+
 rule gam_call_variants_filter:
     input:
-        vcf = "c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.vcf"
+        vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.vcf"
     output:
-        filtered_vcf = "c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz"
+        filtered_vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.filter.vcf.gz"
     threads: 2
     shell:
         """
         dp_mean=$(bcftools query -f "%DP\n" {input.vcf} | awk '{{if($1>=100)print 100;else print$0}}' | csvtk -H -t summary -f 1:mean)                            
         dp_sd=$(bcftools query -f "%DP\n" {input.vcf} | awk '{{if($1>=100)print 100;else print$0}}' | csvtk -H -t summary -f 1:stdev)
-        bcftools view -f PASS -i "GT='AA' && FORMAT/DP<=$(awk -v dp_sd=${{dp_sd}} -v dp_mean=${{dp_mean}} 'BEGIN{{print dp_mean+3*dp_sd}}' )" {input.vcf} | sed 's/T2Tv2.chr/chr/g' > c5_personal_ref/vg_call/{wildcards.sample}/{wildcards.sample}.af_pangenome.merge.filter.vcf
-        
-        bgzip -f -@ {threads} c5_personal_ref/vg_call/{wildcards.sample}/{wildcards.sample}.af_pangenome.merge.filter.vcf
+        bcftools view -f PASS -i "GT='AA' && FORMAT/DP<=$(awk -v dp_sd=${{dp_sd}} -v dp_mean=${{dp_mean}} 'BEGIN{{print dp_mean+3*dp_sd}}' )" {input.vcf} | \
+        bcftools sort -o {output.filtered_vcf}
         tabix -f {output.filtered_vcf}
         """
 
 rule filtered_variants_ref_consensus:
     input:
-        vcf = "c5_personal_ref/vg_call/{sample}/{sample}.af_pangenome.merge.filter.vcf.gz",
+        vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.filter.vcf.gz",
         ref = config['reference']['CHM13']
     output:
-        consensus_fasta = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta",
-        chain = "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
+        consensus_fasta = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta",
+        chain = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.chain"
     shell:
         """
         bcftools consensus -f {input.ref} -H 1 -c {output.chain} {input.vcf} > {output.consensus_fasta}
-
-        bwa index {output.consensus_fasta}
-        samtools faidx {output.consensus_fasta}
         """
-
-
-
-
-
 
