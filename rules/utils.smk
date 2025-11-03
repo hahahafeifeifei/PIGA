@@ -1,11 +1,11 @@
 def get_sr_input_fastqs(wildcards):
-    return config["sr_fastqs"][wildcards.sample]
+    return config["sr_fastqs"]
 
 def get_zmw_input_fastqs(wildcards):
-    return config["lr_zmw_fastqs"][wildcards.sample]
+    return config["lr_zmw_fastqs"]
 
 def get_hifi_input_fastqs(wildcards):
-    return config["lr_hifi_fastqs"][wildcards.sample]
+    return config["lr_hifi_fastqs"]
 
 def get_sex(wildcards):
     sex = config['sex'][wildcards.sample]
@@ -47,25 +47,25 @@ def get_consensus_fasta_input(wildcards):
     if "consensus_fasta" in config:
         return config["consensus_fasta"]
     else:
-        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta"
+        return "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta"
 
 def get_chain_input(wildcards):
     if "chain" in config:
         return config["chain"]
     else:
-        return "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
+        return "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.chain"
 
 def get_sample_vcf_input(wildcards):
     if "sample_vcf" in config:
         return config["sample_vcf"]
     else:
-        return "c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz"
+        return "c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz"
 
 def get_sample_meryl_input(wildcards):
     if "sample_meryl" in config:
         return config["sample_meryl"]
     else:
-        return "c3_merge_snv/meryl/{sample}/{sample}.meryl/merylIndex"
+        return "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl"
 
 def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     sex = config['sex'][wildcards.sample]

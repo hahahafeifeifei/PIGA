@@ -1,6 +1,6 @@
 rule all_phase_snv:
     input:
-        expand("c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit4.vcf.gz", sample = samples_list)
+        expand("c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz", sample = samples_list)
 
 rule generate_sample_vcf_to_phase:
         input:

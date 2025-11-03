@@ -10,9 +10,17 @@ sr_fastqs:
 lr_zmw_fastqs:
     - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
+
+#https://s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/freeze1/minigraph-cactus/hprc-v1.1-mc-chm13/hprc-v1.1-mc-chm13.gbz
+external_pangenome:
+    - test_data/pangenome/hprc-v1.1-mc-chm13.gbz
+
 reference:
     CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
+
+par_region:
+    test_data/chm13v2.0_chrX_PAR.bed
 
 prefix:
     test
