@@ -1,0 +1,5 @@
+executor: slurm
+local-cores: 4
+default_resources: []
+slurm-qos: Normal
+slurm-requeue: true
