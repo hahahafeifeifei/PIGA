@@ -1,8 +1,0 @@
-use-singularity: true
-singularity-args: "-B /$(pwd | cut -d'/' -f2):/$(pwd | cut -d'/' -f2)"
-
-executor: slurm
-local-cores: 4
-default_resources: []
-slurm-qos: Normal
-slurm-requeue: true
