@@ -1,7 +1,4 @@
-samples:
-  - CKCG-00200
-  - CKCG-00201
-  - CKCG-00202
+samples: test_data/samples.list
 
 training_samples:
   - CKCG-00202
@@ -12,47 +9,24 @@ test_samples:
 validate_samples:
   - CKCG-00202
 
-sex:
-  CKCG-00200: "female"
-  CKCG-00201: "male"
-  CKCG-00202: "female"
-
 sr_fastqs:
-  CKCG-00200:
-    - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R1.fastq.gz
-    - test_data/CKCG-00200/CKCG-00200-WGS.fastp.R2.fastq.gz
-  CKCG-00201:
-    - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R1.fastq.gz
-    - test_data/CKCG-00201/CKCG-00201-WGS.fastp.R2.fastq.gz
-  CKCG-00202:
-    - test_data/CKCG-00202/CKCG-00202-WGS.fastp.R1.fastq.gz
-    - test_data/CKCG-00202/CKCG-00202-WGS.fastp.R2.fastq.gz
+  - test_data/{sample}/{sample}.sr.R1.fastq.gz
+  - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_hifi_fastqs:
-  CKCG-00200:
-    - test_data/CKCG-00200/CKCG-00200-CLR.pbccs_all.merge.fastq.gz
-  CKCG-00201:
-    - test_data/CKCG-00201/CKCG-00201-CLR.pbccs_all.merge.fastq.gz
-  CKCG-00202:
-    - test_data/CKCG-00202/CKCG-00202-CLR.pbccs_all.merge.fastq.gz
+  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
 lr_zmw_fastqs:
-  CKCG-00200:
-    - test_data/CKCG-00200/CKCG-00200-CLR.pbccs_all.merge.fastq.gz
-  CKCG-00201:
-    - test_data/CKCG-00201/CKCG-00201-CLR.pbccs_all.merge.fastq.gz
-  CKCG-00202:
-    - test_data/CKCG-00202/CKCG-00202-CLR.pbccs_all.merge.fastq.gz
+  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 reference:
-  CHM13: test_data/reference/chm13v2.0_maskedY_rCRS.fa
+  CHM13: test_data/reference/chm13v2.0_maskedY_rCRS.fasta
   GRCh38: test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai
 
 kmer:
   CHM13: test_data/reference/CHM13_21mer_meryl/
 
 GATK_Resource:
-  dbsnp: test_data/reference/gatk_bundle/chm13v2.0_dbSNPv155.vcf.gz
   hapmap: test_data/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz
   omni: test_data/reference/gatk_bundle/1000G_omni2.5.chm13_liftover.vcf.gz
   1000G: test_data/reference/gatk_bundle/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
