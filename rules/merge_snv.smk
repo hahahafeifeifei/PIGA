@@ -4,7 +4,7 @@ rule all_merge_snv:
 
 rule sr_lr_bcftools_isec:
     input:
-        sr_callset_vcf = get_sr_vcf_input
+        sr_callset_vcf = get_sr_vcf_input,
         lr_callset_vcf = get_lr_vcf_input
     output:
         sr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_specific.vcf",
@@ -35,7 +35,6 @@ rule generate_lrs_sub_lists:
         sr_hwe = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_shared.hwe",
         lr_hwe = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_shared.hwe",
         info = f"c3_merge_snv/merged_vcf/{config['prefix']}.shared.info",
-        hwe_info = f"c3_merge_snv/merged_vcf/{config['prefix']}.shared.hwe.info",
         lrs_sub_list = f"c3_merge_snv/merged_vcf/{config['prefix']}.shared.sub.list.gz"
     threads: 16
 
@@ -59,7 +58,8 @@ rule generate_lrs_sub_lists:
             print $1, $2, $3, $4, ratio; \
         }}' | \
         awk -v OFS='\\t' '{{if($5>=3)print $1,$2,$3,$4,"LRS_SUB"}}' | \
-        sort -k1,1V -k2,2n | bgzip -@ {threads} -c > {output.hwe_info}
+        sort -k1,1V -k2,2n | bgzip -@ {threads} -c > {output.lrs_sub_list}
+
         tabix -s1 -b2 -e2 {output.lrs_sub_list}
         """
 
@@ -78,13 +78,15 @@ rule lrs_sub_process:
     shell:
         """
         echo '##FILTER=<ID=LRS_SUB,Description="The short-read genotype of variants is substituted by long-read genotype">' > {output.header}
-        
-        bcftools annotate --threads {threads} -h {output.header}\
+
+
+        bcftools annotate --threads {threads} -h {output.header} \
             -a {input.lrs_sub_list} \
             -c CHROM,POS,REF,ALT,FILTER \
             {input.sr_shared_vcf} | \
             bcftools view --threads {threads} -e "FILTER=='LRS_SUB'" | \
             bgzip -@ {threads} -c > {output.sr_filter_vcf}
+        tabix -f {output.sr_filter_vcf}
         
         bcftools annotate --threads {threads} -h {output.header} \
             -a {input.lrs_sub_list} \
@@ -92,21 +94,29 @@ rule lrs_sub_process:
             {input.lr_shared_vcf} | \
             bcftools view --threads {threads} -i "FILTER=='LRS_SUB'" | \
             sed 's/LRS_SUB/PASS/g' | bgzip -@ {threads} -c > {output.lr_select_vcf}
+        tabix -f {output.lr_select_vcf}
         """
-
+### In case of 
 
 rule final_merge:
     input:
+        sr_spec_vcf_uncompress = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_specific.vcf",
+        lr_spec_vcf_uncompress = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_specific.vcf",
         sr_filter_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_shared.sub_filter.vcf.gz",
-        lr_select_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_shared.sub_select.vcf.gz",
-        sr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_specific.vcf",
-        lr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_specific.vcf"
+        lr_select_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_shared.sub_select.vcf.gz"
     output:
+        sr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_specific.vcf.gz",
+        lr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_specific.vcf.gz",
         consensus_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.vcf.gz"
     threads: 16
     shell:
         """
-        bcftools concat {input.sr_filter_vcf} {input.lr_select_vcf} {input.sr_spec_vcf} {input.lr_spec_vcf} \
+        bgzip -@ {threads} -c {input.sr_spec_vcf_uncompress} > {output.sr_spec_vcf}
+        tabix -f {output.sr_spec_vcf}
+        bgzip -@ {threads} -c {input.lr_spec_vcf_uncompress} > {output.lr_spec_vcf}
+        tabix -f {output.lr_spec_vcf}
+
+        bcftools concat {input.sr_filter_vcf} {input.lr_select_vcf} {output.sr_spec_vcf} {output.lr_spec_vcf} \
             -a --threads {threads} -o {output.consensus_vcf}
         tabix -f {output.consensus_vcf}
         """
@@ -120,43 +130,52 @@ rule prepare_sample_kmer:
         sr_fq2 = config['sr_fastqs'][1],
         hifi_fq = config['lr_hifi_fastqs'],
     output:
-        sample_meryl = directory("c3_merge_snv/sample_meryl/{sample}/{sample}.meryl")
+        sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
     threads: 4
     resources:
+        mem_mb = 30000,
         max_mem_gb = 30
+    params:
+        sample_meryl_dir = lambda wildcards, output: os.path.dirname(output.sample_meryl)
     shell:
         """
-        meryl count k=21 memory={params.max_mem_gb} threads={threads} output {output.sample_meryl} {input.sr_fq1} {input.sr_fq2} {input.hifi_fq}
+        meryl count k=21 memory={resources.max_mem_gb} threads={threads} output {params.sample_meryl_dir} {input.sr_fq1} {input.sr_fq2} {input.hifi_fq}
         """
 
 rule prepare_ref_kmer:
     input:
         ref = config['reference']['CHM13']
     output:
-        ref_meryl = directory("c3_merge_snv/sample_meryl/chm13/chm13.meryl")
+        ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl/merylIndex"
     threads: 4
     resources:
+        mem_mb = 30000,
         max_mem_gb = 30
+    params:
+        ref_meryl_dir = lambda wildcards, output: os.path.dirname(output.ref_meryl)
     shell:
         """
-        meryl count k=21 memory={params.max_mem_gb} threads={threads} output {output.ref_meryl} {output.ref}
+        meryl count k=21 memory={resources.max_mem_gb} threads={threads} output {params.ref_meryl_dir} {input.ref}
         """
 
 
 rule merfin_filter:
     input:
         consensus_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.vcf.gz",
-        sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl",
+        sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex",
         ref = config['reference']['CHM13'],
-        ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl"
+        ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl/merylIndex"
     output:
         sample_consensus_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.vcf",
         sample_consensus_filter_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.filter.vcf.gz"
-    params:
-        prefix = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus"
     threads: 4
     resources:
+        mem_mb = 60000,
         max_mem_gb = 60
+    params:
+        prefix = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus",
+        sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl),
+        ref_meryl_dir = lambda wildcards, input: os.path.dirname(input.ref_meryl)
     shell:
         """
         bcftools view -s {wildcards.sample} --threads {threads} {input.consensus_vcf} | \
@@ -166,12 +185,12 @@ rule merfin_filter:
         
         merfin -filter \
             -sequence {input.ref} \
-            -readmers {input.sample_meryl} \
-            -seqmers {input.ref_meryl} \
+            -readmers {params.sample_meryl_dir} \
+            -seqmers {params.ref_meryl_dir} \
             -vcf {output.sample_consensus_vcf} \
             -output {params.prefix} \
             -threads {threads} \
-            -memory {params.max_mem_gb}
+            -memory {resources.max_mem_gb}
         bgzip -f -@ {threads} {params.prefix}.filter.vcf
         tabix -f {output.sample_consensus_filter_vcf}
         """
@@ -183,12 +202,13 @@ rule merge_merfin_vcf:
         merge_merfin_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
     threads: 16
     resources:
+        mem_mb = 60000,
         max_mem_gb = 60
     shell:
         """
         bcftools merge -0 -m none --threads {threads} {input.filter_vcfs} | \
-            bcftools sort -m {params.max_mem_gb}G | \
+            bcftools sort -m {resources.max_mem_gb}G | \
             bcftools plugin fill-tags --threads {threads} | \
             bcftools view --threads {threads} -i "AC!=0 && HWE>=1e-6" -o {output.merge_merfin_vcf}
-        tabix {output.merge_merfin_vcf}
+        tabix -f {output.merge_merfin_vcf}
         """
