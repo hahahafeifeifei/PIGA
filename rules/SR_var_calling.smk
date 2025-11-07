@@ -1,6 +1,6 @@
 rule all_SR_var_calling:
     input:
-        f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.biallelic.vcf.gz",
+        f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz",
         
 rule sr_bwa_map:
     input:
@@ -439,7 +439,7 @@ rule gatk_vcf_filter:
     shell:
         """
         bcftools view --threads {threads} -f PASS {input.snp_indel_recalibrated_vcf} | \
-        bcfoolts -x QUAL,INFO,FORMAT/AD,FORMAT/DP,FORMAT/GQ,FORMAT/PGT,FORMAT/PID,FORMAT/PL,FORMAT/PS | \
+        bcftools annotate -x QUAL,INFO,FORMAT/AD,FORMAT/DP,FORMAT/GQ,FORMAT/PGT,FORMAT/PID,FORMAT/PL,FORMAT/PS | \
         bcftools norm --threads {threads} -m -any -f {input.ref} | \
         bcftools view --threads {threads} -e "ALT=='*'" | \
         bcftools plugin fill-tags --threads {threads} | \
