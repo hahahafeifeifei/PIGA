@@ -55,6 +55,7 @@ rule merge_consensus_whatshap_vcf:
         tabix -f {output.merge_whatshap_filter_vcf}
         """
 
+# This step requires at least 20 samples in the input vcf file. Or shapeit4 will not run successfully.
 rule chr_consensus_vcf_shapeit:
     input:
         merge_whatshap_filter_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.unphase_singleton_filter.vcf.gz",
@@ -82,7 +83,7 @@ rule concat_consensus_vcf_shapeit:
     threads: 16
     shell:
         """        
-        bcftools concat {input.consensus_whatshap_shapeit_vcfs}\
+        bcftools concat {input.consensus_whatshap_shapeit_vcfs} \
             --threads {threads} -Oz -o {output.concat_consensus_whatshap_shapeit_vcf}
         """
 
