@@ -166,8 +166,10 @@ rule merfin_filter:
         ref = config['reference']['CHM13'],
         ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl/merylIndex"
     output:
-        sample_consensus_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.vcf",
-        sample_consensus_filter_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.filter.vcf.gz"
+        sample_consensus_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.vcf.gz",
+        sample_consensus_miss_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.miss.vcf.gz",
+        sample_consensus_filter_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.filter.vcf.gz",
+        sample_consensus_final_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.final.vcf.gz"
     threads: 4
     resources:
         mem_mb = 60000,
@@ -180,8 +182,12 @@ rule merfin_filter:
         """
         bcftools view -s {wildcards.sample} --threads {threads} {input.consensus_vcf} | \
             bcftools view --threads {threads} -e 'GT=="0/0" || GT=="0|0" || GT=="0"' | \
-            awk -v OFS='\\t' '{{if(substr($1,1,1)=="#") print$0; else{{if(length($10)==1) {{gt=$10"/"$10; print $1,$2,$3,$4,$5,$6,$7,$8,$9,gt }} else print$0}} }}' | \
-            bcftools view --threads {threads} -i "GT=='./.' || GT=='.|.'" -o {output.sample_consensus_vcf}
+            awk -v OFS='\\t' '{{if(substr($1,1,1)=="#") print$0; else{{if(length($10)==1) {{gt=$10"/"$10; print $1,$2,$3,$4,$5,$6,$7,$8,$9,gt }} else print$0}} }}' |\
+            bgzip -c > {output.sample_consensus_vcf}
+        tabix -f {output.sample_consensus_vcf}
+
+        bcftools view --threads {threads} -i "GT=='./.' || GT=='.|.'" {output.sample_consensus_vcf} -Oz -o {output.sample_consensus_miss_vcf}
+        tabix -f {output.sample_consensus_miss_vcf}
         
         merfin -filter \
             -sequence {input.ref} \
@@ -193,11 +199,16 @@ rule merfin_filter:
             -memory {resources.max_mem_gb}
         bgzip -f -@ {threads} {params.prefix}.filter.vcf
         tabix -f {output.sample_consensus_filter_vcf}
+
+        bcftools concat --threads {threads} \
+            -a {output.sample_consensus_filter_vcf} {output.sample_consensus_miss_vcf} \
+            -Oz -o {output.sample_consensus_final_vcf}
+        tabix -f {output.sample_consensus_final_vcf}
         """
 
 rule merge_merfin_vcf:
     input:
-        filter_vcfs = expand("c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.filter.vcf.gz", sample = samples_list)
+        final_vcfs = expand("c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.final.vcf.gz", sample = samples_list)
     output:
         merge_merfin_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
     threads: 16
@@ -206,7 +217,7 @@ rule merge_merfin_vcf:
         max_mem_gb = 60
     shell:
         """
-        bcftools merge -0 -m none --threads {threads} {input.filter_vcfs} | \
+        bcftools merge -0 -m none --threads {threads} {input.final_vcfs} | \
             bcftools sort -m {resources.max_mem_gb}G | \
             bcftools plugin fill-tags --threads {threads} | \
             bcftools view --threads {threads} -i "AC!=0 && HWE>=1e-6" -o {output.merge_merfin_vcf}
