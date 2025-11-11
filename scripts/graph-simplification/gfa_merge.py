@@ -16,7 +16,9 @@ subgraph_index = 0
 gfa_list = sys.argv[1]
 out_gfa_file = sys.argv[2]
 prefix = sys.argv[3]
-threads = int(sys.argv[4])
+concat_sample = sys.argv[4]
+threads = int(sys.argv[5])
+
 fo1 = open(prefix + '.S_L', "w")
 fo2 = open(prefix + '.W_subgraph', "w")
 for gfa_file in openfile(gfa_list):
@@ -30,7 +32,7 @@ for gfa_file in openfile(gfa_list):
 fo1.close()
 fo2.close()
 
-subprocess.run("sort -k1,1 -k2,2 -k3,3n -k4,4 -k5,5n -T . --buffer-size=115G --parallel={} {} > {}".format(threads, prefix + ".W_subgraph", prefix + ".sort.W_subgraph"), shell = True, stdout = None, stderr = None)
+subprocess.run("sort -k1,1 -k2,2 -k3,3n -k4,4 -k5,5n -T . --buffer-size=60G --parallel={} {} > {}".format(threads, prefix + ".W_subgraph", prefix + ".sort.W_subgraph"), shell = True, stdout = None, stderr = None)
 subprocess.run("rm {}".format(prefix + ".W_subgraph"), shell = True, stdout = None, stderr = None)
 pre_contig = "null"
 add_edge_dict = {}
@@ -52,7 +54,7 @@ for line in openfile(prefix + ".sort.W_subgraph"):
         pre_start = start
         pre_end = end
         pre_subgraph = subgraph
-    elif pre_sample == sample and contig == pre_contig and start == pre_end and subgraph != pre_subgraph:
+    elif sample == concat_sample and pre_sample == sample and contig == pre_contig and start == pre_end and subgraph != pre_subgraph:
         pre_path_end_node = re.split('<|>', pre_path)[1:][-1]
         pre_path_end_direct = re.split('\d+', pre_path)[:-1][-1].replace(">","+").replace("<","-")
         path_start_node = re.split('<|>', path)[1:][0]

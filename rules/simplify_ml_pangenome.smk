@@ -1,464 +1,245 @@
+def get_already_subgraph_ids():
+    with open('c7_graph_construction/subgraph_id.list') as f:
+        return [line.strip() for line in f if line.strip()]
+
+id_list = get_already_subgraph_ids
+wildcard_constraints:
+    id = "|".join(id_list)
+
 rule all_simplify_ml_pangenome:
         input:
-            partial(get_all_subgraph_assembly_gfa_files, config['prefix']),
-            partial(get_all_subgraph_variant_path_files, config['prefix'])
-            
+            expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = id_list)
 
-
-
-def get_linear_gfaffix_gfa_input(wildcards, prefix):
-    if "linear_gfaffix_gfa" in config:
-        return config["linear_gfaffix_gfa"]
-    else:
-        return "c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa"
-
-rule prepare_training_set:
+rule graph_bed_filtering:
     input:
-        linear_gfaffix_gfa = lambda wildcards: get_linear_gfaffix_gfa_input(wildcards, config['prefix'])
+        fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
+        gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
     output:
-        training_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.gfa"
+        high_coverage_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.high_coverage.bed",
+        minigraph_unaligned_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.minigraph_unaligned.bed",
+        merged_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.merge_filter.bed",
+        bed_clip_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.bed_clip.gfa",
+        filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        runtime_hrs=lambda wildcards, attempt: 20 * attempt
+    threads: 8
+    shell:
+        """
+        sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
+        python3 scripts/graph-simplification/gfa_high-coverage_bed.py {input.gfa} $[sample_number*20] 200 {output.high_coverage_bed}
+        python3 scripts/graph-simplification/gfa_minigraph_unaligned.py {input.gfa} {output.minigraph_unaligned_bed}
+        cat {input.high_coverage_bed} {input.minigraph_unaligned_bed} | bedtools sort | bedtools merge -d 1000 > {output.merged_bed}
+        python3 scripts/graph-simplification/gfa_bed_filter.py {input.gfa} {output.merged_bed} CHM13,GRCh38,_MINIGRAPH_ {output.bed_clip_gfa}
+        python3 scripts/graph-simplification/gfa_remove_ac0.py {output.bed_clip_gfa} {output.linear_filter_gfarmac0_gfa}
+        """
+
+train_sample_map = {}
+with open(config["train_sample_list"]) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        train_sample = line.strip().split()[0]
+        truth_sample = line.strip().split()[1]
+        train_sample_map[train_sample] = truth_sample
+
+rule prepare_train_gfa:
+    input:
+        filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
+    output:
+        train_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train_raw.gfa",
+        train_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.gfa"
     params:
-        prefix = lambda wildcards: config['prefix'],
-        exclude_samples = lambda wildcards: "|".join(config['training_samples'] + config['test_samples'])
+        all_sample = "\\t|".join(set(train_sample_map.keys()) | set(train_sample_map.values()))
     shell:
         """
-        grep -vE '{params.exclude_samples}\\t' \
-        {input.linear_gfaffix_gfa} \
-        > c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.remove.gfa
-        
-        python3 scripts/graph-simplification/gfa_remove_ac0.py c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.remove.gfa {output.training_gfa}
+        grep -v $'{params.all_sample}\\t' {input.filter_gfa} > {output.train_raw_gfa}        
+        python3 scripts/graph-simplification/gfa_remove_ac0.py {output.train_raw_gfa} {output.train_gfa} 
         """
         
-rule process_validation_sample:
+rule process_train_node_edge:
     input:
-        linear_gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfa"
+        filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
     output:
-        sample_training_node = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.training.node",
-        sample_training_edge = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.training.edge"
+        sample_train_node = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{train_sample}}.train.node",
+        sample_train_edge = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{train_sample}}.train.edge"
+    params:
+        truth_sample = lambda wildcards: train_sample_map.get(wildcards.train_sample)
+    wildcard_constraints:
+        train_sample = "|".join(set(train_sample_map.keys()))
     shell:
         """
-        python3 scripts/graph-simplification/gnn_training_selection.py {input.gfa} {wildcards.sample}_low {wildcards.sample} {output.sample_training_node} {output.training_edge}
-        [ -s {output.sample_training_node} ] || echo -e "empty\\t0" > {output.sample_training_node}
-        [ -s {output.sample_training_edge} ] || echo -e "empty\\t0" > {output.sample_training_edge}
+        python3 scripts/graph-simplification/ml_training_selection.py {input.filter_gfa} {wildcards.train_sample} {params.truth_sample} {output.sample_train_node} {output.sample_train_edge}
+        [ -s {output.sample_train_node} ] || echo -e "empty\\t0" > {output.sample_train_node}
+        [ -s {output.sample_train_edge} ] || echo -e "empty\\t0" > {output.sample_train_edge}
         """
         
 rule merge_samples:
     input:
-        sample_training_nodes = expand("c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.training.node",sample=config['validate_samples'], prefix=config['prefix'], allow_missing=True),
-        sample_training_edges = expand("c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.training.edge",sample=config['validate_samples'], prefix=config['prefix'], allow_missing=True)
+        sample_train_nodes = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.node", sample = train_sample_map.keys()),
+        sample_train_edges = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.edge", sample = train_sample_map.keys())
     output:
-        merged_training_node = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.training.node",
-        merged_training_edge = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.training.edge",
-        merged_all_node = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.all.node",
-        merged_all_edge = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.all.edge"
-        
+        merged_train_node = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.node",
+        merged_train_edge = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.edge"
     shell:
         """
-        csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_training_nodes} | \
-        awk 'BEGIN{{OFS="\\t"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} \
-            if((tp>0 && fp==0) || (tp==0 && fp>0)) print $0 }}' | cut -f 1,2,3,4,5,7 | grep -v empty | \
-        awk 'BEGIN{{OFS="\\t"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} \
-            if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_training_node}
-        
-        csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_training_edges} | \
-        awk 'BEGIN{{OFS="\\t"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} \
-            if((tp>0 && fp==0) || (tp==0 && fp>0)) print $0 }}' | cut -f 1,2,3,4,5,7 | grep -v empty | \
-        awk 'BEGIN{{OFS="\\t"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} \
-            if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_training_edge}
+        sample_size=$(echo {input.sample_train_nodes} | awk '{print NF}')
+        if [ $sample_size -gt 1 ]
+        then
+            csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_train_nodes} | \
+            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
+            grep -v empty > {output.merged_train_node}
+
+            csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_train_edges} | \
+            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
+            grep -v empty > {output.merged_train_edge}
+        else
+            cat {input.sample_train_nodes} | \
+            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
+            grep -v empty > {output.merged_train_node}
             
-        csvtk -H -t join --na NONE --outer-join {input.sample_training_nodes} | \
-        grep -v empty | \
-        awk -v OFS='\\t' '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' \
-        > {output.merged_all_node}
-        
-        csvtk -H -t join --na NONE --outer-join {input.sample_training_edges} | \
-        grep -v empty | \
-        awk -v OFS='\\t' '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' \
-        > {output.merged_all_edge}
-        """
-        
-rule generate_validation_files:
-    input:
-        merged_training_node = rules.merge_samples.output.merged_training_node,
-        merged_training_edge = rules.merge_samples.output.merged_training_edge,
-        merged_all_node = rules.merge_samples.output.merged_all_node,
-        merged_all_edge = rules.merge_samples.output.merged_all_edge
-    output:
-        validation_node = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.validation.node"),
-        validation_edge = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.merge.validation.edge")
-    shell:
-        """
-        csvtk -H -t join --na NONE --left-join \
-        {input.merged_all_node} \
-        {input.merged_training_node} | \
-        awk -v OFS='\\t' '{{if(($2==0 && $3=="NONE") || ($2==1 && $3=="NONE"))print$1,$2}}' > {output.validation_node}
-
-        csvtk -H -t join --na NONE --left-join \
-        {input.merged_all_edge} \
-        {input.merged_training_edge} | \
-        awk -v OFS='\\t' '{{if(($2==0 && $3=="NONE") || ($2==1 && $3=="NONE"))print$1,$2}}' > {output.validation_edge}
-        
-        [ -s {input.merged_training_node} ] || echo -e "empty\\t0" > {input.merged_training_node}
-        [ -s {input.merged_training_edge} ] || echo -e "empty\\t0" > {input.merged_training_edge}
-        [ -s {output.validation_node} ] || echo -e "empty\\t0" > {output.validation_node}
-        [ -s {output.validation_edge} ] || echo -e "empty\\t0" > {output.validation_edge}
-        
-        """
-
-rule generate_special_validation:
-    input:
-        sample_training_node = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.training.node",
-        sample_training_edge = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.training.edge"
-    output:
-        sample_validation_node = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.validation.node",
-        sample_validation_edge = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.{{sample}}.validation.edge"
-    shell:
-        """
-        awk -v OFS='\\t' '{{if($2=="TP")print $1,1;else print $1,0}}' {input.sample_training_node} > {output.sample_validation_node}
-        awk -v OFS='\\t' '{{if($2=="TP")print $1,1;else print $1,0}}' {input.sample_training_edge} > {output.sample_validation_edge}
+            cat {input.sample_train_edges} | \
+            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
+            grep -v empty > {output.merged_train_edge}
+        fi
         """
         
 rule gnn_feature_extract:
     input:
-        training_gfa = rules.prepare_training_set.output.training_gfa,
+        train_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.gfa",
+        merged_train_node = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.node",
+        merged_train_edge = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.edge"
     output:
-        node_features = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.node",
-        edge_features = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.edge"
+        node_feature = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature",
+        edge_feature = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature",
+        node_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label",
+        edge_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label"
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+    threads: 8
     shell:
         """
-        python3 {script_dir}/gnn_feature_extraction.py \
-        {input.training_gfa} \
-        {output.node_features} \
-        {output.edge_features}
-        
+        python3 scripts/graph-simplification/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ scripts/graph-simplification/orca.exe {output.node_feature} {output.edge_feature}
+        csvtk -H -t join --left-join -f 1 --na NONE {output.node_feature} {input.merged_train_node} > {output.node_feature_label}
+        csvtk -H -t join --left-join -f 1 --na NONE {output.edge_feature} {input.merged_train_edge} > {output.edge_feature_label}
         """
 
-#TODO: currently I assume only two samples in special_validate_samples. what if more than 2?
-rule finalize_labels:
-    input:
-        node_features = rules.gnn_feature_extract.output.node_features,
-        merged_training_node = rules.merge_samples.output.merged_training_node,
-        merged_validation_node = rules.generate_validation_files.output.validation_node,
-        test_validation_node = expand("c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.node", sample = config['test_samples'], prefix=config['prefix'], allow_missing=True),
-        edge_features = rules.gnn_feature_extract.output.edge_features,
-        merged_training_edge = rules.merge_samples.output.merged_training_edge,
-        merged_validation_edge = rules.generate_validation_files.output.validation_edge,
-        test_validation_edge = expand("c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.{sample}.validation.edge", sample = config['test_samples'], prefix=config['prefix'], allow_missing=True)
-    output:
-        node_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.node.label",
-        edge_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.edge.label"
-    shell:
-        """
-        csvtk -H -t join --left-join -f 1 --na NONE \
-        {input.node_features} \
-        {input.merged_training_node} | \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_node}[0] \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_node}[1] \
-        > {output.node_label}
-        
-        csvtk -H -t join --left-join -f 1 --na NONE \
-        {input.edge_features} \
-        {input.merged_training_edge} | \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_edge}[0] \
-        csvtk -H -t join --left-join -f 1 --na NONE - {input.test_validation_edge}[1] \
-        > {output.edge_label}
-        """
-        
-### training part
-
-#TODO: column 83,84 should be adjusted.
 rule statistic_prepare:
     input:
-        node_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.node.label",
-        edge_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.training.edge.label"
+        node_feature_labels = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label", id = id_list),
+        edge_feature_labels = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label", id = id_list)
     output:
-        train_node_info = "c7_graph_construction/chr_mc/{chr}/subgraph/train_node.info",
-        train_node_statistics = "c7_graph_construction/chr_mc/{chr}/subgraph/train_node.statistics",
-        train_node_dataset = "c7_graph_construction/chr_mc/{chr}/subgraph/train_node.dataset",
-        train_edge_info = "c7_graph_construction/chr_mc/{chr}/subgraph/train_edge.info",
-        train_edge_statistics = "c7_graph_construction/chr_mc/{chr}/subgraph/train_edge.statistics",
-        train_edge_dataset = "c7_graph_construction/chr_mc/{chr}/subgraph/train_edge.dataset"
+        train_node_info = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.info",
+        train_node_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.statistics",
+        train_node_dataset = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.dataset",
+        train_edge_info = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.info",
+        train_edge_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.statistics",
+        train_edge_dataset = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.dataset"
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+    threads: 8
     shell:
         """
-        cat chr_mc/{wildcards.chr}/subgraph/*/*linearize.training.node.label | awk '{{if($83!="NONE" || $84!="NONE") print$0}}'> {output.train_node_info}
-        python3 scripts/graph-simplification/node_prepare.py \
-        {output.train_node_info} \
-        {output.train_node_statistics} \
-        {output.train_node_dataset}
-        
-        cat chr_mc/{wildcards.chr}/subgraph/*/*linearize.training.edge.label | awk '{{if($83!="NONE" || $84!="NONE") print$0}}'> {output.train_edge_info}
-        python3 scripts/graph-simplification/edge_prepare.py \
-        {output.train_edge_info} \
-        {output.train_edge_statistics} \
-        {output.train_edge_dataset}
+        cat {input.node_feature_labels} | awk '{{if($NF!="NONE") print$0}}' > {output.train_node_info}
+        python3 scripts/graph-simplification/node_prepare.py {output.train_node_info} {output.train_node_statistics} {output.train_node_dataset}
+
+        cat {input.edge_feature_labels} | awk '{{if($NF!="NONE") print$0}}' > {output.train_edge_info}
+        python3 scripts/graph-simplification/edge_prepare.py {output.train_edge_info} {output.train_edge_statistics} {output.train_edge_dataset}
         """
 
-#TODO: model_dir path? How to get the model?
+rule model_train:
+    input:
+        train_node_dataset = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.dataset",
+        train_edge_dataset = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.dataset"
+    output:
+        train_node_model = f"c7_graph_construction/ml_model/{config['prefix']}.node_model.pth",
+        train_edge_model = f"c7_graph_construction/ml_model/{config['prefix']}.edge_model.pth",
+        train_node_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.node_model.threshold",
+        train_edge_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.edge_model.threshold"
+    resources:
+        max_mem_gb=150
+    threads: 8
+    shell:
+        """
+            python3 scripts/graph-simplification/model_train.py {input.train_node_dataset} {output.train_node_model} {output.train_node_threshold}
+            python3 scripts/graph-simplification/model_train.py {input.train_edge_dataset} {output.train_edge_model} {output.train_edge_threshold}
+        """
+
 rule node_edge_inference:
     input:
-        node_label = rules.finalize_labels.output.node_label,
-        edge_label = rules.finalize_labels.output.edge_label,
-        node_statistics = rules.statistic_prepare.output.train_node_statistics,
-        edge_statistics = rules.statistic_prepare.output.train_edge_statistics
-        
+        node_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label",
+        edge_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label",
+        train_node_model = f"c7_graph_construction/ml_model/{config['prefix']}.node_model.pth",
+        train_edge_model = f"c7_graph_construction/ml_model/{config['prefix']}.edge_model.pth",
+        train_node_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.node_model.threshold",
+        train_edge_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.edge_model.threshold",
+        train_node_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.statistics",
+        train_edge_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.statistics"
     output:
-        TVR90_node_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.node.label",
-        TVR90_edge_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.edge.label"
+        model_node_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.label",
+        model_edge_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.label"
+    resources:
+        max_mem_gb=30
+    threads: 2
+    shell:
+        """
+            node_threshold=$(echo {train_node_threshold})
+            python3 scripts/graph-simplification/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {input.model_node_label}
+            edge_threshold=$(echo {train_edge_threshold})
+            python3 scripts/graph-simplification/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {input.model_edge_label}
+        """
+
+rule gfa_ml_filter:
+    input:
+        node_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label",
+        edge_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label",
+        model_node_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.label",
+        model_edge_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.label",
+        filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
+    output:
+        ml_filter_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.raw.gfa",
+        ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg",
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+    threads: 4
     params:
-        chr = lambda wildcards: wildcards.chr,
-        model_dir = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/model-train/version2"
-    run:
-        if params.chr == "chrX":
-            node_inference_script = f"{params.model_dir}/node_X/node_inference.py",
-            edge_inference_script = f"{params.model_dir}/edge_X/edge_inference.py",
-            node_model = f"{params.model_dir}/node_X/node.X.pth",
-            edge_model = f"{params.model_dir}/edge_X/edge.X.pth",
-            node_threshold = 0.0371781,
-            edge_threshold = 0.04142026
-        elif params.chr == "chrY":
-            node_inference_script = f"{params.model_dir}/node_Y/node_inference.py",
-            edge_inference_script = f"{params.model_dir}/edge_Y/edge_inference.py",
-            node_model = f"{params.model_dir}/node_Y/node.Y.pth",
-            edge_model = f"{params.model_dir}/edge_Y/edge.Y.pth",
-            node_threshold = 0.08506753,
-            edge_threshold = 0.06190881
-        else:
-            node_inference_script = f"{params.model_dir}/node_auto/node_inference.py",
-            edge_inference_script = f"{params.model_dir}/edge_auto/edge_inference.py",
-            node_model = f"{params.model_dir}/node_auto/node.auto.pth",
-            edge_model = f"{params.model_dir}/edge_auto/edge.auto.pth",
-            node_threshold = 0.04559464,
-            edge_threshold = 0.04971138
-        shell("python3 {node_inference_script} {input.node_label} {input.node_statistics} {node.model} {node_threshold} > {output.TVR90_node_label}")
-        shell("python3 {edge_inference_script} {input.edge_label} {input.edge_statistics} {edge.model} {edge_threshold} > {output.TVR90_edge_label}")
-
-
-rule FP_node_edge_prepare:
-    input:
-        node_label = rules.finalize_labels.output.node_label,
-        TVR90_node_label = rules.node_edge_inference.output.TVR90_node_label,
-        edge_label = rules.finalize_labels.output.edge_label,
-        TVR90_edge_label = rules.node_edge_inference.output.TVR90_edge_label
-    output:
-        TVR90_FP_node_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.FP.node",
-        TVR90_FP_edge_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.FP.edge"
+        train_sample = "\\t|".join(set(train_sample_map.keys()))
     shell:
         """
-        paste {input.node_label} {input.TVR90_node_label} | awk '{{if($83==0 || $84==0) print$87;else {{if($88=="FP" && $83!=1 && $84!=1) print$87}} }}' > {output.TVR90_FP_node_label}
-        paste {input.edge_label} {input.TVR90_edge_label} | awk '{{if($78==0 || $79==0) print$82;else {{if($83=="FP" && $78!=1 && $79!=1) print$82}} }}' > {output.TVR90_FP_edge_label}
+        cat {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}
+        cat {input.edge_feature_label} {input.model_edge_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_edge_fp_label}
+
+        python3 scripts/graph-simplification/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
+        awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
+        grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | \
+        vg convert -g - | vg clip -d 1 -s -P CHM13 -P GRCh38 - | vg mod -u - > {output.ml_filter_vg}
         """
 
-#TODO:edit the script to removed the parameters hifi_samples_list.
-rule gfa_node_edge_TVR90_filter:
-    input:
-        linear_gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfa",
-        TVR90_FP_node_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.FP.node",
-        TVR90_FP_edge_label = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.inference.TVR90.FP.edge"
-    output:
-        TVR90_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.gfa",
-        TVR90_filter_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.filter.gfa",
-        TVR90_rmac0_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmac0.gfa"
-    params:
-        # hifi_samples_list = ",".join(config['hifi_samples']),
-        validate_low_samples_list = lambda wildcards: "|".join(f"{wildcards.sample}_low\t" for sample in config['validate_samples'])
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_node_edge_filtering.py \
-        {input.linear_gfaffix_gfa} \
-        {input.TVR90_FP_node_label} \
-        {input.TVR90_FP_edge_label} \
-        {params.hifi_samples_list} \
-        {output.TVR90_gfa}
-        
-        awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' \
-        {output.TVR90_gfa} | grep -v '{params.validate_low_samples_list}|_MINIGRAPH_\t' > {output.TVR90_filter_gfa}
-        
-        python3 scripts/graph-simplification/gfa_remove_ac0.py \
-        {output.TVR90_filter_gfa} \
-        {output.TVR90_filter_rmac0_gfa}
-        """
-        
-
-
-# params:
-#     hifi_samples_dashP_command = "|".join((f"-P {sample} " for sample in config['hifi_samples']))
-rule TVR90_vg_clip:
-    input:
-        TVR90_rmac0_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmac0.gfa"
-    output:
-        vg = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmac0.vg"),
-        vg_clip = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.rmtips.vg"),
-        vg_unchop = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.vg"),
-        gfa_unchop = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.gfa"
-    shell:
-        """
-        vg convert -g {input.TVR90_rmac0_gfa} > {output.vg}
-        vg clip {output.vg} > {output.vg_clip}
-        vg mod -u {output.vg_clip} > {output.vg_unchop}
-        vg view {output.vg_unchop} > {output.gfa_unchop}
-        
-        """
-        
-#can iterate multiple times.
-rule TVR90_snarls_filter:
-    input:
-        gfa = lambda wildcards: f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{wildcards.chr}.subgraph_{wildcards.subgraph}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{int(wildcards.i)-1}_filter.gfa",
-        stat = lambda wildcards: f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{wildcards.chr}.subgraph_{wildcards.subgraph}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{int(wildcards.i)-1}.stat"
-    output:
-        out_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}_filter.gfa",
-        out_stat = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}.stat",
-        filter = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}_filter.bed",
-        txt = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}.txt"),
-        region = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}_region.bed"),
-        temp1_gfa = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{i}}_tmp1.gfa")
-    shell:
-        """
-        if [ $(awk '{{if($7>20000 && $8>20000) print$0}}' {input.stat} | wc -l) -eq 1 ]; then \
-            cp {input.gfa} {output.out_gfa}
-            cp {input.stat} {output.out_stat}
-        else \
-            vg snarls -a -T {input.gfa} | vg view -R - > {output.txt}
-            
-            python3 scripts/graph-simplification/gfa_snarl_bed.py \
-                {input.gfa} {input.stat} {output.txt} \
-                20000 100 {output.region}
-                
-            bedtools sort -i {output.region} | bedtools merge -i - -d 50 > {output.filter}
-            
-            python3 scripts/graph-simplification/gfa_bed_filter.py {input.gfa} {output.filter} CHM13,GRCh38 {output.temp1_gfa}
-            
-            python3 scripts/graph-simplification/gfa_remove_ac0.py {output.temp1_gfa} {output.gfa}
-            
-            vg stats -R {output.out_gfa} > {output.out_stat}
-        fi
-        """
-
-rule component_extract:
-    input:
-        snarls20_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.gfa"
-    output:
-        out_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.gfa",
-        out_stat = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.snarls.stat"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_ref_component.py \
-        {input.snarls20_gfa} \
-        {output.out_gfa} \
-        CHM13,GRCh38
-        
-        vg stats -R {output.out_gfa} > {output.out_stat}
-        """
-        
-#TODO: where do the snarls_filter.ref_node.gfa come from?
-rule ref_node_filter:
-    input:
-        bed = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.bed",
-        ref_node_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls_filter.ref_node.gfa"
-        
-    output:
-        bed = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls_filter.bed",
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls_filter.gfa"
-    params:
-        prefix = lambda wildcards: config['prefix'],
-    shell:
-        """
-        cat c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls{{1..20}}_filter.bed | bedtools sort -i - | bedtools merge -i - > {output.bed}
-        awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {ref_node_gfa} > {output.gfa}
-        
-        """
-
-#TODO: path of variants should be adjusted.
 rule variant_projection:
     input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.gfa",
-        variants = "/storage/yangjianLab/wangyifei/project/01.CKCG/11.Consensus_variant/CHM13/03.shapeit/bench_set/merge_vcf/CKCG.consensus.whatshap.shapeit4.mutiallele.sample_match.bench_set.vcf.gz"
+        ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg",
+        variant_vcf = get_merge_phased_vcf_input
     output:
-        vg = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.vg",
-        clip_vg = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.unchop.snarls20_filter.component.rmtips.vg",
-        variant_project_vg = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.vg",
-        variant_project_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfa"
+        variant_project_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.vg",
+        variant_project_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfa",
+        gfaffix_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa"
     shell:
         """
-        awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {input.gfa} | vg convert -g - > {output.vg}
-        
-        vg clip \
-        {output.vg} \
-        > {output.clip_vg}
-        
-        if [ {wildcards.chr} == "chrY" ]
+        if [ $(vg paths -x {input.ml_filter_vg} -L | grep CHM13 | wc -l) -eq 0 ]
         then \
-            cp {output.clip_vg} {output.variant_project_vg} 
+            cp {output.ml_filter_vg} {output.variant_project_vg} 
         else \
             python3 scripts/graph-simplification/graph_variant_projection.py \
-            -g {output.clip_vg} \
-            -v {input.variants} \
+            -g {output.ml_filter_vg} \
+            -v {input.variant_vcf} \
             -r CHM13 \
             -o {output.variant_project_vg} \
             -s .snv \
-            -p {wildcards.chr}_{wildcards.subgraph_id}_snv_
+            -p {wildcards.id}_snv_
         fi
         
-        vg convert -fW {output.variant_project_vg} > {output.variant_project_gfa}
-        """
-        
-rule variant_project_gfa_gfaffix:
-    input:
-        variant_project_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfa"
-    output:
-        gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.gfa",
-        gfaffix_info = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.info"
-    shell:
-        """
-        gfaffix {input.variant_project_gfa} -o {output.gfaffix_gfa} > {output.gfaffix_info}
-        
-        """
-        
-rule variant_project_gfa_chop:
-    input:
-        gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.gfa"
-    output:
-        gfaffix_vg = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.vg"),
-        unchop_vg = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.unchop.vg"),
-        chop_vg = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.vg"),
-        chop_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.gfa"
-    params:
-        prefix = lambda wildcards: config['prefix'],
-    shell:
-        """
-        vg convert -g {output.gfaffix_gfa} > {output.gfaffix_vg}
-        
-        vg mod -u {output.gfaffix_vg} > {output.unchop_vg}
-        vg mod -X 1024 {output.unchop_vg} > {output.chop_vg}
-        
-        vg view {output.chop_vg} > c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.gfa
+        vg convert -f {output.variant_project_vg} > {output.variant_project_gfa}
+        gfaffix {output.variant_project_gfa} | vg convert -g - | vg mod -X 1024 - | vg view - > {output.gfaffix_gfa}
         """
 
-#TODO: how to generate the node_info for each subgraph?
-rule variant_project_gfa_ids:
-    input:
-        node_list = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.chop.node.sum.list",
-        chop_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.gfa"
-    output:
-        ids_gfa = temp(f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.gfa"),
-        ids_assembly_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa",
-        ids_variant_path = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path"
-    shell:
-        """
-        node_index=$(awk -v chr=$chr -v subgraph=$subgraph '{{if($1==chr && $2==subgraph) print$3}}' {input.node_list})
-        
-        python3 scripts/graph-simplification/gfa_ids.py \
-        {input.chop_gfa} \
-        {output.ids_gfa} \
-        $node_index
-        
-        grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa}
-        grep snv {output.ids_gfa} > {output.ids_variant_path}
-        """        
 
-# rule xxx:
-#     input:
-#     output:
-#     shell:
-#         """
-        
-#         """  

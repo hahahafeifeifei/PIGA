@@ -1,369 +1,342 @@
-chr_list = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
+chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
-
-#prefix = '1kcp'
-            
-def get_linear_gfaffix_gfa_files(wildcards, prefix):
-    if "subgraph_list" in config:
-        chr_subgraph_combination_file = config["subgraph_list"]
-    else:
-        chr_subgraph_combination_file = checkpoints.prepare_subgraph_list.get().output[0]
-    pairs = []
-    with open(chr_subgraph_combination_file) as f:
-            for line in f:
-                chr_id, subgraph_id = line.strip().split("\t")
-                pairs.append(f"c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa")
-    return pairs
-            
 rule all_graph_construction:
     input:
-        partial(get_linear_gfaffix_gfa_files, prefix = config['prefix'])
-    
- 
+        expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa", id = get_subgraph_ids)
 
-    
-    
-rule subgraph_seqwish:
+rule rename_reference:
     input:
-        paf = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.paf"
-        
+        chm13_fa=config["reference"]["CHM13"],
+        grch38_fa=config["reference"]["GRCh38"]
     output:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.gfa"
+        chm13_rename_fa='c7_graph_construction/fasta/CHM13.fasta',
+        grch38_rename_fa='c7_graph_construction/fasta/GRCh38.fasta'
+    resources:
+        max_mem_gb=30,
+    shell:
+        """
+        awk '{{if(substr($0,1,1)==">") print ">CHM13."substr($1,2,length($1));else print $0}}' {input.chm13_fa} > {output.chm13_rename_fa}
+        awk '{{if(substr($0,1,1)==">") print ">GRCh38."substr($1,2,length($1));else print $0}}' {input.grch38_fa} > {output.grch38_rename_fa}
+        """
+
+external_assembly_id_dict, external_assembly_id_list = {}, []
+with open(get_external_assembly_list) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        assembly_id = line.strip().split()[0]
+        assembly = line.strip().split()[1]
+        external_assembly_id_list.append(assembly_id)
+        external_assembly_id_dict[assembly_id] = assembly
+
+rule rename_external_assembly:
+    input:
+        fa = get_external_assembly_fa
+    output:
+        rename_fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta'
+    wildcard_constraints:
+        external_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
+    resources:
+        max_mem_gb=30
+    shell:
+        """
+        sample=$(echo {wildcards.external_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
+        haplotype=$(echo {wildcards.external_assembly_id} | awk '{{split($1,a,".");print a[2]+1}}')
+        awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} > {output.rename_fa}
+        """
+
+rule external_minigraph:
+    input:
+        chm13_fa='c7_graph_construction/fasta/CHM13.fasta',
+        grch38_fa='c7_graph_construction/fasta/GRCh38.fasta',
+        external_assembly_fa = expand('c7_graph_construction/fasta/{external_assembly_id}.fasta', external_assembly_id = external_assembly_id_list)
+    output:
+        minigraph_external_gfa = f'c7_graph_construction/{config['prefix']}.minigraph_external.gfa'
+    threads: 16
+    resources:
+        max_mem_gb=300
+    shell:
+        """
+        minigraph -c -x ggs -t {threads} {input.chm13_fa} {input.grch38_fa} {input.external_assembly_fa} > {output.minigraph_external_gfa}
+        """
+
+rule external_chr_minigraph:
+    input:
+        minigraph_external_gfa = f'c7_graph_construction/{config['prefix']}.minigraph_external.gfa'
+    output:
+        minigraph_external_chr_gfa = f'c7_graph_construction/{config['prefix']}.minigraph_external.{{chr}}.gfa'
+    wildcard_constraints:
+        chr = "|".join(chr_list)
+    threads: 4
+    resources:
+        max_mem_gb=30
+    shell:
+        """
+        gfatools view -R {wildcards.chr} {input.minigraph_external_gfa} > {output.minigraph_external_chr_gfa}
+        """
+
+internal_assembly_id_dict, internal_assembly_id_list = {}, []
+with open(get_internal_assembly_list) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        assembly_id = line.strip().split()[0]
+        assembly = line.strip().split()[1]
+        internal_assembly_id_list.append(assembly_id)
+        internal_assembly_id_dict[assembly_id] = assembly
+
+rule rename_internal_assembly:
+    input:
+        fa = get_internal_assembly_fa 
+    output:
+        rename_fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+    wildcard_constraints:
+        internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
+    resources:
+        max_mem_gb=30
+    shell:
+        """
+        sample=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
+        haplotype=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[2]+1}}')
+        awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} > {output.rename_fa}
+        """
+
+rule split_internal_assembly_by_chr:
+    input:
+        fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+    output:
+        chr_fa = "c7_graph_construction/chr_fasta/{chr}/{internal_assembly_id}.{chr}.fasta"
+    wildcard_constraints:
+        chr = "|".join(chr_list)
     threads: 1
-    params:
-        prefix = lambda wildcards: config['prefix'],
-        chr_subgraph_dir = "c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}"
+    resources:
+        max_mem_gb = 30
     shell:
         """
-        cat {params.chr_subgraph_dir}/fa/*.fasta > {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.fasta
-        seqwish -P -t {threads} \
-            -s {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.fasta \
-            -p {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.paf \
-            -g {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.origin.gfa
-        
-        awk -v OFS='\t' '{{if(substr($1,1,1)=="P") {{split($2,a,"id=");split(a[2],b,"|");if(b[1]=="CHM13" || b[1]=="GRCh38" || b[1]=="_MINIGRAPH_") name=b[1]"#"b[2];else {{split(b[1],c,".");name=c[1]"#"c[2]-1"#"b[2]"#0"}}  print $1,name,$3,$4 }}else  print$0  }}' {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.origin.gfa > {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.gfa
-        
-        rm {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.fasta
-        rm {params.chr_subgraph_dir}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.origin.gfa
+        seqkit grep -w 0 -r -p .{wildcards.chr}- {input.fa} > {output.chr_fa}
         """
 
-        
-rule subgraph_smoothxg_1:
+rule internal_chr_minigraph:
     input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.gfa"
+        minigraph_external_chr_gfa = f'c7_graph_construction/{config['prefix']}.minigraph_external.{{chr}}.gfa',
+        internal_assembly_fa = expand('c7_graph_construction/chr_fasta/{chr}/{internal_assembly_id}.{chr}.fasta', internal_assembly_id = internal_assembly_id_list, chr=chr_list)
     output:
-        smoothxg_1_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg1.gfa"
+        minigraph_chr_gfa = f'c7_graph_construction/chr_gfa/{config['prefix']}.minigraph.{{chr}}.gfa'
+    threads: 8
+    resources:
+        max_mem_gb = 60
+    shell:
+        """
+        minigraph -c -x ggs -t {threads} {input.minigraph_external_chr_gfa} {input.internal_assembly_fa} | sed "s/s//g" > {output.minigraph_chr_gfa}
+        """
+
+rule concat_chr_minigraph:
+    input:
+        minigraph_external_chr_gfas = expand(f'c7_graph_construction/chr_gfa/{config['prefix']}.minigraph.{{chr}}.gfa', chr=chr_list)
+    output:
+        minigraph_gfa = f'c7_graph_construction/{config['prefix']}.minigraph.gfa'
+    threads: 16
+    resources:
+        max_mem_gb = 200
+    shell:
+        """
+        vg concat {input.minigraph_external_chr_gfas} > {output.minigraph_gfa}
+        """
+
+rule minigraph_clip:
+    input:
+        minigraph_gfa = f'c7_graph_construction/{config['prefix']}.minigraph.gfa'
+    output:
+        snarls=f'c7_graph_construction/{config['prefix']}.minigraph.snarls',
+        og=f'c7_graph_construction/{config['prefix']}.minigraph.og',
+        node_clip_gfa=f'c7_graph_construction/{config['prefix']}.minigraph.node_clip.gfa',
+        edge_clip_gfa=f'c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa',
+        node_len=f'c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv',
+        subgraph_info="c7_graph_construction/subgraph.info"
+    threads: 16
+    resources:
+        max_mem_gb = 200
+    shell:
+        """
+        vg snarls {output.gfa} | vg view -R - > {output.snarls}
+        odgi build -t {threads} -g {input.minigraph_gfa} -o {output.og}
+        export LD_PRELOAD=$CONDA_PREFIX/lib/libjemalloc.so.2
+        python3 scripts/border_node_select.py {output.gfa} {output.snarls} {output.og} {output.node_clip_gfa} {output.node_edge_clip_gfa} {output.subgraph_info}
+        vg convert -g {output.node_clip_gfa} -f -Q chr | awk '{{if(substr($0,1,1)=="S" && $6!="SR:i:0")print$0"\\tSN:Z:Other\\tSO:i:0\\tSR:i:1";else print$0}}' | \
+        awk -v OFS='\\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' > {output.node_clip_rgfa}
+        grep ^S {output.node_clip_rgfa} | awk '{{print $2"\\t"length($3)}}' > {output.node_len}
+        """
+
+
+#Rule: minigraph alignment
+rule minigraph_alignment_reference:
+    input:
+        node_clip_rgfa = f'c7_graph_construction/{config['prefix']}.minigraph.node_clip.gfa',
+        chm13_fa = 'c7_graph_construction/fasta/CHM13.fasta',
+        grch38_fa = 'c7_graph_construction/fasta/GRCh38.fasta'
+    output:
+        chm13_gaf = "c7_graph_construction/gaf/CHM13.gaf",
+        grch38_gaf = "c7_graph_construction/gaf/GRCh38.gaf"
+    resources:
+        max_mem_gb = 100
+    threads: 8
+    shell:
+        """
+        minigraph -x asm -t {threads} --vc -c {input.node_clip_rgfa} {input.chm13_fa} | scripts/gaffilter - -r 5.0 -m 0.25 -q 5 -b 250000 -o 0 -i 0.5 > {output.chm13_gaf}
+        minigraph -x asm -t {threads} --vc -c {input.node_clip_rgfa} {input.grch38_fa} | scripts/gaffilter - -r 5.0 -m 0.25 -q 5 -b 250000 -o 0 -i 0.5 > {output.grch38_gaf}
+        """
+
+rule minigraph_alignment_external_assembly:
+    input:
+        node_clip_rgfa = f'c7_graph_construction/{config['prefix']}.minigraph.node_clip.gfa',
+        fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta'
+    output:
+        gaf = "c7_graph_construction/gaf/{external_assembly_id}.gaf"
+    resources:
+        max_mem_gb = 100
+    threads: 4
+    shell:
+        """
+        minigraph -x asm -t {threads} --vc -c {input.node_clip_rgfa} {input.fa} | scripts/gaffilter - -r 5.0 -m 0.25 -q 5 -b 250000 -o 0 -i 0.5 > {output.gaf}
+        """
+
+rule minigraph_alignment_internal_assembly:
+    input:
+        node_clip_rgfa = f'c7_graph_construction/{config['prefix']}.minigraph.node_clip.gfa',
+        fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+    output:
+        gaf = "c7_graph_construction/gaf/{internal_assembly_id}.gaf"
+    resources:
+        max_mem_gb = 100
+    threads: 4
+    shell:
+        """
+        minigraph -x asm -t {threads} --vc -c {input.node_clip_rgfa} {input.fa} | scripts/gaffilter - -r 5.0 -m 0.25 -q 5 -b 250000 -o 0 -i 0.5 > {output.gaf}
+        """
+
+checkpoint minigraph_aln_partition:
+    input:
+        gafs = expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = ["GRCh38" + "CHM13"] + internal_assembly_id_list + external_assembly_id_list),
+        node_edge_clip_gfa = f'c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa',
+        node_len = f'c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv'
+    output:
+        subgraph_dir = directory("c7_graph_construction/subgraph"),
+        gaf = f'c7_graph_construction/{config['prefix']}.gaf',
+        paf = f'c7_graph_construction/{config['prefix']}.paf',
+        subgraph_id_list = f'c7_graph_construction/subgraph_id.list',
+    params:
+        prefix = f'c7_graph_construction/subgraph/{config['prefix']}_subgraph'
+    resources:
+        max_mem_gb=100,
+        runtime_hrs=30
+    threads: 8
+    shell:
+        """
+            mkdir {output.subgraph_dir}
+            cat {input.gafs} > {output.gaf}
+            scripts/gaf2paf -l {input.node_len} {output.gaf} > {output.paf}
+            vg chunk -C -x {input.node_edge_clip_gfa} --prefix {params.prefix} -O gfa
+            python3 scripts/subgraph_paf_fa.py {params.prefix} {output.paf} {output.gaf} {output.subgraph_dir}
+            ls {params.prefix}_*.gfa | awk '{{split($1,a,"_");split(a[length(a)],b,".");print b[1]}}' > {output.subgraph_id_list}
+        """
+
+def get_subgraph_ids():
+    subgraph_id_file = checkpoints.minigraph_aln_partition.get().output.subgraph_id_list
+    with open(subgraph_id_file) as f:
+        return [line.strip() for line in f if line.strip()]
+
+#Rule: minigraph sequence partition
+rule minigraph_seq_partition:
+    input:
+        bed = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.bed",
+        gfa = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.gfa", 
+        paf = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.paf",
+        fa_dir=directory("c7_graph_construction/fasta")
+    output:
+        subgraph_dir=directory("c7_graph_construction/subgraph/subgraph_{id}"),
+        subgraph_fa_dir=directory("c7_graph_construction/subgraph/subgraph_{id}/fasta"),
+        fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
+        bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.bed",
+        paf = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.paf",
+        gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.gfa"
+    params:
+        prefix = f'c7_graph_construction/subgraph/{config['prefix']}_subgraph'
+    wildcard_constraints:
+        id='|'.join(get_subgraph_ids)
+    resources:
+        max_mem_gb=100,
+        runtime_hrs=30
     threads: 1
+    shell:
+        """
+            mkdir -p {output.subgraph_dir}
+            mkdir -p {output.subgraph_fa_dir}
+            awk '{{print $1}}' {input.bed} | while read sample
+            do
+                awk -v sample=$sample '{{if($1==sample)print$2}}' {input.bed} > {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed
+                samtools faidx -r {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed {input.fa_dir}/$sample.fasta > {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.fasta
+            done
+            awk '{{if($1=="S")print">_MINIGRAPH_.s"$2"\\n"$3}}' {input.gfa} > {output.subgraph_fa_dir}/_MINIGRAPH_.subgraph_{wildcards.id}.fasta
+            cat {output.subgraph_fa_dir}/*fasta > {output.fa}
+            mv {input.bed} {output.bed}
+            mv {input.gfa} {output.gfa}
+            awk -v OFS='\\t' '{{$6="_MINIGRAPH_."$6; print $0}}' {input.paf} > {output.paf}
+            rm {input.paf}
+        """
+
+
+rule seqwish:
+    input:
+        fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
+        paf = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.paf"
+    output:
+        raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.origin.gfa",
+        seqwish_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.gfa"
     params:
-        chr_subgraph_dir = "c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}"
+        subgraph_dir = 'c7_graph_construction/subgraph/subgraph_{id}'
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+    threads: 8
     shell:
         """
-        sample_number=$(ls -lh {params.chr_subgraph_dir}/fa/*fasta | awk '{{if($5!=0)print $0}}' | wc -l)
-        mkdir {params.chr_subgraph_dir}/smoothxg_tmp
-        smoothxg -t {threads} \
-            -g {input.gfa} \
-            -r ${{sample_number}} \
-            --base {params.chr_subgraph_dir}/smoothxg_tmp \
-            --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 \
-            -l 1400 \
-            -q 2800 \
-            -w $[1400*${{sample_number}}] \
-            -p 1,19,39,3,81,1 -O 0.001 \
-            -Y $[100*${{sample_number}}] -d 0 -D 0 -V -c 200M -W 1 \
-            -o {output.smoothxg_1_gfa}
+            seqwish -P -t {threads} -s {input.fa} -p {input.paf} -g {output.raw_gfa} -b {params.subgraph_dir}
+            awk -v OFS='\\t' '{{if(substr($1,1,1)=="P") {{split($2,a,".");if(a[1]=="CHM13" || a[1]=="GRCh38" || a[1]=="_MINIGRAPH_") name=a[1]"#"a[1]"."a[2];else {{split(a[2],b,"hap");name=a[1]"#"b[2]-1"#"a[1]".hap"b[2]"."a[3]"#0"}}  print $1,name,$3,$4 }}else  print$0 }}' {output.raw_gfa} > {output.seqwish_gfa}
         """
-        
-rule subgraph_smoothxg_2:
+
+
+rule smoothxg:
     input:
-        smoothxg_1_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg1.gfa"
-        
+        fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
+        seqwish_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.gfa"
     output:
-        smoothxg_2_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfa"
-    threads: 1
+        smoothxg_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfa"
     params:
-        chr_subgraph_dir = "c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}"
+        smoothxg_dir = 'c7_graph_construction/subgraph/subgraph_{id}/tmp'
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        runtime_hrs=lambda wildcards, attempt: 20 * attempt
+    threads: 8
     shell:
         """
-        smoothxg -t {threads} \
-            -g {input.smoothxg_1_gfa} \
-            -r ${{sample_number}} \
-            --base smoothxg_tmp \
-            --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 \
-            -l 1800 \
-            -q 3600 \
-            -w $[1800*${{sample_number}}] \
-            -p 1,19,39,3,81,1 -O 0.001 \
-            -Y $[100*${{sample_number}}] -d 0 -D 0 -V -c 200M -W 1 \
-            -o {output.smoothxg_2_gfa}
-        """
-        
-        
-# rule subgraph_smoothxg_3:
-#     input:
-#         smoothxg_2_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfa"
-        
-#     output:
-#         smoothxg_3_gfa = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg3.gfa"
-#     params:
-#         chr_subgraph_dir = "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}"
-#     shell:
-#         """
-#         smoothxg -t {threads} \
-#         -g {input.smoothxg_2_gfa} \
-#         -r ${{sample_number}} \
-#         --base smoothxg_tmp \
-#         --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 \
-#         -l 2200 \
-#         -q 4400 \
-#         -w $[2200*${{sample_number}}] \
-#         -p 1,19,39,3,81,1 -O 0.001 \
-#         -Y $[100*${{sample_number}}] -d 0 -D 0 -V -c 200M -W 1 \
-#         -o {output.smoothxg_3_gfa}
-#         """
-        
-        
-rule subgraph_gfaffix:
-    input:
-        smoothxg_2_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfa" 
-    output:
-        gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.gfa",
-        gfaffix_info = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.info"
-    shell:
-        """
-        gfaffix \
-            {input.smoothxg_2_gfa} \
-            -o {output.gfaffix_gfa} \
-            > {output.gfaffix_info}
-        
-        """
-
-rule gfa_format_norm:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.gfa"    
-    output:
-        norm_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.gfa"
-    params:
-        prefix = lambda wildcards: config['prefix']
-    shell:
-        """
-        vg convert -gf {input.gfa} > c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.W.gfa
-        
-        awk -v OFS='\t' '{{ if(substr($0,1,1)=="W" && $2!="_MINIGRAPH_") {{split($4,a,":");split(a[2],b,"-");print$1,$2,$3,a[1],$5+b[1]-1,$6+b[1]-1,$7}} else print$0 }}' \
-        c7_graph_construction/chr_mc/{wildcards.chr}/subgraph/subgraph{wildcards.subgraph_id}/{params.prefix}.{wildcards.chr}.subgraph_{wildcards.subgraph_id}.seqwish.smoothxg2.gfaffix.W.gfa \
-        > {output.norm_gfa}
-        
-        """
-        
-rule record_gfa_cycle_region:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.gfa"
-    output:
-        cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/cycle_region.py \
-            {input.gfa} \
-            {output.cycle_region}
-        """
-        
-
-rule record_gfa_high_cov_region:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.gfa"
-    output:
-        high_cov_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.high_coverage.bed"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_high-coverage_bed.py \
-            {input.gfa} \
-            45200 \
-            200 \
-            {output.high_cov_region}
-        """        
-
-rule record_gfa_minigraph_unaligned_region:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.gfa"
-    output:
-        minigraph_unaligned_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.minigraph_unaligned.bed"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_minigraph_unaligned.py \
-            {input.gfa} \
-            {output.minigraph_unaligned_region}
-        """
-
-rule gfa_regions_merge:
-    input:
-        minigraph_unaligned_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.minigraph_unaligned.bed",
-        high_cov_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.high_coverage.bed"
-    output:
-        merged_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.merge.bed"
-    shell:
-        """
-        cat {input.minigraph_unaligned_region} {input.high_cov_region} | bedtools sort | bedtools merge -d 1000 > {output.merged_region}
-        
-        """        
-rule gfa_filter:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.norm.gfa",
-        merged_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.merge.bed"
-    output:
-        filtered_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.clip.gfa" 
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_bed_filter.py \
-            {input.gfa} \
-            {input.merged_region} \
-            CHM13,GRCh38,_MINIGRAPH_ \
-            {output.filtered_gfa}
-        """        
-        
-        
-rule record_filtered_gfa_cycle_region:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.clip.gfa"
-    output:
-        cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.clip.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/cycle_region.py \
-            {input.gfa} \
-            {output.cycle_region}
-        """
-
-rule prepare_ref_file_samples_file:
-    output:
-        ref_file = "c7_graph_construction/ref.sample",
-        sample_file = "c7_graph_construction/all.sample"
-    run:
-        with open(output.ref_file, 'w') as f:
-            f.write('CHM13\nGRCh38\n')
-        with open(output.sample_file, 'w') as f:
-            f.write('\n'.join(config['samples']) + '\n')
-
-
-rule gfa_linear_1:
-    input:
-        gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.clip.gfa",
-        ref_file = "c7_graph_construction/ref.sample",
-        sample_file = "c7_graph_construction/all.sample"
-    output:
-        linear_1_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize1.gfa",
-        linear_1_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize1.region",
-        linear_1_cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize1.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_untangle_unsub_muti_match.py \
-            {input.gfa} 5000 50 {input.ref_file} {input.sample_file} \
-            {output.linear_1_gfa} \
-            {output.linear_1_region}
-        
-        python3 scripts/graph-simplification/cycle_region.py \
-            {output.linear_1_gfa} \
-            {output.linear_1_cycle_region}
-        """
-        
-rule gfa_linear_2:
-    input:
-        linear_1_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize1.gfa",
-        ref_file = "c7_graph_construction/ref.sample",
-        sample_file = "c7_graph_construction/all.sample"
-    output:
-        linear_2_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize2.gfa",
-        linear_2_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize2.region",
-        linear_2_cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize2.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_untangle_unsub.py \
-            {input.linear_1_gfa} \
-            5000 50 10000 {input.ref_file} {input.sample_file} \
-            {output.linear_2_gfa} \
-            {output.linear_2_cycle_region}
-        
-        python3 scripts/graph-simplification/cycle_region.py \
-            {output.linear_2_gfa} \
-            {output.linear_2_cycle_region}
-        """
-        
-rule gfa_linear_3:
-    input:
-        linear_2_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize2.gfa",
-        ref_file = "c7_graph_construction/ref.sample",
-        sample_file = "c7_graph_construction/all.sample"
-    output:
-        linear_3_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize3.gfa",
-        linear_3_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize3.region",
-        linear_3_cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize3.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_untangle_unsub.py \
-            {input.linear_2_gfa} \
-            7500 50 5000 {input.ref_file} {input.sample_file} \
-            {output.linear_3_gfa} \
-            {output.linear_3_cycle_region}
-        
-        python3 scripts/graph-simplification/cycle_region.py \
-            {output.linear_3_gfa} \
-            {output.linear_3_cycle_region}
-        """
-        
-rule gfa_linear_4:
-    input:
-        linear_3_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize3.gfa",
-        ref_file = "c7_graph_construction/ref.sample",
-        sample_file = "c7_graph_construction/all.sample"
-    output:
-        linear_4_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize4.gfa",
-        linear_4_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize4.region",
-        linear_4_cycle_region = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize4.cycle.region"
-    shell:
-        """
-        python3 scripts/graph-simplification/gfa_untangle_unsub.py \
-            {input.linear_3_gfa} \
-            9000 50 2000 {input.ref_file} {input.sample_file} \
-            {output.linear_4_gfa} \
-            {output.linear_4_cycle_region}
-        
-        python3 scripts/graph-simplification/cycle_region.py \
-            {output.linear_4_gfa} \
-            {output.linear_4_cycle_region}
+            mkdir -p {params.smoothxg_dir}
+            sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
+            smoothxg -t {threads} -g {input.seqwish_gfa} -r $sample_number --base {params.smoothxg_dir} --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400,2200 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_gfa}
         """
 
         
-        
-        
-rule gfa_linear_rmac0:
+rule gfaffix:
     input:
-        linear_4_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize4.gfa"
+        smoothxg_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfa"
     output:
-        linear_rmac0_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.rmac0.gfa"
+        gfaffix_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
+    resources:
+        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        runtime_hrs=lambda wildcards, attempt: 20 * attempt
+    threads: 8
     shell:
         """
-        python3 scripts/graph-simplification/gfa_remove_ac0.py \
-            {input.linear_4_gfa} \
-            {output.linear_rmac0_gfa}
+            gfaffix {input.smoothxg_gfa} | vg convert -fg - | \
+            awk -v OFS='\\t' '{{if(substr($0,1,1)=="W" && $2!="_MINIGRAPH_") {{split($4,a,":");split(a[2],b,"-");print$1,$2,$3,a[1],$5+b[1]-1,$6+b[1]-1,$7}} else print$0 }}' > {output.gfaffix_gfa}
         """
-rule gfa_linear_gfaffix:
-    input:
-        linear_rmac0_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.rmac0.gfa"
-    output:
-        linear_gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfaffix.gfa",
-        linear_gfaffix_info = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfaffix.info"
-    shell:
-        """
-        gfaffix -o {output.linear_gfaffix_gfa} \
-            {input.linear_rmac0_gfa} \
-            > {output.linear_gfaffix_info}
-        """
-        
-rule remove_gfa_null_line:
-    input:
-        linear_gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfaffix.gfa"
-    output:
-        removed_null_linear_gfaffix_gfa = f"c7_graph_construction/chr_mc/{{chr}}/subgraph/subgraph{{subgraph_id}}/{config['prefix']}.{{chr}}.subgraph_{{subgraph_id}}.seqwish.smoothxg2.gfaffix.linearize.gfa"
-    shell:
-        """
-        null_line=$(awk '{{if($0=="")print NR}}' {input.linear_gfaffix_gfa})
-        awk -v null_line=$null_line '{{if(NR<null_line) print$0}}' {input.linear_gfaffix_gfa} > {output.removed_null_linear_gfaffix_gfa}
-        """
+
+

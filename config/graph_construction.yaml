@@ -1,27 +1,14 @@
 Graph_Construction: true
 
-samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
-    
 reference:
     CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
+        test_data/reference/GRCh38_no_alt_analysis_set.fasta
+
+internal_assembly_list:
+
+external_assembly_list:
 
 prefix:
     test
-
-
-#?
-mask="test/clip_bed/mask_bed/{chr}.mask.bed"
-
-
-#if no "subgraph_list" key, default input will be "c7_graph_construction/chr_mc/subgraph.list" 
-subgraph_list: 
-
-fa_dir: c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/fa/${{sample_prefix}}.subgraph${{i}}.fasta
-
-paf: "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{config['prefix']}.{chr}.subgraph_{subgraph_id}.paf"

@@ -1,50 +1,23 @@
 Simplify_ML_Pangenome: true
 
-samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
-
-training_samples:
-    - 1KCP-00202
-    
-test_samples:
-    - 1KCP-00202
-    
-sr_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
-                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
-                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
-                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
-
-lr_zmw_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_zmw.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_zmw.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_zmw.fastq.gz
-
 reference:
     CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
+        test_data/reference/GRCh38_no_alt_analysis_set.fasta
 
-        
+train_sample_list:
+
 prefix:
     test
 
+phased_snv:
+
 #?
-model_dir = 
+model_dir:
 
 #if no "linear_gfaffix_gfa" key, default input will be c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa
-linear_gfaffix_gfa: 
+gfaffix_gfa: 
 
 
     
