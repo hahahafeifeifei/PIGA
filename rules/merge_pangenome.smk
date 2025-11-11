@@ -2,7 +2,11 @@
 chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
 def get_already_subgraph_ids():
-    with open('c7_graph_construction/subgraph_id.list') as f:
+    if "subgraph_id.list" in config:
+        subgraph_id_list = config["subgraph_id.list"]
+    else:
+        subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
+    with open(subgraph_id_list) as f:
         return [line.strip() for line in f if line.strip()]
 
 id_list = get_already_subgraph_ids
@@ -13,8 +17,8 @@ rule all_merge_pangenome:
     input:
         f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl",
         f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz",
-        expand("c7_graph_construction/graph_merge/{prefix}.{chr}.assembly.gfa", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix']),
-        expand("c7_graph_construction/graph_merge/{prefix}.{chr}.variant.path", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"], prefix = config['prefix'])
+        expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa", chr = chr_list),
+        expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path", chr = chr_list)
 
 
 rule subgraph_feature:
@@ -113,9 +117,9 @@ rule chr_gbz:
     
 rule merged_gbz:
     input:
-        chr_gfas = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{chr}.assembly.gfa", chr = chr_list),
-        chr_gbzs = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{chr}.assembly.gbz", chr = chr_list),
-        chr_gbwts = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{chr}.assembly.gbwt", chr = chr_list)
+        chr_gfas = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa", chr = chr_list),
+        chr_gbzs = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gbz", chr = chr_list),
+        chr_gbwts = expand(f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gbwt", chr = chr_list)
     output:
         merge_gfa = f"c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa",
         merge_xg = f"c7_graph_construction/graph_merge/{config['prefix']}.nopath.xg",

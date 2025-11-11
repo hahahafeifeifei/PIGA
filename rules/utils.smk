@@ -101,7 +101,6 @@ def get_internal_assembly_fa(wildcards):
     return internal_assembly_id_dict[wildcards.internal_assembly_id]
 
 
-
 def get_hapl_input(wildcards):
     if "hapl" in config:
         return config["hapl"]

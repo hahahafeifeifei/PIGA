@@ -1,23 +1,7 @@
 Merge_Pangenome: true
 
-reference:
-    CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
-    GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
-
-
 prefix:
     test
 
-#?
-subgraph_order_list = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/subgraph_order.list"
-
 #if no "subgraph_list" key, default input will be : "c7_graph_construction/chr_mc/subgraph.list" 
-subgraph_list: 
-
-#if no "subgraph_assembly_gfa" key, default input will be "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa"
-subgraph_assembly_gfa: 
-
-#if no "subgraph_variant_path" key, default input will be "c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path"
-subgraph_variant_path: 
+subgraph_id_list: 
