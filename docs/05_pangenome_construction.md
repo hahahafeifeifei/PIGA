@@ -3,33 +3,24 @@ This pipeline performs pangenome construction and simplification.
 
 <img align="middle" width="740" src="pangenome_construction.jpg"/>
 
-## split_minigraph
+## graph_construction
 ### Description
 -  Construct the SV pangenome graph with minigraph.
 -  Align assemblies to pangenome graph with minigraph and filter the low-quality aligments.
 -  Divide the pangenome graph into subgraphs.
 -  Split alignments and assembly sequences into subgraphs.
-### Requirement
--  minigraph
--  seqkit
--  VG
--  odgi
--  Cactus
--  cactus-gfa-tools
--  Samtools
-### Usage
-```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/simplify_ml_pangenome.yaml
-```
-
-## graph_construction
-### Description
 -  Induce base-level pangenome graph with seqwish.
 -  Smooth the pangenome graph with smoothxg.
 -  Normalize the pangenome graph with GFAffix.
 -  Clip the dna-brnn masked or minigraph unaligned regions.
 -  Reduce the graph complexity by untangling multiple-copy nodes among haplotypes.
 ### Requirement
+-  minigraph
+-  seqkit
+-  VG
+-  odgi
+-  cactus-gfa-tools
+-  Samtools
 -  seqiwsh
 -  smoothxg
 -  VG
