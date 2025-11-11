@@ -21,7 +21,6 @@ The following modules are available in PIGA:
 - `phase_snv`: perform SNV haplotype phasing leveraging long-read and population information.
 - `generate_personal_reference`: generate personalized reference by modifying the reference genome with homozygous variants genotyped from the external pangenome.
 - `draft_assembly`: partiton long reads into haplotypes and produce draft diploid assemblies.
-- `split_minigraph`: generate Minigraph pangenome and split it into subgraphs.
 - `construct_pangenome`: construct and refine the base-level pangenome.
 - `simplify_ml_pangenome`: simplify the pangenome.
 - `merge_pangenome`: merge pangenome subgraphs into the final pangenome.
