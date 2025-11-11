@@ -1,6 +1,7 @@
 shell.prefix = ['set -e']
 
 import os
+import re
 
 # configfile: "config/config.yaml"
 # configfile: "config/tools.yaml"
@@ -55,7 +56,6 @@ include: "rules/merge_snv.smk"
 include: "rules/phase_snv.smk"
 include: "rules/generate_personal_reference.smk"
 include: "rules/draft_assembly.smk"
-include: "rules/split_minigraph.smk"
 include: "rules/graph_construction.smk"
 include: "rules/simplify_ml_pangenome.smk"
 include: "rules/merge_pangenome.smk"
@@ -67,7 +67,6 @@ Merge_SNV = config.get("Merge_SNV", False)
 Phase_SNV = config.get("Phase_SNV", False)
 Generate_Personal_Reference = config.get("Generate_Personal_Reference", False)
 Draft_Assembly = config.get("Draft_Assembly", False)
-Split_Minigraph = config.get("Split_Minigraph", False)
 Graph_Construction = config.get("Graph_Construction", False)
 Simplify_ML_Pangenome = config.get("Simplify_ML_Pangenome", False)
 Merge_Pangenome = config.get("Merge_Pangenome", False)
@@ -109,12 +108,6 @@ elif Draft_Assembly:
     rule all:
         input:
             rules.all_draft_assembly.input
-    
-elif Split_Minigraph:
-
-    rule all:
-        input:
-            rules.all_split_minigraph.input
     
 elif Graph_Construction:
 

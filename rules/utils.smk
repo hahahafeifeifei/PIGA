@@ -31,11 +31,18 @@ def get_lr_vcf_input(wildcards):
     else:
         return f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz"
 
+
 def get_merge_merfin_filter_vcf_input(wildcards):
     if "merge_merfin_filter_vcf" in config:
         return config["merge_merfin_filter_vcf"]
     else:
         return f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
+
+def get_merge_phased_vcf_input(wildcards):
+    if "phased_snv" in config:
+        return config["phased_snv"]
+    else:
+        return f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.shapeit.vcf.gz"
 
 def get_zmw_bam_input(wildcards):
     if "zmw_bam" in config:
@@ -75,42 +82,25 @@ def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     return chr_list
 
 
-#for a given chromosome, generate all subgraph_id.
-def get_all_subgraph_assembly_gfa_files(wildcards, prefix):
-    if "subgraph_list" in config:
-        chr_subgraph_combination_file = config["subgraph_list"]
+def get_external_assembly_fa:
+    if "external_assembly_list" in config:
+        return config["external_assembly_list"]
     else:
-        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
-    chr_pairs = []
-    with open(chr_subgraph_combination) as f:
-        for line in f:
-            chr, subgraph_id = line.strip().split("\t")
-            if chr == wildcards.chr:
-                if "subgraph_assembly_gfa" in config:
-                    subgraph_assembly_gfa_file = config['subgraph_assembly_gfa'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
-                else:
-                    subgraph_assembly_gfa_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.assembly.gfa"
-                
-                chr_pairs.append(subgraph_assembly_gfa_file)
-    return chr_pairs
+        return "/dev/null"
 
-def get_all_subgraph_variant_path_files(wildcards, prefix):
-    if "subgraph_list" in config:
-        chr_subgraph_combination_file = config["subgraph_list"]
+def get_external_assembly_fa(wildcards):
+    return external_assembly_id_dict[wildcards.external_assembly_id]
+
+def get_internal_assembly_fa:
+    if "internal_assembly_list" in config:
+        return config["internal_assembly_list"]
     else:
-        chr_subgraph_combination = checkpoints.prepare_subgraph_list.get().output[0]
-    chr_pairs = []
-    with open(chr_subgraph_combination) as f:
-        for line in f:
-            chr, subgraph_id = line.strip().split("\t")
-            if chr == wildcards.chr:
-                if "subgraph_variant_path" in config:
-                    subgraph_variant_path_file = config['subgraph_variant_path'].format(chr = wildcards.chr, subgraph_id = wildcards.subgraph_id)
-                else:
-                    subgraph_variant_path_file = f"c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/{prefix}.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.TVR90.variant_project.gfaffix.chop.ids.variant.path"
-                
-                chr_pairs.append(subgraph_assembly_gfa_file)
-    return chr_pairs
+        return "c6_draft_assembly/sample_assembly/internal_assembly.seqfile"
+
+def get_internal_assembly_fa(wildcards):
+    return internal_assembly_id_dict[wildcards.internal_assembly_id]
+
+
 
 def get_hapl_input(wildcards):
     if "hapl" in config:
@@ -136,14 +126,14 @@ def get_variant_path_input(wildcards):
     else:
         return "c7_graph_construction/graph_merge/CKCG.{chr}.variant.path"
         
-def get_hap1_adaptor_masked_fa_input(wildcards):
+def get_hap1_fa_input(wildcards):
     if "hap1_adaptor_masked_fa" in config:
         return config["hap1_adaptor_masked_fa"]
     else:
-        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
+        return "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta"
 
-def get_hap2_adaptor_masked_fa_input(wildcards):
+def get_hap2_fa_input(wildcards):
     if "hap2_adaptor_masked_fa" in config:
         return config["hap2_adaptor_masked_fa"]
     else:
-        return "c6_draft_assembly/result/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
+        return "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"
