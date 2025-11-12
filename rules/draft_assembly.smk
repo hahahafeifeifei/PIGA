@@ -283,7 +283,7 @@ rule phase_assembly:
         chrX_personal_par = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.chrX_PAR.bed"
     output:
         hap1_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta",
-        hap2_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta",
+        hap2_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"
     params:
         sex = get_sex,
         tmp_dir = "c6_draft_assembly/sample_assembly/{wildcards.sample}/{wildcards.sample}_tmp",
@@ -305,20 +305,4 @@ rule phase_assembly:
             -o {params.assembly_dir} \
             -T {params.tmp_dir} \
             -t {threads}
-        """
-
-rule rename_assembly:
-    input:
-        hap1_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta",
-        hap2_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta",
-    output:
-        hap1_rename_fa = "c6_draft_assembly/sample_assembly/{sample}/{sample}.hap1.rename.fasta",
-        hap2_rename_fa = "c6_draft_assembly/sample_assembly/{sample}/{sample}.hap2.rename.fasta",
-    threads: 1
-    resources:
-        max_mem_gb = 10
-    shell:
-        """
-        awk -v sample={wildcards.sample} '{{if(substr($1,1,1)==">") print ">"sample"_hap1_"substr($1,2,length($1));else print $0}}' {input.hap1_fa} > {output.hap1_rename_fa}
-        awk -v sample={wildcards.sample} '{{if(substr($1,1,1)==">") print ">"sample"_hap2_"substr($1,2,length($1));else print $0}}' {input.hap2_fa} > {output.hap2_rename_fa}
         """

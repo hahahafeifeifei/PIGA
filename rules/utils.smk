@@ -105,25 +105,25 @@ def get_hapl_input(wildcards):
     if "hapl" in config:
         return config["hapl"]
     else:
-        return "c7_graph_construction/graph_merge/CKCG.merge.assembly.hapl"
+        return f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
 
 def get_gbz_input(wildcards):
     if "gbz" in config:
         return config["gbz"]
     else:
-        return "c7_graph_construction/graph_merge/CKCG.merge.assembly.gbz"
+        return f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
 
 def get_gfa_input(wildcards):
     if "gfa" in config:
         return config["gfa"]
     else:
-        return "c7_graph_construction/graph_merge/CKCG.{chr}.assembly.gfa"
+        return f"c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa"
 
 def get_variant_path_input(wildcards):
     if "variant_path" in config:
         return config["variant_path"]
     else:
-        return "c7_graph_construction/graph_merge/CKCG.{chr}.variant.path"
+        return f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
         
 def get_hap1_fa_input(wildcards):
     if "hap1_adaptor_masked_fa" in config:

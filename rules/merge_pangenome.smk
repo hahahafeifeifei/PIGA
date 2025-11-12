@@ -48,9 +48,9 @@ rule feature_merge:
         max_mem_gb=60
     shell:
         """
-            cat {input.counts} > {output.node_counts}
-            awk 'BEGIN{{sum=0}}{{print $1"\\t"sum;sum+=$2}}' {output.node_counts} > {output.node_sum_counts}
-            cat {input.chr_subgraphs} > {output.chr_subgraph_list}
+        cat {input.counts} > {output.node_counts}
+        awk 'BEGIN{{sum=0}}{{print $1"\\t"sum;sum+=$2}}' {output.node_counts} > {output.node_sum_counts}
+        cat {input.chr_subgraphs} > {output.chr_subgraph_list}
         """
 
 rule node_ids:
@@ -66,10 +66,10 @@ rule node_ids:
         runtime_hrs=10
     shell:
         """
-            index=$(awk -v id={wildcards.id} '{{if($1==id) print $2}}' {input.node_sum_counts})
-            python3 scripts/graph-simplification/gfa_ids.py {input.gfaffix_gfa} {output.ids_gfa} $index
-            grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa}
-            grep snv {output.ids_gfa} > {output.ids_variant_path}
+        index=$(awk -v id={wildcards.id} '{{if($1==id) print $2}}' {input.node_sum_counts})
+        python3 scripts/graph-simplification/gfa_ids.py {input.gfaffix_gfa} {output.ids_gfa} $index
+        grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa}
+        grep snv {output.ids_gfa} > {output.ids_variant_path}
         """
 
 

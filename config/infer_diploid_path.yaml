@@ -1,58 +1,40 @@
 Infer_diploid_PATH: true
 
 samples:
-    - 1KCP-00200
-    - 1KCP-00201
-    - 1KCP-00202
-
+    test_data/samples.list
     
 sr_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.sr.R1.fastq.gz
-                - test_data/1KCP-00200/1KCP-00200.sr.R2.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.sr.R1.fastq.gz
-                - test_data/1KCP-00201/1KCP-00201.sr.R2.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.sr.R1.fastq.gz
-                - test_data/1KCP-00202/1KCP-00202.sr.R2.fastq.gz
+    - test_data/{sample}/{sample}.sr.R1.fastq.gz
+    - test_data/{sample}/{sample}.sr.R2.fastq.gz
+
+lr_zmw_fastqs:
+    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 lr_hifi_fastqs:
-    1KCP-00200:
-                - test_data/1KCP-00200/1KCP-00200.lr_hifi.fastq.gz
-    1KCP-00201:
-                - test_data/1KCP-00201/1KCP-00201.lr_hifi.fastq.gz
-    1KCP-00202:
-                - test_data/1KCP-00202/1KCP-00202.lr_hifi.fastq.gz
-
-reference:
-    CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
-    GRCh38:
-        test/reference/GRCh38_no_alt_analysis_set.fasta
+    - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
         
 prefix:
     test
 
 
-#?
-range = "/storage/yangjianLab/wangyifei/project/01.CKCG/07.CLR_Pangenome/graph_construction/cactus/chr.node_range.list"
-
-#if no "hapl" key, default input will be "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.hapl"
+#if no "hapl" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
 hapl: 
 
-#if no "gbz" key, default input will be "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.merge.assembly.gbz"
+#if no "gbz" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
 gbz: 
 
-#if no "gfa" key, default input will be "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.assembly.gfa"
+#if no "gfa" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa"
 gfa: 
 
-#if no "variant_path" key, default input will be "c7_graph_construction/graph_merge/t2t.grch38.58hifi.1064zmw.{chr}.variant.path"
+#if no "variant_path" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
 variant_path: 
 
-#if no "hap1_adaptor_masked_fa" key, default input will be "c6_draft_assembly/{sample}/assembly/{sample}.hap1.adaptor_masked.fasta"
-hap1_adaptor_masked_fa:
+#if no "hap1_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta"
+hap1_fa:
 
-#if no "hap2_adaptor_masked_fa" key, default input will be "c6_draft_assembly/{sample}/assembly/{sample}.hap2.adaptor_masked.fasta"
-hap2_adaptor_masked_fa:
+#if no "hap2_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"
+hap2_fa:
+
+#if no "sample_meryl" key, default input will be "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl"
+sample_meryl:
