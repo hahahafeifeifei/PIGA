@@ -36,8 +36,8 @@ def parse_args():
     parser.add_argument('--min-assembly-cov', metavar='<int>', type=int, default=3, help='Minimum coverage of assembly region [3]')
     parser.add_argument('--min-assembly-size', metavar='<int>', type=int, default=10000, help='Minimum interval size of assembly region [10000]')
     parser.add_argument('--min-connect-align-len', metavar='<int>', type=int, default=2000, help='Minimum alignment length used to connect assembly interval [2000]')
-    parser.add_argument('--max-sub-interval-size', metavar='<int>', type=int, default=90000, help='Maximum sub interval size of assembly region [90000]')
-    parser.add_argument('--sub-interval-overlap-size', metavar='<int>', type=int, default=30000, help='The overlap region size between adjacent region [30000]')
+    parser.add_argument('--max-sub-interval-size', metavar='<int>', type=int, default=120000, help='Maximum sub interval size of assembly region [120000]')
+    parser.add_argument('--sub-interval-overlap-size', metavar='<int>', type=int, default=90000, help='The overlap region size between adjacent region [90000]')
     parser.add_argument('-t', '--threads', metavar='<int>', type=int, default=1, help='Number of threads [1]')
     return parser.parse_args()
 
@@ -266,12 +266,14 @@ def interval_assembly_parallel(assembly_interval, sub_interval_list, haplotagged
         run_command("rm -rf {}".format(interval_dir))
         return
 
-
     if len(sub_interval_list) == 1:
         run_command("cat {} | seqkit seq -j {} -m 10000 -w 0 | awk -v i={} -v chr={} -v start={} -v end={} \'{{if(NR%2==1)print \">interval\"i\"_ctg\"(NR+1)/2\"_\"chr\"-\"start\"-\"end;else print$0}}\' > {}".format(interval_raw_contig_fa, threads, i, interval_chr, interval_start, interval_end, interval_merge_contig_fa))
     elif len(sub_interval_list) > 1:
         run_command("{}/phasebook_merge.py {} {} {} {}".format(os.path.join(sys.path[0], "phasebook", "scripts"), interval_raw_contig_fa, os.path.join(interval_dir, "assembly_interval.origin.contig.bed"), os.path.join(interval_dir, "contig_merge"), threads))
-        run_command("cat {} | seqkit grep -j {} -r -p utg | seqkit seq -j {} -m 10000 -w 0 | awk -v i={} -v chr={} -v start={} -v end={} \'{{if(NR%2==1)print \">interval\"i\"_ctg\"(NR+1)/2\"_\"chr\"-\"start\"-\"end;else print$0}}\' > {}".format(os.path.join(interval_dir, "contig_merge", "final_contigs.rm_isolated.fa"), threads, threads, i, interval_chr, interval_start, interval_end, interval_merge_contig_fa))
+        if os.path.isfile(os.path.join(interval_dir, "contig_merge", "final_contigs.fa")):
+            run_command("cat {} | seqkit seq -j {} -m 10000 -w 0 | awk -v i={} -v chr={} -v start={} -v end={} \'{{if(NR%2==1)print \">interval\"i\"_ctg\"(NR+1)/2\"_\"chr\"-\"start\"-\"end;else print$0}}\' > {}".format(os.path.join(interval_dir, "contig_merge", "final_contigs.fa"), threads, i, interval_chr, interval_start, interval_end, interval_merge_contig_fa))
+        else:
+            run_command("cat {} | seqkit seq -j {} -m 10000 -w 0 | awk -v i={} -v chr={} -v start={} -v end={} \'{{if(NR%2==1)print \">interval\"i\"_ctg\"(NR+1)/2\"_\"chr\"-\"start\"-\"end;else print$0}}\' > {}".format(interval_raw_contig_fa, threads, i, interval_chr, interval_start, interval_end, interval_merge_contig_fa))
     if os.path.getsize(interval_merge_contig_fa) == 0:
         run_command("rm -rf {}".format(interval_dir))
         return
@@ -285,7 +287,7 @@ def interval_assembly_parallel(assembly_interval, sub_interval_list, haplotagged
     run_command("sniffles -t {} --input {} --reference {} --vcf {} --output-rnames --allow-overwrite".format(threads, os.path.join(interval_dir, "assembly_interval.merge.contig.bam"), interval_merge_contig_fa, os.path.join(interval_dir, "assembly_interval.sniffles.contig.vcf")))
     run_command("bcftools view --threads {} -i \"GT=\'1/1\' & SUPPORT>={} & (SVTYPE=\'INS\' | SVTYPE=\'DEL\')\" {} | bcftools view --threads {} -e \"ALT[0]==\'<INS>\'\" -o {}".format(threads, args.min_assembly_cov, os.path.join(interval_dir, "assembly_interval.sniffles.contig.vcf"), threads, os.path.join(interval_dir, "assembly_interval.sniffles.filter.contig.vcf")))
     run_command("iris genome_in={} vcf_in={} reads_in={} vcf_out={} out_dir={} threads={} --pacbio --also_deletions".format(
-        interval_merge_contig_fa, os.path.join(interval_dir, "assembly_interval.sniffles.filter.contig.vcf"), os.path.join(interval_dir, "assembly_interval.merge.contig.bam"), os.path.join(interval_dir, "assembly_interval.iris.contig.vcf"), interval_dir, threads))
+        interval_merge_contig_fa, os.path.join(interval_dir, "assembly_interval.sniffles.filter.contig.vcf"), os.path.join(interval_dir, "assembly_interval.merge.contig.bam"), os.path.join(interval_dir, "assembly_interval.iris.contig.vcf"), os.path.relpath(interval_dir), threads))
     run_command("bgzip -@ {} -f {} ".format(threads, os.path.join(interval_dir, "assembly_interval.iris.contig.vcf")))
     run_command("tabix -f {}".format(os.path.join(interval_dir, "assembly_interval.iris.contig.vcf.gz")))
     run_command("bcftools consensus -f {} -H 1 {} > {}".format(interval_merge_contig_fa, os.path.join(interval_dir, "assembly_interval.iris.contig.vcf.gz"), interval_iris_contig_fa))
@@ -306,70 +308,7 @@ def interval_assembly_parallel(assembly_interval, sub_interval_list, haplotagged
 def assembly(args):
     #######Assembly interval detection
     consensus_haplotag_list = os.path.join(args.out_dir, args.prefix + ".consensus.haplotag.list")
-    for hap in ["1"]:
-        hap_tmp_dir = os.path.join(args.tmp_dir, "hap" + hap)
-        ngs_polish_dir = os.path.join(hap_tmp_dir, "ngs_polish")
-        if not os.path.isdir(ngs_polish_dir):
-            os.mkdir(ngs_polish_dir)
-
-        raw_contig_fa = os.path.join(ngs_polish_dir, "assembly.raw.contig.fasta")
-        raw_contig_bed = os.path.join(ngs_polish_dir, "assembly.raw.contig.bed")
-
-        freebayes_contig_fa = os.path.join(ngs_polish_dir, "assembly.freebayes.contig.fasta")
-        run_command("samtools view -@ {} -b {} -P -L {} -o {}".format(args.threads, args.ngs_bam, raw_contig_bed, os.path.join(ngs_polish_dir, "ngs.contigs_region.bam")))
-        run_command("samtools view -@ {} -b -f 4 {} -o {}".format(args.threads, args.ngs_bam, os.path.join(ngs_polish_dir, "ngs.unmap.bam")))
-        run_command("samtools view -@ {} -b -f 8 {} -o {}".format(args.threads, args.ngs_bam, os.path.join(ngs_polish_dir, "ngs.unmap_pair.bam")))
-        run_command("samtools merge -@ {} -f -c -p -o {} {} {} {}".format(args.threads, os.path.join(ngs_polish_dir, "ngs.polish.bam"), os.path.join(ngs_polish_dir, "ngs.contigs_region.bam"), os.path.join(ngs_polish_dir, "ngs.unmap.bam"), os.path.join(ngs_polish_dir, "ngs.unmap_pair.bam")))
-        run_command("samtools sort -n -@ {} {} | samtools view -@ {} -h | uniq | samtools view -@ {} -q {} -b | samtools fastq -@ {} -1 {} -2 {} -s {} > /dev/null".format(
-            args.threads, os.path.join(ngs_polish_dir, "ngs.polish.bam"), args.threads, args.threads, args.min_assembly_mq, args.threads, os.path.join(ngs_polish_dir, "ngs.polish.R1.fastq"), os.path.join(ngs_polish_dir, "ngs.polish.R2.fastq"), os.path.join(ngs_polish_dir, "ngs.polish.S.fastq")))
-        run_command("bwa index {}".format(raw_contig_fa))
-        run_command("bwa mem -t {} -Y {} {} {} | samtools view -uSh -@ {} | samtools sort -O bam -@ {} -o {}".format(args.threads, raw_contig_fa, os.path.join(ngs_polish_dir, "ngs.polish.R1.fastq"), os.path.join(ngs_polish_dir, "ngs.polish.R2.fastq"), args.threads, args.threads, os.path.join(ngs_polish_dir, "assembly.raw.contig.paired.bam")))
-        run_command("bwa mem -t {} -Y {} {} | samtools view -uSh -@ {} | samtools sort -O bam -@ {} -o {}".format(args.threads, raw_contig_fa, os.path.join(ngs_polish_dir, "ngs.polish.S.fastq"), args.threads, args.threads, os.path.join(ngs_polish_dir, "assembly.raw.contig.unpaired.bam")))
-        run_command("samtools merge -@ {} -f -o {} {} {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.raw.contig.bam"), os.path.join(ngs_polish_dir, "assembly.raw.contig.unpaired.bam"), os.path.join(ngs_polish_dir, "assembly.raw.contig.paired.bam")))
-        run_command("gatk MarkDuplicates -R {} -I {} -O {} -M /dev/null".format(raw_contig_fa, os.path.join(ngs_polish_dir, "assembly.raw.contig.bam"), os.path.join(ngs_polish_dir, "assembly.raw.contig.dedup.bam")))
-        run_command("samtools index -@ {} {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.raw.contig.dedup.bam")))
-        
-        chroms = pysam.FastaFile(raw_contig_fa).references
-        freebayes_pool = Pool(args.threads)
-        for chrom in chroms:
-            chrom_vcf = os.path.join(ngs_polish_dir, "assembly.freebayes." + chrom + ".vcf.gz")
-            freebayes_pool.apply_async(freebayes_parallel, args = (os.path.join(ngs_polish_dir, "assembly.raw.contig.dedup.bam"), raw_contig_fa, chrom, chrom_vcf))
-        freebayes_pool.close()
-        freebayes_pool.join()
-
-        run_command("find {} -name \"assembly.freebayes.*.vcf.gz\" -type f -exec ls {{}} \\; > {}".format(ngs_polish_dir, os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.list")))
-        run_command("bcftools concat --threads {} --naive-force -f {} -O z -o {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.list"), os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.gz")))
-        run_command("bcftools sort -O z -o {} {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.sorted.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.gz")))
-        run_command("bcftools view --threads {} -i \"GT==\'1/1\' & QUAL>1\" {} | bcftools view --threads {} -i \"FORMAT/DP>=6 & FORMAT/DP<12 & FORMAT/AD[0:0]<=0\" | {}/homopolymer_extract.py | bgzip -@ {} -c > {}".format(
-            args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.sorted.vcf.gz"), args.threads, sys.path[0], args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.homopolymer.vcf.gz")))
-        run_command("tabix -f {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.filter.homopolymer.vcf.gz")))
-        run_command("bcftools view --threads {} -i \"GT==\'1/1\' & QUAL>1\" {} | bcftools view --threads {} -i \"FORMAT/DP>=12 & FORMAT/AD[0:0]<=0\" -o {}".format(
-            args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.sorted.vcf.gz"), args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.strict.vcf.gz")))
-        run_command("tabix -f {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.filter.strict.vcf.gz")))
-        run_command("bcftools concat --threads {} -a {} {} -O z -o {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.strict.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.filter.homopolymer.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz")))
-        run_command("tabix -f {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz")))
-        run_command("bcftools consensus -f {} -H 1 {} > {}".format(raw_contig_fa, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz"), freebayes_contig_fa))
- 
-
-        #######Switch region clip
-        switch_clip_dir = os.path.join(hap_tmp_dir, "switch_clip")
-        if not os.path.isdir(switch_clip_dir):
-            os.mkdir(switch_clip_dir)
-        final_fa = os.path.join(args.out_dir, args.prefix + ".hap" + hap + ".fasta")
-        run_command("minimap2 -t {} -xasm20 --cs -a {} {} | samtools sort -@ {} -O BAM -o {}".format(args.threads, args.reference, freebayes_contig_fa, args.threads, os.path.join(switch_clip_dir, "assembly.switch_clip.bam")) )
-        run_command("samtools index -@ {} {}".format(args.threads, os.path.join(switch_clip_dir, "assembly.switch_clip.bam")))
-        run_command("samtools view -@ {} -h {} | paftools.js sam2paf - | paftools.js call -L 10000 -f {} - | sed \"s/1\\/1/1|0/g\" > {}".format(args.threads, os.path.join(switch_clip_dir, "assembly.switch_clip.bam"), args.reference, os.path.join(switch_clip_dir, "assembly.switch_clip.vcf")))
-        run_command("whatshap compare --ignore-sample-name --names truth,whatshap --switch-error-bed {} --only-snvs {} {}".format(os.path.join(switch_clip_dir, "assembly.switch_error.reference.bed"), args.vcf, os.path.join(switch_clip_dir, "assembly.switch_clip.vcf")))
-        run_command("bedtools makewindows -g {} -w 50000 -s 25000 > {}".format(args.reference + '.fai', os.path.join(switch_clip_dir, "reference.window.bed")))
-        run_command("bedtools intersect -a {} -b {} -wa | bedtools sort -i - | uniq -c | awk -v OFS=\'\\t\' \'{{if($1>=5)print$2,$3,$4}}\' | bedtools merge -i - > {}".format(os.path.join(switch_clip_dir, "reference.window.bed"), os.path.join(switch_clip_dir, "assembly.switch_error.reference.bed"), os.path.join(switch_clip_dir, "assembly.switch_clip.reference.bed")))
-        run_command("{}/switch_region_transfer.py -c {} -b {} -o {}".format(sys.path[0], os.path.join(switch_clip_dir, "assembly.switch_clip.reference.bed"), os.path.join(switch_clip_dir, "assembly.switch_clip.bam"), os.path.join(switch_clip_dir, "assembly.switch_clip.assembly.bed")))
-        run_command("bedtools sort -i {} -faidx {} | bedtools complement -i - -g {} | awk \'{{if($3-$2>=10000) print$1\":\"$2+1\"-\"$3}}\' > {}".format(os.path.join(switch_clip_dir, "assembly.switch_clip.assembly.bed"), freebayes_contig_fa + ".fai", freebayes_contig_fa + ".fai", os.path.join(switch_clip_dir, "assembly.reserve.region")))
-        run_command("samtools faidx {} -r {} | seqkit seq -j {} -w 0 | awk -v sample={} -v hap=hap{} \'{{if(NR%2==1){{split($1,contig,\":\");split(contig[1],info,\"_\");split(info[3],interval,\"-\");print \">\"sample\"_\"hap\"_ctg\"(NR+1)/2\"_\"interval[1]\":\"interval[2]\"-\"interval[3]}} else print$0}}\' > {}".format(freebayes_contig_fa, os.path.join(switch_clip_dir, "assembly.reserve.region"), args.threads, args.prefix, hap, final_fa))
-        run_command("rm -r {}".format(ngs_polish_dir))
-        run_command("rm -r {}".format(switch_clip_dir))
-        run_command("rm -r {}".format(hap_tmp_dir))
-
-    for hap in ["2"]:
+    for hap in ["1", "2"]:
         haplotagged_read = os.path.join(args.out_dir, args.prefix + ".subreads.hap" + hap + ".reads.list")
         haplotagged_bam = os.path.join(args.out_dir, args.prefix + ".subreads.hap" + hap + ".bam")
         assembly_interval = os.path.join(args.out_dir, args.prefix + ".assembly_interval.hap" + hap + ".list")
@@ -439,6 +378,7 @@ def assembly(args):
 
         run_command("find {} -name \"assembly.freebayes.*.vcf.gz\" -type f -exec ls {{}} \\; > {}".format(ngs_polish_dir, os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.list")))
         run_command("bcftools concat --threads {} --naive-force -f {} -O z -o {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.list"), os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.gz")))
+        run_command("tabix {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.gz")))
         run_command("bcftools sort -O z -o {} {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.sorted.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.vcf.gz")))
         run_command("bcftools view --threads {} -i \"GT==\'1/1\' & QUAL>1\" {} | bcftools view --threads {} -i \"FORMAT/DP>=6 & FORMAT/DP<12 & FORMAT/AD[0:0]<=0\" | {}/homopolymer_extract.py | bgzip -@ {} -c > {}".format(
             args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.sorted.vcf.gz"), args.threads, sys.path[0], args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.homopolymer.vcf.gz")))
@@ -449,6 +389,7 @@ def assembly(args):
         run_command("bcftools concat --threads {} -a {} {} -O z -o {}".format(args.threads, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.strict.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.filter.homopolymer.vcf.gz"), os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz")))
         run_command("tabix -f {}".format(os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz")))
         run_command("bcftools consensus -f {} -H 1 {} > {}".format(raw_contig_fa, os.path.join(ngs_polish_dir, "assembly.freebayes.filter.vcf.gz"), freebayes_contig_fa))
+        run_command("samtools faidx {}".format(freebayes_contig_fa)) 
 
         #######Switch region clip
         switch_clip_dir = os.path.join(hap_tmp_dir, "switch_clip")
@@ -463,11 +404,10 @@ def assembly(args):
         run_command("bedtools intersect -a {} -b {} -wa | bedtools sort -i - | uniq -c | awk -v OFS=\'\\t\' \'{{if($1>=5)print$2,$3,$4}}\' | bedtools merge -i - > {}".format(os.path.join(switch_clip_dir, "reference.window.bed"), os.path.join(switch_clip_dir, "assembly.switch_error.reference.bed"), os.path.join(switch_clip_dir, "assembly.switch_clip.reference.bed")))
         run_command("{}/switch_region_transfer.py -c {} -b {} -o {}".format(sys.path[0], os.path.join(switch_clip_dir, "assembly.switch_clip.reference.bed"), os.path.join(switch_clip_dir, "assembly.switch_clip.bam"), os.path.join(switch_clip_dir, "assembly.switch_clip.assembly.bed")))
         run_command("bedtools sort -i {} -faidx {} | bedtools complement -i - -g {} | awk \'{{if($3-$2>=10000) print$1\":\"$2+1\"-\"$3}}\' > {}".format(os.path.join(switch_clip_dir, "assembly.switch_clip.assembly.bed"), freebayes_contig_fa + ".fai", freebayes_contig_fa + ".fai", os.path.join(switch_clip_dir, "assembly.reserve.region")))
-        run_command("samtools faidx {} -r {} | seqkit seq -j {} -w 0 | awk -v sample={} -v hap=hap{} \'{{if(NR%2==1){{split($1,contig,\":\");split(contig[1],info,\"_\");split(info[3],interval,\"-\");print \">ctg\"(NR+1)/2\"_\"interval[1]\"-\"interval[2]\"-\"interval[3]}} else print$0}}\' > {}".format(freebayes_contig_fa, os.path.join(switch_clip_dir, "assembly.reserve.region"), args.threads, args.prefix, hap, final_fa))
+        run_command("samtools faidx {} -r {} | seqkit seq -j {} -w 0 | awk -v sample={} -v hap=hap{} \'{{if(NR%2==1){{split($1,contig,\":\");split(contig[1],info,\"_\");split(info[3],interval,\"-\");print \">\"sample\"_\"hap\"_ctg\"(NR+1)/2\"_\"interval[1]\":\"interval[2]\"-\"interval[3]}} else print$0}}\' > {}".format(freebayes_contig_fa, os.path.join(switch_clip_dir, "assembly.reserve.region"), args.threads, args.prefix, hap, final_fa))
         run_command("rm -r {}".format(ngs_polish_dir))
         run_command("rm -r {}".format(switch_clip_dir))
         run_command("rm -r {}".format(hap_tmp_dir))
-
 
 
 
@@ -488,7 +428,7 @@ def main():
     if not os.path.isdir(args.tmp_dir):
         os.mkdir(args.tmp_dir)
 
-    #haplotag(args)
+    haplotag(args)
     assembly(args)
 
 if __name__ == "__main__":
