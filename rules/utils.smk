@@ -82,7 +82,7 @@ def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     return chr_list
 
 
-def get_external_assembly_fa:
+def get_external_assembly_fa(wildcards):
     if "external_assembly_list" in config:
         return config["external_assembly_list"]
     else:
@@ -91,7 +91,7 @@ def get_external_assembly_fa:
 def get_external_assembly_fa(wildcards):
     return external_assembly_id_dict[wildcards.external_assembly_id]
 
-def get_internal_assembly_fa:
+def get_internal_assembly_fa(wildcards):
     if "internal_assembly_list" in config:
         return config["internal_assembly_list"]
     else:
