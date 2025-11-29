@@ -180,7 +180,7 @@ rule minigraph_clip:
     shell:
         """
         vg snarls {input.minigraph_gfa} | vg view -R - > {output.snarls}
-        python3 scripts/graph-construct/gfa_border_node_select.py {input.minigraph_gfa} {output.snarls} {params.tmp_dir} {output.node_clip_gfa} {output.edge_clip_gfa} {output.subgraph_info}
+        python3 scripts/construct_pangenome/gfa_border_node_select.py {input.minigraph_gfa} {output.snarls} {params.tmp_dir} {output.node_clip_gfa} {output.edge_clip_gfa} {output.subgraph_info}
         vg convert -g {output.node_clip_gfa} -f -Q CHM13.chr | awk '{{if(substr($0,1,1)=="S" && $6!="SR:i:0")print$0"\\tSN:Z:Other\\tSO:i:0\\tSR:i:1";else print$0}}' | \
         awk -v OFS='\\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' > {output.node_clip_rgfa}
         grep ^S {output.node_clip_rgfa} | awk '{{print $2"\\t"length($3)}}' > {output.node_len}
@@ -259,7 +259,7 @@ checkpoint minigraph_aln_partition:
         cat {input.gafs} > {output.gaf}
         gaf2paf -l {input.node_len} {output.gaf} > {output.paf}
         vg chunk -C -x {input.node_edge_clip_gfa} --prefix {params.prefix} -O gfa
-        python3 scripts/graph-construct/subgraph_paf_fa.py {params.prefix} {output.paf} {output.gaf} {output.subgraph_dir}
+        python3 scripts/construct_pangenome/subgraph_paf_fa.py {params.prefix} {output.paf} {output.gaf} {output.subgraph_dir}
         ls {params.prefix}_*.gfa | awk '{{split($1,a,"_");split(a[length(a)],b,".");print b[1]}}' > {output.subgraph_id_list}
         """
 

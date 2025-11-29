@@ -27,11 +27,11 @@ rule graph_bed_filtering:
     shell:
         """
         sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
-        python3 scripts/graph-simplification/gfa_high-coverage_bed.py {input.gfa} $[sample_number*20] 200 {output.high_coverage_bed}
-        python3 scripts/graph-simplification/gfa_minigraph_unaligned.py {input.gfa} {output.minigraph_unaligned_bed}
+        python3 scripts/simplify_pangenome/gfa_high-coverage_bed.py {input.gfa} $[sample_number*20] 200 {output.high_coverage_bed}
+        python3 scripts/simplify_pangenome/gfa_minigraph_unaligned.py {input.gfa} {output.minigraph_unaligned_bed}
         cat {input.high_coverage_bed} {input.minigraph_unaligned_bed} | bedtools sort | bedtools merge -d 1000 > {output.merged_bed}
-        python3 scripts/graph-simplification/gfa_bed_filter.py {input.gfa} {output.merged_bed} CHM13,GRCh38,_MINIGRAPH_ {output.bed_clip_gfa}
-        python3 scripts/graph-simplification/gfa_remove_ac0.py {output.bed_clip_gfa} {output.linear_filter_gfarmac0_gfa}
+        python3 scripts/simplify_pangenome/gfa_bed_filter.py {input.gfa} {output.merged_bed} CHM13,GRCh38,_MINIGRAPH_ {output.bed_clip_gfa}
+        python3 scripts/simplify_pangenome/gfa_remove_ac0.py {output.bed_clip_gfa} {output.linear_filter_gfarmac0_gfa}
         """
 
 train_sample_map = {}
@@ -54,7 +54,7 @@ rule prepare_train_gfa:
     shell:
         """
         grep -v $'{params.all_sample}\\t' {input.filter_gfa} > {output.train_raw_gfa}        
-        python3 scripts/graph-simplification/gfa_remove_ac0.py {output.train_raw_gfa} {output.train_gfa} 
+        python3 scripts/simplify_pangenome/gfa_remove_ac0.py {output.train_raw_gfa} {output.train_gfa} 
         """
         
 rule process_train_node_edge:
@@ -69,7 +69,7 @@ rule process_train_node_edge:
         train_sample = "|".join(set(train_sample_map.keys()))
     shell:
         """
-        python3 scripts/graph-simplification/ml_training_selection.py {input.filter_gfa} {wildcards.train_sample} {params.truth_sample} {output.sample_train_node} {output.sample_train_edge}
+        python3 scripts/simplify_pangenome/ml_training_selection.py {input.filter_gfa} {wildcards.train_sample} {params.truth_sample} {output.sample_train_node} {output.sample_train_edge}
         [ -s {output.sample_train_node} ] || echo -e "empty\\t0" > {output.sample_train_node}
         [ -s {output.sample_train_edge} ] || echo -e "empty\\t0" > {output.sample_train_edge}
         """
@@ -119,7 +119,7 @@ rule gnn_feature_extract:
     threads: 8
     shell:
         """
-        python3 scripts/graph-simplification/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ scripts/graph-simplification/orca.exe {output.node_feature} {output.edge_feature}
+        python3 scripts/simplify_pangenome/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ scripts/simplify_pangenome/orca.exe {output.node_feature} {output.edge_feature}
         csvtk -H -t join --left-join -f 1 --na NONE {output.node_feature} {input.merged_train_node} > {output.node_feature_label}
         csvtk -H -t join --left-join -f 1 --na NONE {output.edge_feature} {input.merged_train_edge} > {output.edge_feature_label}
         """
@@ -141,10 +141,10 @@ rule statistic_prepare:
     shell:
         """
         cat {input.node_feature_labels} | awk '{{if($NF!="NONE") print$0}}' > {output.train_node_info}
-        python3 scripts/graph-simplification/node_prepare.py {output.train_node_info} {output.train_node_statistics} {output.train_node_dataset}
+        python3 scripts/simplify_pangenome/node_prepare.py {output.train_node_info} {output.train_node_statistics} {output.train_node_dataset}
 
         cat {input.edge_feature_labels} | awk '{{if($NF!="NONE") print$0}}' > {output.train_edge_info}
-        python3 scripts/graph-simplification/edge_prepare.py {output.train_edge_info} {output.train_edge_statistics} {output.train_edge_dataset}
+        python3 scripts/simplify_pangenome/edge_prepare.py {output.train_edge_info} {output.train_edge_statistics} {output.train_edge_dataset}
         """
 
 rule model_train:
@@ -161,8 +161,8 @@ rule model_train:
     threads: 8
     shell:
         """
-            python3 scripts/graph-simplification/model_train.py {input.train_node_dataset} {output.train_node_model} {output.train_node_threshold}
-            python3 scripts/graph-simplification/model_train.py {input.train_edge_dataset} {output.train_edge_model} {output.train_edge_threshold}
+            python3 scripts/simplify_pangenome/model_train.py {input.train_node_dataset} {output.train_node_model} {output.train_node_threshold}
+            python3 scripts/simplify_pangenome/model_train.py {input.train_edge_dataset} {output.train_edge_model} {output.train_edge_threshold}
         """
 
 rule node_edge_inference:
@@ -184,9 +184,9 @@ rule node_edge_inference:
     shell:
         """
             node_threshold=$(echo {train_node_threshold})
-            python3 scripts/graph-simplification/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {input.model_node_label}
+            python3 scripts/simplify_pangenome/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {input.model_node_label}
             edge_threshold=$(echo {train_edge_threshold})
-            python3 scripts/graph-simplification/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {input.model_edge_label}
+            python3 scripts/simplify_pangenome/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {input.model_edge_label}
         """
 
 rule gfa_ml_filter:
@@ -209,7 +209,7 @@ rule gfa_ml_filter:
         cat {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}
         cat {input.edge_feature_label} {input.model_edge_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_edge_fp_label}
 
-        python3 scripts/graph-simplification/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
+        python3 scripts/simplify_pangenome/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
         grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | \
         vg convert -g - | vg clip -d 1 -s -P CHM13 -P GRCh38 - | vg mod -u - > {output.ml_filter_vg}
@@ -229,7 +229,7 @@ rule variant_projection:
         then \
             cp {output.ml_filter_vg} {output.variant_project_vg} 
         else \
-            python3 scripts/graph-simplification/graph_variant_projection.py \
+            python3 scripts/simplify_pangenome/graph_variant_projection.py \
             -g {output.ml_filter_vg} \
             -v {input.variant_vcf} \
             -r CHM13 \

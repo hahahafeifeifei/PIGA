@@ -167,7 +167,7 @@ rule lr_whatshap_genotype:
         bcftools view -s {wildcards.sample} {output.whatshap_tmp_snp_vcf} -Oz -o {output.whatshap_snp_vcf}
         tabix -f {output.whatshap_snp_vcf}
 
-        bash scripts/snv_phase/whatshap_vcf_reform.sh {output.whatshap_snp_vcf} {params.sex} | bgzip -c > {output.whatshap_reform_snp_vcf}
+        bash scripts/call_lr_snv/whatshap_vcf_reform.sh {output.whatshap_snp_vcf} {params.sex} | bgzip -c > {output.whatshap_reform_snp_vcf}
         tabix -f {output.whatshap_reform_snp_vcf}
         """
 
