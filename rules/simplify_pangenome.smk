@@ -6,7 +6,7 @@ id_list = get_already_subgraph_ids
 wildcard_constraints:
     id = "|".join(id_list)
 
-rule all_simplify_ml_pangenome:
+rule all_simplify_pangenome:
         input:
             expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = id_list)
 

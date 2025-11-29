@@ -1,4 +1,4 @@
-rule all_LR_var_calling:
+rule all_call_lr_snv:
     input:
         f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz"
 

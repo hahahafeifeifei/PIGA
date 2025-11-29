@@ -1,4 +1,4 @@
-Simplify_ML_Pangenome: true
+Simplify_Pangenome: true
 
 samples:
     test_data/samples.list

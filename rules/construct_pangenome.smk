@@ -6,7 +6,7 @@ def get_all_subgraph_files(wildcards):
         subgraph_ids = [line.strip() for line in f if line.strip()]
     return expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa", id=subgraph_ids)
 
-rule all_graph_construction:
+rule all_construct_pangenome:
     input:
         get_all_subgraph_files
 
@@ -16,13 +16,17 @@ rule rename_reference:
         grch38_fa=config["reference"]["GRCh38"]
     output:
         chm13_rename_fa='c7_graph_construction/fasta/CHM13.fasta',
-        grch38_rename_fa='c7_graph_construction/fasta/GRCh38.fasta'
+        chm13_rename_fai='c7_graph_construction/fasta/CHM13.fasta.fai',
+        grch38_rename_fa='c7_graph_construction/fasta/GRCh38.fasta',
+        grch38_rename_fa_fai='c7_graph_construction/fasta/GRCh38.fasta.fai'
     resources:
         max_mem_gb=30,
     shell:
         """
         awk '{{if(substr($0,1,1)==">") print ">CHM13."substr($1,2,length($1));else print $0}}' {input.chm13_fa} > {output.chm13_rename_fa}
+        samtools faidx {output.chm13_rename_fa}
         awk '{{if(substr($0,1,1)==">") print ">GRCh38."substr($1,2,length($1));else print $0}}' {input.grch38_fa} > {output.grch38_rename_fa}
+        samtools faidx {output.grch38_rename_fa}
         """
 
 external_assembly_id_dict, external_assembly_id_list = {}, []
@@ -39,7 +43,8 @@ rule rename_external_assembly:
     input:
         fa = get_external_assembly_fa
     output:
-        rename_fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta'
+        rename_fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta',
+        rename_fai = 'c7_graph_construction/fasta/{external_assembly_id}.fasta.fai'
     wildcard_constraints:
         external_assembly_id = "|".join([re.escape(str(i)) for i in external_assembly_id_list])
     resources:
@@ -49,6 +54,7 @@ rule rename_external_assembly:
         sample=$(echo {wildcards.external_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
         haplotype=$(echo {wildcards.external_assembly_id} | awk '{{split($1,a,".");print a[2]}}')
         awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} > {output.rename_fa}
+        samtools faidx {output.rename_fa}
         """
 
 rule external_minigraph:
@@ -100,7 +106,8 @@ rule rename_internal_assembly:
     input:
         fa = get_internal_assembly_fa 
     output:
-        rename_fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+        rename_fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta',
+        rename_fai = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta.fai'
     wildcard_constraints:
         internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
     resources:
@@ -110,6 +117,7 @@ rule rename_internal_assembly:
         sample=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
         haplotype=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[2]+1}}')
         awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} > {output.rename_fa}
+        samtools faidx {output.rename_fa}
         """
 
 rule split_internal_assembly_by_chr:

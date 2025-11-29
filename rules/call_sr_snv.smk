@@ -1,4 +1,4 @@
-rule all_SR_var_calling:
+rule all_call_sr_snv:
     input:
         f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz",
         

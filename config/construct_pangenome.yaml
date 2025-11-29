@@ -1,4 +1,4 @@
-Graph_Construction: true
+Construct_Pangenome: true
 
 samples:
     test_data/samples.list
