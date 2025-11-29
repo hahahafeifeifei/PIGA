@@ -23,7 +23,7 @@ This pipeline reconstructs the final diploid assembly by inferring the diploid p
 -  Secphase
 -  cuteSV
 -  paftools
--  Merfin
+-  Merqury
 -  Bedtools
 -  Samtools
 ### Usage

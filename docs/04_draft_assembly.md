@@ -25,7 +25,7 @@ This pipeline performs reference-guided draft diploid genome assembly.
 -  Bcftools
 -  Seqkit
 -  MECAT2
--  wtdbg2
+-  wtdbg2s
 -  Racon
 -  Arrow
 -  cutadapt

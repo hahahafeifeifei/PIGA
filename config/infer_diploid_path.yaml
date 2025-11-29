@@ -1,4 +1,4 @@
-Infer_diploid_PATH: true
+Infer_Diploid_Path: true
 
 samples:
     test_data/samples.list

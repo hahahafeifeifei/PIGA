@@ -1,5 +1,8 @@
 Simplify_ML_Pangenome: true
 
+samples:
+    test_data/samples.list
+
 reference:
     CHM13:
         test_data/reference/chm13v2.0_maskedY_rCRS.fasta
@@ -12,9 +15,6 @@ prefix:
     test
 
 phased_snv:
-
-#?
-model_dir:
 
 #if no "linear_gfaffix_gfa" key, default input will be c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa
 gfaffix_gfa: 

@@ -82,7 +82,7 @@ def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     return chr_list
 
 
-def get_external_assembly_fa(wildcards):
+def get_external_assembly_list(wildcards):
     if "external_assembly_list" in config:
         return config["external_assembly_list"]
     else:
@@ -91,7 +91,7 @@ def get_external_assembly_fa(wildcards):
 def get_external_assembly_fa(wildcards):
     return external_assembly_id_dict[wildcards.external_assembly_id]
 
-def get_internal_assembly_fa(wildcards):
+def get_internal_assembly_list(wildcards):
     if "internal_assembly_list" in config:
         return config["internal_assembly_list"]
     else:
@@ -127,12 +127,12 @@ def get_variant_path_input(wildcards):
         
 def get_hap1_fa_input(wildcards):
     if "hap1_adaptor_masked_fa" in config:
-        return config["hap1_adaptor_masked_fa"]
+        return config["hap1_fa"]
     else:
         return "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta"
 
 def get_hap2_fa_input(wildcards):
     if "hap2_adaptor_masked_fa" in config:
-        return config["hap2_adaptor_masked_fa"]
+        return config["hap2_fa"]
     else:
         return "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"

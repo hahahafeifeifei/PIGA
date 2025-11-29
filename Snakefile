@@ -60,7 +60,7 @@ Draft_Assembly = config.get("Draft_Assembly", False)
 Graph_Construction = config.get("Graph_Construction", False)
 Simplify_ML_Pangenome = config.get("Simplify_ML_Pangenome", False)
 Merge_Pangenome = config.get("Merge_Pangenome", False)
-Infer_diploid_PATH = config.get("Infer_diploid_PATH", False)
+Infer_Diploid_Path = config.get("Infer_Diploid_Path", False)
 
 
 if Call_SR_SNV:
@@ -126,7 +126,7 @@ elif Merge_Pangenome:
         input:
             rules.all_merge_pangenome.input
     
-elif Infer_diploid_PATH:
+elif Infer_Diploid_Path:
 
     include: "rules/infer_diploid_path.smk"
     rule all:

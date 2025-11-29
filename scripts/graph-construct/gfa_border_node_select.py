@@ -1,7 +1,9 @@
 import sys
 import gzip
 import json
-import odgi
+import subprocess
+import bdsg
+from bdsg.bdsg import HashGraph
 
 #Determine and split the boundary nodes of subgraphs in for each about 20 Mb region
 #python3 gfa_border_node_select.py input.gfa input.snarls.txt input.og output.node_split.gfa output.node_split.edge_clip.gfa output.bed
@@ -17,12 +19,12 @@ def openfile(filename):
 def dist(node_start, node_end, chunk):
     return max([0, node_start - chunk, chunk - node_end])
 
-chunk_size = 20000000
+chunk_size = 5000000
 chunk_pos_deviation = 500000
 
 gfa_file = sys.argv[1]
 snarls_file = sys.argv[2]
-og_file = sys.argv[3]
+tmp_dir = sys.argv[3]
 out_gfa_file = sys.argv[4]
 out_clip_edge_gfa_file = sys.argv[5]
 out_chunk_file = sys.argv[6]
@@ -42,8 +44,11 @@ for line in openfile(gfa_file):
         paths[path_name] = path_nodes
 
 # Function to process each path
-odgi_graph = odgi.graph()
-odgi_graph.load(og_file)
+subprocess.run("vg convert -gpa {} > {}".format(gfa_file, tmp_dir + "/before_split.tmp.vg"), shell = True, stdout = None, stderr = None)
+g = HashGraph()
+g.deserialize(tmp_dir + "/before_split.tmp.vg")
+subprocess.run("rm {}".format(tmp_dir + "/before_split.tmp.vg"), shell = True, stdout = None, stderr = None)
+
 all_final_chunks = []
 for path_name, ref_path in paths.items():
     ref_node_info = []
@@ -125,14 +130,14 @@ for path_name, ref_path in paths.items():
     node_map_dist = {}
     for node, pos_list in node_clip_dist.items():
         new_node_handle = []
-        node_handle = odgi_graph.get_handle(node, False)
+        node_handle = g.get_handle(node, False)
         for pos in pos_list[::-1]:
-            split_node_handle = odgi_graph.divide_handle(node_handle, pos)
+            split_node_handle = g.divide_handle(node_handle, bdsg.std.vector_unsigned_long([pos]))
             node_handle = split_node_handle[0]
             new_node_handle.insert(0, split_node_handle[1])
         new_node_handle.insert(0, node_handle)
         for handle in new_node_handle:
-            new_node = odgi_graph.get_id(handle)
+            new_node = g.get_id(handle)
             if node not in node_map_dist.keys():
                 node_map_dist[node] = [new_node]
             else:
@@ -153,22 +158,20 @@ for path_name, ref_path in paths.items():
 
 
 # Write the new GFA file
-fo = open(out_gfa_file, "w")
-sys.stdout = fo
-odgi_graph.to_gfa()
-fo.close()
+g.serialize(tmp_dir + "/node_split.tmp.vg")
+subprocess.run("vg view {} > {}".format(tmp_dir + "/node_split.tmp.vg", out_gfa_file), shell = True, stdout = None, stderr = None)
+subprocess.run("rm {}".format(tmp_dir + "/node_split.tmp.vg"), shell = True, stdout = None, stderr = None)
 
 # Write the edge-clipped GFA file
 for n in range(len(all_final_chunks) - 1):
     source_node = int(all_final_chunks[n][1][3])
     sink_node = int(all_final_chunks[n + 1][0][3])
-    edge = (odgi_graph.get_handle(source_node, False), odgi_graph.get_handle(sink_node, False))
-    odgi_graph.destroy_edge(edge)
+    g.destroy_edge(g.get_handle(source_node, False),g.get_handle(sink_node, False))
 
-fo = open(out_clip_edge_gfa_file, "w")
-sys.stdout = fo
-odgi_graph.to_gfa()
-fo.close()
+g.serialize(tmp_dir + "/node_edge_split.tmp.vg")
+subprocess.run("vg view {} > {}".format(tmp_dir + "/node_edge_split.tmp.vg", out_clip_edge_gfa_file), shell = True, stdout = None, stderr = None)
+subprocess.run("rm {}".format(tmp_dir + "/node_edge_split.tmp.vg"), shell = True, stdout = None, stderr = None)
+
 
 # Write the chunk information for each path
 fo = open(out_chunk_file, "w")

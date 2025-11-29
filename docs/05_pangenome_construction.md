@@ -18,12 +18,10 @@ This pipeline performs pangenome construction and simplification.
 -  minigraph
 -  seqkit
 -  VG
--  odgi
 -  cactus-gfa-tools
 -  Samtools
 -  seqiwsh
 -  smoothxg
--  VG
 -  GFAffix  
 ### Usage
 ```shell

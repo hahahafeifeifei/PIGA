@@ -108,7 +108,7 @@ contig_subgraph_info_dict[last_contig] = extract_subgraph_info(aln_info_list, no
 ####find the breakpoint position in paf file
 for line in openfile(paf_file):
     contig = line.split()[0]
-    node = line.split()[5].split("id=_MINIGRAPH_|")[1]
+    node = line.split()[5]
     contig_subgraph_info = contig_subgraph_info_dict[contig]
     if len(contig_subgraph_info[0]) == 1:
         contig_end = int(line.split()[1])
@@ -148,8 +148,8 @@ fo_list = []
 for i in range(len(subgraph_file)):
     fo_list.append(open(os.path.join(outdir, prefix_str + '_' + str(i) + '.bed'), "w"))
 for contig, contig_subgraph_info in contig_subgraph_info_dict.items():
-    sample = contig.split("id=")[1].split("|")[0]
-    contig_name = contig.split("id=")[1].split("|")[1]
+    sample = ".".join(contig.split(".")[:-1])
+    contig_name = contig
     for i in range(len(contig_subgraph_info[0])):
         subgraph = contig_subgraph_info[0][i]
         if i == 0:
@@ -166,7 +166,7 @@ for i in range(len(subgraph_file)):
 for line in openfile(paf_file):
     line_info = line.strip().split()
     contig = line_info[0]
-    aln_subgraph = node_subgraph_dict[line_info[5].split("|")[1]]
+    aln_subgraph = node_subgraph_dict[line_info[5]]
     aln_start = int(line_info[2]) + 1
     aln_end = int(line_info[3])
     if contig not in contig_subgraph_info_dict.keys():

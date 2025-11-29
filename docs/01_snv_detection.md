@@ -28,7 +28,6 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  GLnexus
 -  Bcftools
 -  WhatsHap
--  Longshot
 -  Beagle4
 ### Usage
 ```shell

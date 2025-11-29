@@ -1,10 +1,13 @@
 Graph_Construction: true
 
+samples:
+    test_data/samples.list
+
 reference:
     CHM13:
         test_data/reference/chm13v2.0_maskedY_rCRS.fasta
     GRCh38:
-        test_data/reference/GRCh38_no_alt_analysis_set.fasta
+        test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
 internal_assembly_list:
 
