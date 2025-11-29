@@ -3,13 +3,6 @@ shell.prefix = ['set -e']
 import os
 
 configfile: "config/config.yaml"
-# configfile: "config/tools.yaml"
-
-# TOOLS = {
-#     tool: path
-#      for tool, path in config['tools'].items()
-# }
-# 
 # # check the path of tools
 # def validate_tool(tool_path):
 #     
@@ -44,10 +37,8 @@ wildcard_constraints:
     sample='|'.join(samples_list),
     interval='|'.join(intervals_list)
 
-# prefix = "t2t.grch38.58hifi.1064zmw"
 
 #load the included snakemake files.
-
 include: "rules/utils.smk"
 
 
@@ -57,25 +48,25 @@ Merge_SNV = config.get("Merge_SNV", False)
 Phase_SNV = config.get("Phase_SNV", False)
 Generate_Personal_Reference = config.get("Generate_Personal_Reference", False)
 Draft_Assembly = config.get("Draft_Assembly", False)
-Graph_Construction = config.get("Graph_Construction", False)
-Simplify_ML_Pangenome = config.get("Simplify_ML_Pangenome", False)
+Consturct_Pangenome = config.get("Consturct_Pangenome", False)
+Simplify_Pangenome = config.get("Simplify_Pangenome", False)
 Merge_Pangenome = config.get("Merge_Pangenome", False)
 Infer_Diploid_Path = config.get("Infer_Diploid_Path", False)
 
 
 if Call_SR_SNV:
 
-    include: "rules/SR_var_calling.smk"
+    include: "rules/call_sr_snv.smk"
     rule all:
         input:
-            rules.all_SR_var_calling.input
+            rules.all_call_sr_snv.input
 
 elif Call_LR_SNV:
 
-    include: "rules/LR_var_calling.smk"
+    include: "rules/call_lr_snv.smk"
     rule all:
         input:
-            rules.all_LR_var_calling.input
+            rules.all_call_lr_snv.input
     
 elif Merge_SNV:
 
@@ -105,19 +96,19 @@ elif Draft_Assembly:
         input:
             rules.all_draft_assembly.input
     
-elif Graph_Construction:
+elif Consturct_Pangenome:
 
-    include: "rules/graph_construction.smk"
+    include: "rules/construct_pangenome.smk"
     rule all:
         input:
-            rules.all_graph_construction.input
+            rules.all_construct_pangenome.input
     
-elif Simplify_ML_Pangenome:
+elif Simplify_Pangenome:
     
-    include: "rules/simplify_ml_pangenome.smk"
+    include: "rules/simplify_pangenome.smk"
     rule all:
         input:
-            rules.all_simplify_ml_pangenome.input
+            rules.all_simplify_pangenome.input
     
 elif Merge_Pangenome:
 
@@ -134,14 +125,14 @@ elif Infer_Diploid_Path:
             rules.all_infer_diploid_path.input
 else:
 
-    include: "rules/SR_var_calling.smk"
-    include: "rules/LR_var_calling.smk"
+    include: "rules/call_sr_snv.smk"
+    include: "rules/call_lr_snv.smk"
     include: "rules/merge_snv.smk"
     include: "rules/phase_snv.smk"
     include: "rules/generate_personal_reference.smk"
     include: "rules/draft_assembly.smk"
-    include: "rules/graph_construction.smk"
-    include: "rules/simplify_ml_pangenome.smk"
+    include: "rules/construct_pangenome.smk"
+    include: "rules/simplify_pangenome.smk"
     include: "rules/merge_pangenome.smk"
     include: "rules/infer_diploid_path.smk"
     rule all:

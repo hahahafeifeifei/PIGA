@@ -1,3 +1,5 @@
+Call_LR_SNV: true
+
 samples:
     test_data/samples.list
     

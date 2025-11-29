@@ -1,5 +1,8 @@
 Merge_Pangenome: true
 
+samples:
+    test_data/samples.list
+    
 prefix:
     test
 

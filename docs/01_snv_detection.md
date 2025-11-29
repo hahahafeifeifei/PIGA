@@ -13,7 +13,7 @@ This pipeline performs population-level SNV detection by leveraging PacBio long 
 -  Bcftools
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/SR_var_calling.yaml
+snakemake -s Snakefile --cores 64 --configfile config/call_sr_snv.yaml
 ```
 
 ## call_lr_snv
@@ -31,7 +31,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  Beagle4
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/LR_var_calling.yaml
+snakemake -s Snakefile --cores 64 --configfile config/call_lr_snv.yaml
 ```
 
 ## merge_snv
@@ -43,5 +43,5 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  Merfin
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/merge_snv.yaml
+snakemake -s Snakefile --cores 64 --configfile config/merge_snv.yaml
 ```

@@ -13,5 +13,5 @@ This pipeline performs SNV phasing by integrating information from long reads an
 -  Shapeit4
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/phase_snv.yaml
+snakemake -s Snakefile --cores 64 --configfile config/phase_snv.yaml
 ```

@@ -3,7 +3,7 @@ This pipeline performs pangenome construction and simplification.
 
 <img align="middle" width="740" src="pangenome_construction.jpg"/>
 
-## graph_construction
+## construct_pangenome
 ### Description
 -  Construct the SV pangenome graph with minigraph.
 -  Align assemblies to pangenome graph with minigraph and filter the low-quality aligments.
@@ -25,10 +25,10 @@ This pipeline performs pangenome construction and simplification.
 -  GFAffix  
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/graph_construction.yaml
+snakemake -s Snakefile --cores 64  --configfile config/construct_pangenome.yaml
 ```
 
-## simplify_ml_pangenome
+## simplify_pangenome
 ### Description
 -  Select the training and testing nodes/edges based on training and testing samples.
 -  Generate pangenome graph without training and testing samples.
@@ -41,7 +41,7 @@ snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile co
 -  VG
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/simplify_ml_pangenome.yaml
+snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/simplify_pangenome.yaml
 ```
 
 ## merge_pangenome

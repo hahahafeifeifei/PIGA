@@ -28,5 +28,5 @@ This pipeline reconstructs the final diploid assembly by inferring the diploid p
 -  Samtools
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/config.yaml --configfile config/tools.yaml --configfile config/infer_diploid_path.yaml
+snakemake -s Snakefile --cores 64 --configfile config/infer_diploid_path.yaml
 ```

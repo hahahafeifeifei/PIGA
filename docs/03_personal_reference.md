@@ -20,5 +20,5 @@ This pipeline generates personalized reference and SNV haplotype for each indivi
 -  WhasHap
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/generate_personal_reference.yaml
+snakemake -s Snakefile --cores 64 --configfile config/generate_personal_reference.yaml
 ```

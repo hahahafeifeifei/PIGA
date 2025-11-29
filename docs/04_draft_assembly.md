@@ -36,5 +36,5 @@ This pipeline performs reference-guided draft diploid genome assembly.
 -  Bedtools
 ### Usage
 ```shell
-snakemake -s Snakefile --cores 64 --configfile config/tools.yaml --configfile config/draft_assembly.yaml
+snakemake -s Snakefile --cores 64 --configfile config/draft_assembly.yaml
 ```
