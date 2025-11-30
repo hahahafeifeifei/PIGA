@@ -69,7 +69,7 @@ rule external_minigraph:
         max_mem_gb=300
     shell:
         """
-        minigraph -c -x ggs -t {threads} {input.chm13_fa} {input.grch38_fa} {input.external_assembly_fa} > {output.minigraph_external_gfa}
+        minigraph -c -x ggs -l 10000 -t {threads} {input.chm13_fa} {input.grch38_fa} {input.external_assembly_fa} > {output.minigraph_external_gfa}
         """
 
 rule external_chr_minigraph:
@@ -146,7 +146,7 @@ rule internal_chr_minigraph:
         max_mem_gb = 60
     shell:
         """
-        minigraph -c -x ggs -t {threads} {input.minigraph_external_chr_gfa} {input.internal_assembly_fa} | sed "s/s//g" | vg convert -fg - > {output.minigraph_chr_gfa}
+        minigraph -c -x ggs -l 10000 -t {threads} {input.minigraph_external_chr_gfa} {input.internal_assembly_fa} | sed "s/s//g" | vg convert -fg - > {output.minigraph_chr_gfa}
         """
 
 rule concat_chr_minigraph:
@@ -318,7 +318,7 @@ rule seqwish:
     shell:
         """
         seqwish -P -t {threads} -s {input.fa} -p {input.paf} -g {output.raw_gfa} -b {params.subgraph_dir}
-        awk -v OFS='\\t' '{{if(substr($1,1,1)=="P") {{split($2,a,".");if(a[1]=="CHM13" || a[1]=="GRCh38" || a[1]=="_MINIGRAPH_") name=a[1]"#"a[1]"."a[2];else {{split(a[2],b,"hap");name=a[1]"#"b[2]-1"#"a[1]".hap"b[2]"."a[3]"#0"}}  print $1,name,$3,$4 }}else  print$0 }}' {output.raw_gfa} > {output.seqwish_gfa}
+        awk -v OFS='\\t' '{{if(substr($1,1,1)=="P") {{split($2,a,".");if(a[1]=="CHM13" || a[1]=="GRCh38" || a[1]=="_MINIGRAPH_") name=a[1]"#"a[1]"."a[2];else {{name=a[1]"#"a[2]"#"a[3]"#0"}}  print $1,name,$3,$4 }}else  print$0 }}' {output.raw_gfa} > {output.seqwish_gfa}
         """
 
 
@@ -338,7 +338,7 @@ rule smoothxg:
         """
         mkdir -p {params.smoothxg_dir}
         sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
-        smoothxg -t {threads} -g {input.seqwish_gfa} -r $sample_number --base {params.smoothxg_dir} --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400,2200 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_gfa}
+        smoothxg -t {threads} -g {input.seqwish_gfa} --base {params.smoothxg_dir} --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400,2200 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_gfa}
         """
 
         
