@@ -11,13 +11,13 @@ lr_zmw_fastqs:
     - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 
-#https://s3-us-west-2.amazonaws.com/human-pangenomics/pangenomes/freeze/freeze1/minigraph-cactus/hprc-v1.1-mc-chm13/hprc-v1.1-mc-chm13.gbz
+#https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC3/release/Graph_Genomes/1.0/2024_02_23_minigraph_cactus_hgsvc3_hprc/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 external_pangenome:
-    - test_data/pangenome/hprc-v1.1-mc-chm13.gbz
+    - test_data/pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 
 reference:
     CHM13:
-        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0.fa
 
 par_region:
     test_data/chm13v2.0_chrX_PAR.bed

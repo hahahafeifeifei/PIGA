@@ -9,7 +9,7 @@ sr_fastqs:
 
 reference:
     CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0.fa
 
 GATK_Resource:
     hapmap:

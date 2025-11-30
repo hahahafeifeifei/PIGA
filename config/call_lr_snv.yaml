@@ -9,6 +9,7 @@ lr_hifi_fastqs:
 lr_zmw_fastqs:
     - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
+#https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz
 reference:
     CHM13:
         test_data/reference/chm13v2.0_maskedY_rCRS.fasta

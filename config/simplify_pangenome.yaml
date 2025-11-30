@@ -9,7 +9,7 @@ reference:
     GRCh38:
         test_data/reference/GRCh38_no_alt_analysis_set.fasta
 
-train_sample_list:
+train_sample_list: test_data/train_sample.list
 
 prefix:
     test

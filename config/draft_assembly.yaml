@@ -18,7 +18,7 @@ lr_subreads_bam:
 
 reference:
     CHM13:
-        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
+        test_data/reference/chm13v2.0.fa
         
 prefix:
     test

@@ -15,9 +15,7 @@ lr_zmw_fastqs:
 
 reference:
     CHM13:
-        test/reference/chm13v2.0_maskedY_rCRS.fasta
-
-genetic_map: "test/genetic_map/genetic_map_chm13_{chr}.reform.txt"
+        test_data/reference/chm13v2.0.fa
 
 prefix:
     test

@@ -58,8 +58,7 @@ rule merge_consensus_whatshap_vcf:
 # This step requires at least 20 samples in the input vcf file. Or shapeit4 will not run successfully.
 rule chr_consensus_vcf_shapeit:
     input:
-        merge_whatshap_filter_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.unphase_singleton_filter.vcf.gz",
-        genetic_map = config['genetic_map']
+        merge_whatshap_filter_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.unphase_singleton_filter.vcf.gz"
     output:
         consensus_whatshap_shapeit_vcf = f"c4_phase_snv/chr_vcf/{{chr}}/{config['prefix']}.consensus.whatshap.shapeit.{{chr}}.vcf.gz"
     threads: 16
@@ -68,7 +67,6 @@ rule chr_consensus_vcf_shapeit:
     shell:
         """
         shapeit4 --input {input.merge_whatshap_filter_vcf} \
-            --map {input.genetic_map} \
             --region {wildcards.chr} \
             --pbwt-depth 8 -T {threads} --sequencing --use-PS 0.0001 \
             --out {output.consensus_whatshap_shapeit_vcf}

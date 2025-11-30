@@ -1,18 +1,23 @@
 Merge_SNV: true
 
-samples: test_data/samples.list
-
+samples:
+    test_data/samples.list
+    
 sr_fastqs:
-  - test_data/{sample}/{sample}.sr.R1.fastq.gz
-  - test_data/{sample}/{sample}.sr.R2.fastq.gz
+    - test_data/{sample}/{sample}.sr.R1.fastq.gz
+    - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_hifi_fastqs:
-  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
+    - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
 reference:
-  CHM13: test_data/reference/chm13v2.0_maskedY_rCRS.fasta
+    CHM13:
+        test_data/reference/chm13v2.0.fa
 
-prefix: CKCG
+prefix:
+    test
+
+
 # #if no "sr_vcf" key, default input will be c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz
 # sr_vcf:
 #     "YOUR PATH"
