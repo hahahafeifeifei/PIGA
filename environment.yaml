@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - compilers
-  - cmake=3.19
+  - cmake
   - gcc=9
   - python<=3.10
   - pip
@@ -24,13 +24,13 @@ dependencies:
   - bedtools
   - smoothxg
   - seqwish
-  - gfaffix
+  - gfaffi
   - kmc
   - bcftools
   - minimap2
   - hiphase
-  - jellyfish
-  - cereal
+  - pangenie
+  - hdf5
   - cutesv
   - truvari
   - meryl
@@ -43,7 +43,7 @@ dependencies:
   - beagle=4.1
   - shapeit4
   - merfin
-  - graphaligner=1.0.13
+  - graphaligner
   - racon
   - pbgcpp
   - cutadapt
