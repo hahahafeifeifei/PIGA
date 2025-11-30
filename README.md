@@ -79,7 +79,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --wo
 **Note:** By default, we provide a profile which is configured to use the **SLURM** job scheduler. You can customize the cluster settings (e.g., switch to a different scheduler or change resource allocation) by editing the configuration file.
 
 ## Documentation
-PIGA consists of six modules, each containing several commands. You can run the entire workflow or execute specific modules independently. The detailed tutorial is provided for each module.
+PIGA consists of six modules, each containing several commands that can be executed independently. A detailed tutorial is provided for each module.
 
 #### [1. SNV Detection](docs/01_snv_detection.md)
 - `call_sr_snv`: detect SNVs using short reads.
