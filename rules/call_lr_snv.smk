@@ -190,7 +190,6 @@ rule lr_whatshap_vcf_merge:
         tabix {output.merge_whatshap_filter_snp_vcf}
         """
 
-#TODO: How to deal with the splitvcf.jar.
 rule lr_beagle_split_vcf:
     input:
         whatshap_filter_snp_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.vcf.gz"
@@ -204,7 +203,7 @@ rule lr_beagle_split_vcf:
         mkdir -p c2_call_lr_snv/lr_beagle/{wildcards.chrom}
 
         bcftools view {input.whatshap_filter_snp_vcf} {wildcards.chrom} | \
-            java -jar /storage/yangjianLab/dingyi/tools/beagle_tools/splitvcf.jar {wildcards.chrom} 50000 3000 {params.prefix}
+            java -jar scripts/call_lr_snv/splitvcf.jar {wildcards.chrom} 50000 3000 {params.prefix}
         
         """
 
@@ -234,7 +233,6 @@ def get_chr_beagle_result_files(wildcards, prefix):
     return pairs
 
 
-#TODO: beagle.27Jan18.7e1.jar.
 rule lr_beagle:
     input:
         chr_num_vcf = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.{{chrom}}.{{num}}.vcf.gz",
@@ -247,12 +245,12 @@ rule lr_beagle:
         max_mem_gb = 80
     shell:
         """
-        java "-Xmx{resources.max_mem_gb}G" -jar /storage/yangjianLab/dingyi/tools/beagle.27Jan18.7e1.jar \
+        java "-Xmx{resources.max_mem_gb}G" -jar scripts/call_lr_snv/beagle.27Jan18.7e1.jar \
             nthreads={threads} \
             gl={input.chr_num_vcf} \
             out={params.prefix}
         """
-#TODO:mergevcf.jar
+
 rule chr_num_beagle_vcf_merge:
     input:
         chr_num_beagle_vcfs = partial(get_chr_beagle_result_files, prefix = config['prefix'])
@@ -274,7 +272,7 @@ rule chr_num_beagle_vcf_merge:
         else:
           shell(f"""
             java "-Xmx{resources.max_mem_gb}G" \
-                -jar /storage/yangjianLab/dingyi/tools/beagle_tools/mergevcf.jar \
+                -jar scripts/call_lr_snv/mergevcf.jar \
                 chr{wildcards.chrom} \
                 {input.chr_num_beagle_vcfs} | \
                 bgzip -c > {output.chr_beagle_vcf}

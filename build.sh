@@ -15,6 +15,7 @@ binDir=$CONDA_PREFIX/bin
 rm -rf ${buildDir}
 mkdir -p ${buildDir}
 mkdir -p ${binDir}
+mkdir -p ${calllrDir}
 cd ${buildDir}
 
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
@@ -32,7 +33,6 @@ make -j 8
 mv ./margin ${binDir}
 mv params/phase/allParams.phase_vcf.ont.sv.json ${mainDir}/config/margin.phase_sv.json
 cd ${buildDir}
-
 
 # Build Secphase
 git clone https://github.com/samtools/htslib.git --recursive
@@ -62,7 +62,6 @@ mv bin/correct_bam ${binDir}
 mv bin/secphase ${binDir}
 cd ${buildDir}
 
-
 # Build MECAT2
 git clone https://github.com/xiaochuanle/MECAT2.git
 cd MECAT2
@@ -74,7 +73,6 @@ mv */bin/mecat2splitreads ${binDir}
 mv */bin/mecat2trimbases ${binDir}
 cd ${buildDir}
 
-
 # Build cactus-gfa-tools
 git clone https://github.com/ComparativeGenomicsToolkit/cactus-gfa-tools.git
 cd cactus-gfa-tools
@@ -83,14 +81,12 @@ mv gaf2paf ${binDir}
 mv gaffilter ${binDir}
 cd ${buildDir}
 
-
 # Build ORCA
 git clone https://github.com/thocevar/orca.git
 cd orca
 g++ -O2 -std=c++11 -o orca.exe orca.cpp
 mv orca.exe ${binDir}
 cd ${buildDir}
-
 
 # Download Merqury
 wget https://github.com/marbl/merqury/archive/v1.3.tar.gz
@@ -103,8 +99,11 @@ mv util ${binDir}
 mv eval ${binDir}
 cd ${buildDir}
 
+# Download Beagle and Beagle utilities
+wget https://faculty.washington.edu/browning/beagle/beagle.27Jan18.7e1.jar
+chmod +x beagle.27Jan18.7e1.jar
+mv beagle.27Jan18.7e1.jar ${calllrDir}
 
-# Download Beagle utilities
 wget https://faculty.washington.edu/browning/beagle_utilities/splitvcf.jar
 chmod +x splitvcf.jar
 mv splitvcf.jar ${calllrDir}
@@ -113,9 +112,9 @@ wget https://faculty.washington.edu/browning/beagle_utilities/mergevcf.jar
 chmod +x mergevcf.jar
 mv mergevcf.jar ${calllrDir}
 
-
 # Download DeepVariant container
 singularity pull docker://google/deepvariant
 mv deepvariant*.sif ${calllrDir}/deepvariant.sif
 cd ${mainDir}
 rm -rf ${buildDir}
+
