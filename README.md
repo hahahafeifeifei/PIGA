@@ -53,57 +53,52 @@ bash download.sh
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+- **`samples`**: Specify the path to a text file listing all samples.
+  The file must be **space-delimited**, with:
+  - **Column 1:** Sample name
+  - **Column 2:** Sample sex
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- **`sr_fastqs`**: Specify the paths to the **paired-end short-read FASTQ files**.
+  Use `{sample}` as a wildcard.
 
-**`sr_fastqs`**: Specify the paths to the **paired-end short-read FASTQ files**.
-Use `{sample}` as a wildcard.
+- **`lr_hifi_fastqs`**: Specify the path(s) to **PacBio HiFi long-read FASTQ files**.
+  Use `{sample}` as a wildcard.
 
-**`lr_hifi_fastqs`**: Specify the path(s) to **PacBio HiFi long-read FASTQ files**.
-Use `{sample}` as a wildcard.
+- **`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW FASTQ files**.(Selected representative read for each ZMW)
+  Use `{sample}` as a wildcard.
 
-**`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW FASTQ files**.(Selected representative read for each ZMW)
-Use `{sample}` as a wildcard.
+- **`lr_subreads_bam`**: Specify the path(s) to **PacBio subreads BAM files**.
+  Use `{sample}` as a wildcard.
 
-**`lr_subreads_bam`**: Specify the path(s) to **PacBio subreads BAM files**.
-Use `{sample}` as a wildcard.
+- **`reference`**:
+  - `CHM13`: Path to the **T2T CHM13 reference genome** (FASTA format, indexed by `samtools faidx` and `bwa index`).
+  - `GRCh38`: Path to the **GRCh38 reference genome**in FASTA format.
 
-**`reference`**:
+- **`GATK_Resource`**: Paths to **GATK reference resource datasets**:
+  - `hapmap` – HapMap 3.3
 
-- `CHM13`: Path to the **T2T CHM13 reference genome** (FASTA format, indexed by `samtools faidx` and `bwa index`).
-- `GRCh38`: Path to the **GRCh38 reference genome**in FASTA format.
+  - `omni` – 1000G Omni 2.5
 
-**`GATK_Resource`**: Paths to **GATK reference resource datasets**:
+  - `1000G` – 1000 Genomes phase 1 high-confidence SNPs
 
-- `hapmap` – HapMap 3.3
+  - `known_indel` – Known indels in hg38.
 
-- `omni` – 1000G Omni 2.5
+  - `mills` – Mills + 1000G gold-standard indels
 
-- `1000G` – 1000 Genomes phase 1 high-confidence SNPs
+  - `axiomPoly` – Axiom Exome Plus polymorphism dataset
 
-- `known_indel` – Known indels in hg38.
+- **`external_pangenome`**: Path to the **external pangenome graph** (GBZ format).
 
-- `mills` – Mills + 1000G gold-standard indels
+- **`par_region`**: Path to the **pseudoautosomal region (PAR) BED file** for CHM13.
 
-- `axiomPoly` – Axiom Exome Plus polymorphism dataset
+- **`internal_assembly_list`**: Path to a file listing **internal genome assemblies**.
 
-**`external_pangenome`**: Path to the **external pangenome graph** (GBZ format).
+- **`external_assembly_list`**: Path to a file listing **external genome assemblies**.
 
-**`par_region`**: Path to the **pseudoautosomal region (PAR) BED file** for CHM13.
+- **`train_sample_list`**: Path to a file listing samples used for model training.
 
-**`internal_assembly_list`**: Path to a file listing **internal genome assemblies**.
-
-**`external_assembly_list`**: Path to a file listing **external genome assemblies**.
-
-**`train_sample_list`**: Path to a file listing samples used for model training.
-
-**`prefix`**: Prefix used for naming output files.
-You are now ready to run the workflow.
-
-**TODO**: tell users how to set up the configuration file including config/config.yaml and also other step-by-step config files.
+- **`prefix`**: Prefix used for naming output files.
+  You are now ready to run the workflow.
 
 ## Running the Workflow
 
