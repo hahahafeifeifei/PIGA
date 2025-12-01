@@ -244,10 +244,9 @@ rule lr_beagle:
     threads: 8
     resources:
         mem_mb = 80*1024,
-        max_mem_gb = 80
     shell:
         """
-        java "-Xmx{resources.max_mem_gb}G" -jar scripts/call_lr_snv/beagle.27Jan18.7e1.jar \
+        beagle \
             nthreads={threads} \
             gl={input.chr_num_vcf} \
             out={params.prefix}

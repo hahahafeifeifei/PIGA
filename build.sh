@@ -99,11 +99,7 @@ mv util ${binDir}
 mv eval ${binDir}
 cd ${buildDir}
 
-# Download Beagle and Beagle utilities
-wget https://faculty.washington.edu/browning/beagle/beagle.27Jan18.7e1.jar
-chmod +x beagle.27Jan18.7e1.jar
-mv beagle.27Jan18.7e1.jar ${calllrDir}
-
+# Download Beagle utilities
 wget https://faculty.washington.edu/browning/beagle_utilities/splitvcf.jar
 chmod +x splitvcf.jar
 mv splitvcf.jar ${calllrDir}
@@ -117,4 +113,3 @@ singularity pull docker://google/deepvariant
 mv deepvariant*.sif ${calllrDir}/deepvariant.sif
 cd ${mainDir}
 rm -rf ${buildDir}
-
