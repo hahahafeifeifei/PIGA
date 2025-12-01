@@ -33,8 +33,7 @@ rule personal_ref_bwa_map:
         ngs_bam = "c6_draft_assembly/sample_assembly/{sample}/{sample}.srt.bam"
     threads: 16
     resources:
-        mem_mb = 64000,
-        max_mem_gb = 64
+        mem_mb = 64*1024
     shell:
         """
         bwa index {input.consensus_fasta}
@@ -54,8 +53,7 @@ rule personal_ref_bam_dedup:
         ngs_dedup_matric = "c6_draft_assembly/sample_assembly/{sample}/{sample}.dedup.metrics"
     threads: 4
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
        gatk MarkDuplicates \
@@ -76,8 +74,7 @@ rule sample_origin_snv_liftover:
         sample_personal_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.shapeit.vcf.gz"
     threads: 1
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         gatk LiftoverVcf \
@@ -102,8 +99,7 @@ rule personal_ref_dv:
         "/storage/yangjianLab/wangyifei/software/deepvariant/deepvariant_v1.3_sandbox/"
     threads: 16
     resources:
-        mem_mb = 64000,
-        max_mem_gb = 64
+        mem_mb = 64*1024
     shell:
         """
         /opt/deepvariant/bin/run_deepvariant \
@@ -128,8 +124,7 @@ rule merge_variants:
         sample_personal_merge_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.vcf.gz"
     threads: 4
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         bcftools merge \
@@ -150,8 +145,7 @@ rule personal_ref_zmw_pbmm2:
         zmw_ref_bam = "c6_draft_assembly/sample_assembly/{sample}/{sample}.zmw.srt.bam"
     threads: 8
     resources:
-        mem_mb = 64000,
-        max_mem_gb = 64
+        mem_mb = 64*1024
     shell:
         """
         pbmm2 align -j {threads} -J 1 \
@@ -171,8 +165,7 @@ rule sample_assembly_vcf_whatshap:
         sample_phase_block_list = "c6_draft_assembly/sample_assembly/{sample}/{sample}.phase_block.list"
     threads: 4
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         whatshap phase \
@@ -197,8 +190,7 @@ rule haplotype_largest_block:
         sample_chr_assembly_merge_phase_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.whatshap_phase.{chr}.vcf.gz"
     threads: 4
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         phase_ps=$(awk -v OFS='\\t' -v chr={wildcards.chr} 'BEGIN{{ps=0;number=0}} {{if($2==chr && $6>=number) {{ps=$3;number=$6}} }} END{{print ps}}' {input.sample_phase_block_list})
@@ -213,8 +205,7 @@ rule concat_final_phase_vcf:
         sample_assembly_merge_phase_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.phase.vcf.gz"
     threads: 4
     resources: 
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         bcftools concat --threads {threads} {input.sample_chr_assembly_merge_phase_vcfs} \
@@ -236,8 +227,7 @@ rule correct_switch_error:
         sample_switch_correct_unzip_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.switch_correct.vcf"
     threads: 4
     resources:
-        mem_mb = 30000,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         bcftools merge -m none --force-sample \
@@ -268,8 +258,7 @@ rule personal_ref_subreads_pbmm2:
         subreads_ref_bam = "c6_draft_assembly/sample_assembly/{sample}/{sample}.lr_subreads.srt.bam"
     threads: 16
     resources:
-        mem_mb = 120000,
-        max_mem_gb = 120
+        mem_mb = 120*1024
     shell:
         """
         pbmm2 align -j {threads} {input.consensus_fasta} {input.lr_subreads_bam} {output.subreads_ref_unsort_bam}
@@ -285,8 +274,7 @@ rule personal_ref_hifi_pbmm2:
         hifi_ref_bam = "c6_draft_assembly/sample_assembly/{sample}/{sample}.lr_hifi.srt.bam"
     threads: 8
     resources:
-        mem_mb = 64000,
-        max_mem_gb = 64
+        mem_mb = 64*1024
     shell:
         """
         pbmm2 align -j {threads} -J 1 \
@@ -326,8 +314,7 @@ rule phase_assembly:
         assembly_dir = "c6_draft_assembly/sample_assembly/{sample}/assembly"
     threads: 28
     resources:
-        mem_mb = 200000,
-        max_mem_gb = 200
+        mem_mb = 200*1024
     shell:
         """
         python3 scripts/draft_assembly/phase_assembly.version2.py \
@@ -353,7 +340,7 @@ rule rename_assembly:
         hap2_rename_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.rename.fasta",
     threads: 1
     resources:
-        max_mem_gb = 10
+        mem_mb = 10*1024
     shell:
         """
         awk -v sample={wildcards.sample} '{{if(substr($1,1,1)==">") print ">"sample"_hap1_"substr($1,2,length($1));else print $0}}' {input.hap1_fa} > {output.hap1_rename_fa}

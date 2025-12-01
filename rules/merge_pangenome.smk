@@ -28,7 +28,7 @@ rule subgraph_feature:
         node_count = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.node.count",
         chr_subgraph = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.chr_subgraph.list"
     resources:
-        max_mem_gb=60
+        mem_mb = 60*1024
     shell:
         """
         grep ^S {output.gfaffix_gfa} | wc -l | awk -v id={wildcards.id} '{{print id"\\t"$1}}' > {output.node_count}
@@ -45,7 +45,7 @@ rule feature_merge:
         node_sum_counts = f"c7_graph_construction/{config['prefix']}.node.sum.count",
         chr_subgraph_list = f"c7_graph_construction/{config['prefix']}.chr_subgraph.list"
     resources:
-        max_mem_gb=60
+        mem_mb = 60*1024
     shell:
         """
         cat {input.counts} > {output.node_counts}
@@ -62,7 +62,7 @@ rule node_ids:
         ids_assembly_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa",
         ids_variant_path = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path"
     resources:
-        mem_gb=60,
+        mem_mb = 60*1024,
         runtime_hrs=10
     shell:
         """

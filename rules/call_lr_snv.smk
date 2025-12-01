@@ -106,6 +106,7 @@ rule lr_glnexus:
         chr_db = "c2_call_lr_snv/chr_vcf/{chrom}_db"
     threads: 16
     resources:
+        mem_mb = 200*1024,
         max_mem_gb = 200,
     shell:
         """
@@ -242,6 +243,7 @@ rule lr_beagle:
         prefix = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.beagle.{{chrom}}.{{num}}"
     threads: 8
     resources:
+        mem_mb = 80*1024,
         max_mem_gb = 80
     shell:
         """
@@ -258,6 +260,7 @@ rule chr_num_beagle_vcf_merge:
         chr_beagle_vcf = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.beagle.{{chrom}}.vcf.gz"
     threads: 1
     resources:
+        mem_mb = 20*1024,
         max_mem_gb = 20
     run:
         vcf_num = len(input.chr_num_beagle_vcfs)
@@ -287,6 +290,7 @@ rule concat_beagle_vcf:
         concat_beagle_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz"
     threads: 16
     resources:
+        mem_mb = 80*1024,
         max_mem_gb = 80
     shell:
         """        

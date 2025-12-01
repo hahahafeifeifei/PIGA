@@ -26,7 +26,7 @@ rule consensus_vcf_whatshap_phase:
         phase_sample_vcf = "c4_phase_snv/sample_vcf/{sample}/{sample}.consensus.whatshap.vcf.gz"
     threads: 1
     resources:
-        max_mem_gb = 16
+        mem_mb = 16*1024,
     shell:
         """
         whatshap phase --ignore-read-groups \
@@ -63,7 +63,7 @@ rule chr_consensus_vcf_shapeit:
         consensus_whatshap_shapeit_vcf = f"c4_phase_snv/chr_vcf/{{chr}}/{config['prefix']}.consensus.whatshap.shapeit.{{chr}}.vcf.gz"
     threads: 16
     resources:
-        max_mem_gb = 100
+        mem_mb = 100*1024,
     shell:
         """
         shapeit4 --input {input.merge_whatshap_filter_vcf} \

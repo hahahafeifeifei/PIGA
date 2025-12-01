@@ -13,8 +13,7 @@ rule external_pangenome_index:
         pangenome_hapl = f"c5_personal_ref/external_pangenome/external.hapl"
     threads: 16
     resources:
-        mem_mb = 200000,
-        max_mem_gb = 200
+        mem_mb = 200*1024
     shell:
         """
         cp {input.external_pangenome} {output.pangenome_gbz}
@@ -43,7 +42,7 @@ rule personal_pangenome:
         prefix = "c5_personal_ref/sample_reference/{sample}/{sample}"
     threads: 8
     resources:
-        mem_mb = 150000,
+        mem_mb = 150*1024,
         max_mem_gb = 150
     shell:
         """
@@ -73,8 +72,7 @@ rule graph_call:
         sample_vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.vcf.gz"
     threads: 8
     resources:
-        mem_mb = 100000,
-        max_mem_gb = 100
+        mem_mb = 100*1024
     shell:
         """
         GraphAligner -t {threads} -g {input.sample_gfa} -f {input.lr_zmw_fastqs} -a {output.sample_gam} -x vg --multimap-score-fraction 1
@@ -84,7 +82,6 @@ rule graph_call:
         tabix -f {output.sample_vcf}
         """
 
-#TODO: filter out chrY variants?
 rule gam_call_variants_filter:
     input:
         vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.vcf.gz"

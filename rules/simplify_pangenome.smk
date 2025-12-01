@@ -21,7 +21,7 @@ rule graph_bed_filtering:
         bed_clip_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.bed_clip.gfa",
         filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
     resources:
-        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        mem_mb=lambda wildcards, attempt: 100 * 1024 * attempt,
         runtime_hrs=lambda wildcards, attempt: 20 * attempt
     threads: 8
     shell:
@@ -115,7 +115,7 @@ rule gnn_feature_extract:
         node_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label",
         edge_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label"
     resources:
-        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 8
     shell:
         """
@@ -136,7 +136,7 @@ rule statistic_prepare:
         train_edge_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.statistics",
         train_edge_dataset = f"c7_graph_construction/ml_model/{config['prefix']}.train_edge.dataset"
     resources:
-        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 8
     shell:
         """
@@ -157,7 +157,7 @@ rule model_train:
         train_node_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.node_model.threshold",
         train_edge_threshold = f"c7_graph_construction/ml_model/{config['prefix']}.edge_model.threshold"
     resources:
-        max_mem_gb=150
+        mem_mb = 150*1024
     threads: 8
     shell:
         """
@@ -179,7 +179,7 @@ rule node_edge_inference:
         model_node_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.label",
         model_edge_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.label"
     resources:
-        max_mem_gb=30
+        mem_mb = 30*1024
     threads: 2
     shell:
         """
@@ -200,7 +200,7 @@ rule gfa_ml_filter:
         ml_filter_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.raw.gfa",
         ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg",
     resources:
-        max_mem_gb=lambda wildcards, attempt: 150 * attempt
+        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 4
     params:
         train_sample = "\\t|".join(set(train_sample_map.keys()))

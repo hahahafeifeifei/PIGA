@@ -20,7 +20,7 @@ rule rename_reference:
         grch38_rename_fa='c7_graph_construction/fasta/GRCh38.fasta',
         grch38_rename_fa_fai='c7_graph_construction/fasta/GRCh38.fasta.fai'
     resources:
-        max_mem_gb=30,
+        mem_mb = 30*1024,
     shell:
         """
         awk '{{if(substr($0,1,1)==">") print ">CHM13."substr($1,2,length($1));else print $0}}' {input.chm13_fa} > {output.chm13_rename_fa}
@@ -48,7 +48,7 @@ rule rename_external_assembly:
     wildcard_constraints:
         external_assembly_id = "|".join([re.escape(str(i)) for i in external_assembly_id_list])
     resources:
-        max_mem_gb=30
+        mem_mb = 30*1024,
     shell:
         """
         sample=$(echo {wildcards.external_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
@@ -66,7 +66,7 @@ rule external_minigraph:
         minigraph_external_gfa = f"c7_graph_construction/{config['prefix']}.minigraph_external.gfa"
     threads: 16
     resources:
-        max_mem_gb=300
+        mem_mb = 300*1024,
     shell:
         """
         minigraph -c -x ggs -l 10000 -t {threads} {input.chm13_fa} {input.grch38_fa} {input.external_assembly_fa} > {output.minigraph_external_gfa}
@@ -81,7 +81,7 @@ rule external_chr_minigraph:
         chr = "|".join(chr_list)
     threads: 4
     resources:
-        max_mem_gb=30
+        mem_mb = 30*1024,
     shell:
         """
         if [ {wildcards.chr} == "chrM" ]
@@ -111,7 +111,7 @@ rule rename_internal_assembly:
     wildcard_constraints:
         internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
     resources:
-        max_mem_gb=30
+        mem_mb = 30*1024
     shell:
         """
         sample=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
@@ -129,7 +129,7 @@ rule split_internal_assembly_by_chr:
         chr = "|".join(chr_list)
     threads: 1
     resources:
-        max_mem_gb = 30
+        mem_mb = 30*1024
     shell:
         """
         seqkit grep -w 0 -r -p {wildcards.chr}- {input.fa} > {output.chr_fa}
@@ -143,7 +143,7 @@ rule internal_chr_minigraph:
         minigraph_chr_gfa = f"c7_graph_construction/chr_gfa/{config['prefix']}.minigraph.{{chr}}.gfa"
     threads: 8
     resources:
-        max_mem_gb = 60
+        mem_mb = 60*1024
     shell:
         """
         minigraph -c -x ggs -l 10000 -t {threads} {input.minigraph_external_chr_gfa} {input.internal_assembly_fa} | sed "s/s//g" | vg convert -fg - > {output.minigraph_chr_gfa}
@@ -156,7 +156,7 @@ rule concat_chr_minigraph:
         minigraph_gfa = f"c7_graph_construction/{config['prefix']}.minigraph.gfa"
     threads: 16
     resources:
-        max_mem_gb = 200
+        mem_mb = 200*1024
     shell:
         """
         vg concat {input.minigraph_external_chr_gfas} > {output.minigraph_gfa}
@@ -176,7 +176,7 @@ rule minigraph_clip:
         tmp_dir = f"c7_graph_construction"
     threads: 16
     resources:
-        max_mem_gb = 200
+        mem_mb = 200*1024
     shell:
         """
         vg snarls {input.minigraph_gfa} | vg view -R - > {output.snarls}
@@ -197,7 +197,7 @@ rule minigraph_alignment_reference:
         chm13_gaf = "c7_graph_construction/gaf/CHM13.gaf",
         grch38_gaf = "c7_graph_construction/gaf/GRCh38.gaf"
     resources:
-        max_mem_gb = 100
+        mem_mb = 100*1024
     threads: 10
     shell:
         """
@@ -214,7 +214,7 @@ rule minigraph_alignment_external_assembly:
     wildcard_constraints:
         external_assembly_id = "|".join([re.escape(str(i)) for i in external_assembly_id_list])
     resources:
-        max_mem_gb = 100
+        mem_mb = 100*1024
     threads: 10
     shell:
         """
@@ -230,7 +230,7 @@ rule minigraph_alignment_internal_assembly:
     wildcard_constraints:
         internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
     resources:
-        max_mem_gb = 100
+        mem_mb = 100*1024
     threads: 10
     shell:
         """
@@ -250,7 +250,7 @@ checkpoint minigraph_aln_partition:
     params:
         prefix = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph"
     resources:
-        max_mem_gb=100,
+        mem_mb = 100*1024,
         runtime_hrs=30
     threads: 8
     shell:
@@ -282,7 +282,7 @@ rule minigraph_seq_partition:
     wildcard_constraints:
         id='[0-9]+'
     resources:
-        max_mem_gb=100,
+        mem_mb = 100*1024,
         runtime_hrs=30
     threads: 1
     shell:
@@ -313,7 +313,7 @@ rule seqwish:
     params:
         subgraph_dir = 'c7_graph_construction/subgraph/subgraph_{id}'
     resources:
-        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt,
     threads: 8
     shell:
         """
@@ -331,7 +331,7 @@ rule smoothxg:
     params:
         smoothxg_dir = 'c7_graph_construction/subgraph/subgraph_{id}/tmp'
     resources:
-        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt,
         runtime_hrs=lambda wildcards, attempt: 20 * attempt
     threads: 8
     shell:
@@ -348,7 +348,7 @@ rule gfaffix:
     output:
         gfaffix_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
     resources:
-        max_mem_gb=lambda wildcards, attempt: 100 * attempt,
+        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt,
         runtime_hrs=lambda wildcards, attempt: 20 * attempt
     threads: 8
     shell:

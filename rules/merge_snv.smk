@@ -133,7 +133,7 @@ rule prepare_sample_kmer:
         sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
     threads: 4
     resources:
-        mem_mb = 30000,
+        mem_mb = 30*1024,
         max_mem_gb = 30
     params:
         sample_meryl_dir = lambda wildcards, output: os.path.dirname(output.sample_meryl)
@@ -149,7 +149,7 @@ rule prepare_ref_kmer:
         ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl/merylIndex"
     threads: 4
     resources:
-        mem_mb = 30000,
+        mem_mb = 30*1024,
         max_mem_gb = 30
     params:
         ref_meryl_dir = lambda wildcards, output: os.path.dirname(output.ref_meryl)
@@ -172,7 +172,7 @@ rule merfin_filter:
         sample_consensus_final_vcf = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus.final.vcf.gz"
     threads: 4
     resources:
-        mem_mb = 60000,
+        mem_mb = 60*1024,
         max_mem_gb = 60
     params:
         prefix = "c3_merge_snv/sample_vcf/{sample}/{sample}.consensus",
@@ -213,7 +213,7 @@ rule merge_merfin_vcf:
         merge_merfin_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
     threads: 16
     resources:
-        mem_mb = 60000,
+        mem_mb = 60*1024,
         max_mem_gb = 60
     shell:
         """

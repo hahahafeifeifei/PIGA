@@ -19,7 +19,7 @@ rule kmc_prepare_sample_kmer:
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer"
     threads: 4
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         > {output.kmer_list}
@@ -42,7 +42,7 @@ rule get_sample_haplotype_path:
         sample_haplotype_gfa = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.haplotypes.gfa")
     threads: 4
     resources:
-        max_mem_gb = 450
+        mem_mb= 450*1024,
     shell:
         """
         vg haplotypes -t {threads} -i {input.hapl} -k {input.sample_kff} -g {output.sample_haplotype_gbz} {input.gbz} --num-haplotypes 17 --include-reference --set-reference {wildcards.sample}
@@ -62,7 +62,7 @@ rule form_sample_merge_chr_gfa:
     wildcard_constraints:
         chr = "|".join(chr_list)
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         > {output.sample_merge_gfa}
@@ -85,7 +85,7 @@ rule sample_chr_gfa_deconstruct:
         sex = get_sex
     threads: 4
     resources:
-        max_mem_gb = lambda wildcards, attempt: 100 * attempt,
+        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt,
     shell:
         """
         vg mod -u {input.rmac0_gfa} | vg view - > {output.unchop_gfa}
@@ -135,7 +135,7 @@ rule vcfbub_vcf_genotype:
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan"
     container:
     resources:
-       max_mem_gb = 120
+       mem_mb= 120*1024,
     threads: 4
     shell:
         """
@@ -173,7 +173,7 @@ rule pangenie_refine:
         phasing_refine_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_phasing.refine.vcf")
     threads: 4
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         python3 scripts/graph-simplification/pangenie_phase_fix.py {input.phasing_vcf} {params.phasing_refine_vcf}
@@ -202,7 +202,7 @@ rule genotype_phase:
         snv_phase_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.snv.phase.vcf"
     threads: 4
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         bcftools merge -m all --force-samples {input.genotype_final_vcf} {input.phasing_refine_vcf} | \
@@ -232,7 +232,7 @@ rule sample_ref_realign:
         zmw_bam = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.ref.zmw.bam")
     threads: 8
     resources:
-        max_mem_gb = 60
+        mem_mb= 60*1024,
     shell:
         """
         minimap2 -t {threads} -ax map-pb -Y -L --eqx --cs {input.merge_ref_fasta} {input.zmw_fq} | \
@@ -249,7 +249,7 @@ rule hiphase_phase:
         hiphase_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hiphase.phase.vcf.gz"
     threads: 8
     resources:
-        max_mem_gb = 60
+        mem_mb= 60*1024,
     shell:
         """
         hiphase -t {threads} \
@@ -421,7 +421,7 @@ rule get_phase_assembly_sv_vcf:
         complete_assembly_phase_assembly_hap2_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap2.complete_assembly.phase_assembly.sv.vcf")
     threads: 8
     resources:
-        max_mem_gb = 60
+        mem_mb= 60*1024,
     shell:
         """
         minimap2 -t {threads} -c --cs -x asm20 -B 2 -E 3,1 -O 6,100 \
@@ -462,7 +462,7 @@ rule validate_sv:
         cutesv_tmp = "c8_diploid_path_infer/sample_assembly/{sample}/cutesv.tmp "
     threads: 8
     resources:
-        max_mem_gb = 60
+        mem_mb= 60*1024,
     shell:
         """
         minimap2 -t {threads} -ax map-pb -Y -L --eqx --cs \
@@ -528,7 +528,7 @@ rule complete_assembly_polish_region_consensus:
         complete_assembly_hap2_polish_fai = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.fasta.fai"
     threads: 4
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         bcftools view -R {input.complete_assembly_hap1_polish_region_bed} {input.complete_assembly_phase_assembly_hap1_vcf} -o {output.complete_assembly_phase_assembly_hap1_polish_region_vcf}
@@ -559,7 +559,7 @@ rule complete_assembly_polish_region_merqury_clip:
         merqury_dir = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.merqury"
     threads: 4
     resources:
-        max_mem_gb = 30
+        mem_mb= 30*1024,
     shell:
         """
         mkdir -p {params.merqury_dir}
