@@ -19,7 +19,10 @@ lr_subreads_bam:
 reference:
     CHM13:
         test_data/reference/chm13v2.0.fa
-        
+
+par_region:
+    test_data/chm13v2.0_chrX_PAR.bed
+
 prefix:
     test
 

@@ -1,4 +1,4 @@
-# SNV phasing
+# SNV haplotype phasing
 This pipeline performs SNV phasing by integrating information from long reads and population.
 
 <img align="middle" width="645" src="snv_phasing.jpg"/>
