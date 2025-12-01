@@ -86,13 +86,13 @@ PIGA consists of six modules, each containing several commands that can be execu
 - `call_lr_snv`: detect SNVs using long reads.
 - `merge_snv`: merge the short-read SNV callset and long-read SNV callset.
 
-#### [2. SNV Phasing](docs/02_snv_phasing.md)
+#### [2. SNV Haplotype Phasing](docs/02_snv_phasing.md)
 - `phase_snv`: perform SNV haplotype phasing leveraging long-read and population information.
 
 #### [3. Personalized Reference Generation](docs/03_personal_reference.md)
 - `generate_personal_reference`: generate personalized reference by modifying the reference genome with homozygous variants genotyped from the external pangenome.
 
-#### [4. Draft Diploid Assembly](docs/04_draft_assembly.md)
+#### [4. Draft Diploid Genome Assembly](docs/04_draft_assembly.md)
 - `draft_assembly`: partition long reads into haplotypes and produce draft diploid assemblies.
 
 #### [5. Pangenome Construction and Simplification](docs/05_pangenome_construction.md)
@@ -100,7 +100,7 @@ PIGA consists of six modules, each containing several commands that can be execu
 - `simplify_pangenome`: simplify the pangenome.
 - `merge_pangenome`: merge pangenome subgraphs into the final pangenome.
 
-#### [6. Final Assembly Reconstruction](docs/06_final_assembly.md)
+#### [6. Final Diploid Assembly Reconstruction](docs/06_final_assembly.md)
 - `infer_diploid_path`: reconstruct the final diploid assembly by inferring the diploid paths.
 
 ## License
