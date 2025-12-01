@@ -1,10 +1,20 @@
 
 chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
+sample = samples_list
+train_sample_map = {}
+with open(config["train_sample_list"]) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        train_sample = line.strip().split()[0]
+        truth_sample = line.strip().split()[1]
+        train_sample_map[train_sample] = truth_sample
+
 rule all_infer_diploid_path:
     input:
-        expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta", sample=config['samples']),
-        expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta", sample=config['samples'])
+        expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta", sample = list(set(samples_list) - set(train_sample_map.keys()))),
+        expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta", sample = list(set(samples_list) - set(train_sample_map.keys())))
 
 rule kmc_prepare_sample_kmer:
     input:
@@ -69,8 +79,8 @@ rule form_sample_merge_chr_gfa:
         cat {input.gfa} >> {output.sample_merge_gfa}
         grep "{wildcards.sample}" {input.variant_path} >> {output.sample_merge_gfa}
         grep -P "{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa}
-        python3 scripts/graph-simplification/gfa_remove_ac0_reverse.py {input.sample_merge_gfa} {output.rmac0_gfa}
-        python3 scripts/graph-genotyping/gfa_fa.py {output.rmac0_gfa} recombination_ref 1 {output.ref_fa}
+        python3 scripts/simplify_pangenome/gfa_remove_ac0_reverse.py {input.sample_merge_gfa} {output.rmac0_gfa}
+        python3 scripts/infer_diploid_path/gfa_fa.py {output.rmac0_gfa} recombination_ref 1 {output.ref_fa}
         """
 
 rule sample_chr_gfa_deconstruct:
@@ -91,7 +101,7 @@ rule sample_chr_gfa_deconstruct:
         vg mod -u {input.rmac0_gfa} | vg view - > {output.unchop_gfa}
         gfaffix {output.unchop_gfa} > {output.unchop_gfaffix_gfa} 
         vg deconstruct -t {threads} -P recombination_ref -a -e -C {output.unchop_gfaffix_gfa} > {output.vcf}
-        python3 ~/software/script/graph-genotyping/pangenie_norm.py {output.vcf} {wildcards.sample},{wildcards.sample}.snv,recombination {wildcards.sample} {params.sex} | \
+        python3 ~/software/script/infer_diploid_path/pangenie_norm.py {output.vcf} {wildcards.sample},{wildcards.sample}.snv,recombination {wildcards.sample} {params.sex} | \
         bcftools view -o {output.norm_vcf}
         tabix -f {output.norm_vcf}
         """
@@ -206,20 +216,20 @@ rule genotype_phase:
     shell:
         """
         bcftools merge -m all --force-samples {input.genotype_final_vcf} {input.phasing_refine_vcf} | \
-            python3 scripts/graph-genotyping/genotype_phase.py - {params.pangenie_phase_vcf}
+            python3 scripts/infer_diploid_path/genotype_phase.py - {params.pangenie_phase_vcf}
         bgzip -@ {threads} -f {params.pangenie_phase_vcf}
         tabix -f {output.pangenie_phase_vcf_gz}
         
         bcftools merge -m all --force-samples {input.genotype_final_vcf} {input.vcfbub_vcf} | \
             bcftools view -s sample,{wildcards.sample} | \
-            python3 scripts/graph-genotyping/genotype_phase.py - {params.assembly_phase_vcf}
+            python3 scripts/infer_diploid_path/genotype_phase.py - {params.assembly_phase_vcf}
         bgzip -@ {threads} -f {params.assembly_phase_vcf}
         tabix -f {output.assembly_phase_vcf_gz}
 
         
         bcftools merge -m all --force-samples {input.genotype_final_vcf} {input.vcfbub_vcf} | \
             bcftools view -s sample,{wildcards.sample}.snv | \
-            python3 scripts/graph-genotyping/genotype_phase.py - {params.snv_phase_vcf}
+            python3 scripts/infer_diploid_path/genotype_phase.py - {params.snv_phase_vcf}
         bgzip -@ {threads} -f {params.snv_phase_vcf}
         tabix -f {output.snv_phase_vcf_gz}
         """  
@@ -323,7 +333,7 @@ rule integrate_phase:
             {input.pangenie_phase_vcf} \
             {input.hiphase_vcf} \
             {input.concat_margin_vcf} | \
-            python3 scripts/graph-genotyping/graph_phase_intergrate.py - {output.integrate_phase_vcf} sample 2:sample,3:sample,4:sample,5:sample,6:sample > {output.integrate_phase_log}
+            python3 scripts/infer_diploid_path/graph_phase_intergrate.py - {output.integrate_phase_vcf} sample 2:sample,3:sample,4:sample,5:sample,6:sample > {output.integrate_phase_log}
         
         bcftools view -a {output.integrate_phase_vcf} | bcftools view -i "ALT!='.'" -o {output.integrate_phase_filter_vcf}
         tabix -f {output.integrate_phase_filter_vcf}

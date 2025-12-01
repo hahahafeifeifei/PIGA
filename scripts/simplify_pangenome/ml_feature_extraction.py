@@ -31,7 +31,7 @@ def get_edge_seq(seq, direct):
 gfa_file = sys.argv[1]
 ref_samples = sys.argv[2].split(",")
 minigraph_sample = sys.argv[3].split(",")
-orca = sys.argv[4]
+tmp_dir = sys.argv[4]
 
 node_seq_dict = {}
 node_homopolymer_dict = {}
@@ -108,7 +108,7 @@ for edge in edge_dict:
         else:
             edge_orca_dict[edge_index].append(edge)
 
-fo = open("tmp.orca.edge","w")
+fo = open(tmp_dir + "/tmp.orca.edge","w")
 fo.write(str(len(node_index_dict)) + ' ' + str(len(edge_orca_dict)) + '\n')
 for edge_index in edge_orca_dict:
     index1 = edge_index.split()[0]
@@ -116,13 +116,13 @@ for edge_index in edge_orca_dict:
     fo.write(index1 + ' ' + index2 + '\n')
 fo.close()
 
-subprocess.run("orca.exe node 5 {} {}".format("tmp.orca.edge", "tmp.orca.node.graphlet"), shell = True, stdout = None, stderr = None)
-subprocess.run("orca.exe edge 5 {} {}".format("tmp.orca.edge", "tmp.orca.edge.graphlet"), shell = True, stdout = None, stderr = None)
-subprocess.run("rm {}".format("tmp.orca.edge"), shell = True, stdout = None, stderr = None)
+subprocess.run("orca.exe node 5 {} {}".format(tmp_dir + "/tmp.orca.edge", tmp_dir + "/tmp.orca.node.graphlet"), shell = True, stdout = None, stderr = None)
+subprocess.run("orca.exe edge 5 {} {}".format(tmp_dir + "/tmp.orca.edge", tmp_dir + "/tmp.orca.edge.graphlet"), shell = True, stdout = None, stderr = None)
+subprocess.run("rm {}".format(tmp_dir + "/tmp.orca.edge"), shell = True, stdout = None, stderr = None)
 
 node_list = list(node_index_dict.keys())
 i = 0
-for line in openfile("tmp.orca.node.graphlet"):
+for line in openfile(tmp_dir + "/tmp.orca.node.graphlet"):
     node = node_list[i]
     node_dict[node][0] = node_index_dict[node]
     graphlet_list = line.strip().split()
@@ -134,7 +134,7 @@ for line in openfile("tmp.orca.node.graphlet"):
 
 edge_info_list = [[edge_list, edge_index.split()] for edge_index, edge_list in edge_orca_dict.items()]
 i = 0
-for line in openfile("tmp.orca.edge.graphlet"):
+for line in openfile(tmp_dir + "/tmp.orca.edge.graphlet"):
     edge_list = edge_info_list[i][0]
     for edge in edge_list:
         edge_dict[edge][0] = edge_info_list[i][1][0]
@@ -145,7 +145,7 @@ for line in openfile("tmp.orca.edge.graphlet"):
         if len(graphlet_list) < 68:
             edge_dict[edge] += ['nan']*(68-len(graphlet_list))
     i += 1
-subprocess.run("rm {} {}".format("tmp.orca.node.graphlet", "tmp.orca.edge.graphlet"), shell = True, stdout = None, stderr = None)
+subprocess.run("rm {} {}".format(tmp_dir + "/tmp.orca.node.graphlet", tmp_dir + "/tmp.orca.edge.graphlet"), shell = True, stdout = None, stderr = None)
 
 #####extract the feature related to allele path
 print("3. Extract the allele count related features ...")

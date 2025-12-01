@@ -54,7 +54,7 @@ criterion = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 # Training loop
-num_epochs = 400
+num_epochs = 100
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
@@ -127,7 +127,7 @@ print(f"Val AUROC: {auroc:.4f}")
 
 fo = open(sys.argv[3], "w")
 for i in range(len(tpr)):
-    if tpr[i] > 0.9:
+    if tpr[i] > 0.95:
         fo.write(str(thresholds[i]) + '\n')
         break
 fo.close()

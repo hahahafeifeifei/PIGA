@@ -72,7 +72,8 @@ rule graph_call:
         sample_vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.vcf.gz"
     threads: 8
     resources:
-        mem_mb = 100*1024
+        mem_mb = 100000,
+        max_mem_gb = 100
     shell:
         """
         GraphAligner -t {threads} -g {input.sample_gfa} -f {input.lr_zmw_fastqs} -a {output.sample_gam} -x vg --multimap-score-fraction 1

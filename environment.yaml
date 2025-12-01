@@ -24,7 +24,7 @@ dependencies:
   - bedtools
   - smoothxg
   - seqwish
-  - gfaffi
+  - gfaffix
   - kmc
   - bcftools
   - minimap2
@@ -34,7 +34,6 @@ dependencies:
   - cutesv
   - truvari
   - meryl
-  - merqury
   - bwa
   - gatk4
   - pbmm2

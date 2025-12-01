@@ -1,19 +1,15 @@
-def get_already_subgraph_ids():
-    with open('c7_graph_construction/subgraph_id.list') as f:
-        return [line.strip() for line in f if line.strip()]
-
-id_list = get_already_subgraph_ids
+id_list = get_already_subgraph_ids()
 wildcard_constraints:
     id = "|".join(id_list)
 
 rule all_simplify_pangenome:
-        input:
-            expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = id_list)
+    input:
+        expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = id_list)
 
 rule graph_bed_filtering:
     input:
-        fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
-        gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
+        fa = get_subgraph_fa
+        gfa = get_subgraph_gfa
     output:
         high_coverage_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.high_coverage.bed",
         minigraph_unaligned_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.minigraph_unaligned.bed",
@@ -29,9 +25,9 @@ rule graph_bed_filtering:
         sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
         python3 scripts/simplify_pangenome/gfa_high-coverage_bed.py {input.gfa} $[sample_number*20] 200 {output.high_coverage_bed}
         python3 scripts/simplify_pangenome/gfa_minigraph_unaligned.py {input.gfa} {output.minigraph_unaligned_bed}
-        cat {input.high_coverage_bed} {input.minigraph_unaligned_bed} | bedtools sort | bedtools merge -d 1000 > {output.merged_bed}
+        cat {output.high_coverage_bed} {output.minigraph_unaligned_bed} | bedtools sort | bedtools merge -d 1000 > {output.merged_bed}
         python3 scripts/simplify_pangenome/gfa_bed_filter.py {input.gfa} {output.merged_bed} CHM13,GRCh38,_MINIGRAPH_ {output.bed_clip_gfa}
-        python3 scripts/simplify_pangenome/gfa_remove_ac0.py {output.bed_clip_gfa} {output.linear_filter_gfarmac0_gfa}
+        python3 scripts/simplify_pangenome/gfa_remove_ac0.py {output.bed_clip_gfa} {output.filter_gfa}
         """
 
 train_sample_map = {}
@@ -76,31 +72,27 @@ rule process_train_node_edge:
         
 rule merge_samples:
     input:
-        sample_train_nodes = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.node", sample = train_sample_map.keys()),
-        sample_train_edges = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.edge", sample = train_sample_map.keys())
+        sample_train_nodes = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.node", sample = train_sample_map.keys(), allow_missing=True),
+        sample_train_edges = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.{{sample}}.train.edge", sample = train_sample_map.keys(), allow_missing=True)
     output:
         merged_train_node = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.node",
         merged_train_edge = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.edge"
     shell:
         """
-        sample_size=$(echo {input.sample_train_nodes} | awk '{print NF}')
+        sample_size=$(echo {input.sample_train_nodes} | awk '{{print NF}}')
         if [ $sample_size -gt 1 ]
         then
             csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_train_nodes} | \
-            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
-            grep -v empty > {output.merged_train_node}
+            awk -v OFS="\\t"  'BEGIN{{print "empty","0"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_train_node}
 
             csvtk -H -t join --na NONE --outer-join -f 1 {input.sample_train_edges} | \
-            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
-            grep -v empty > {output.merged_train_edge}
+            awk -v OFS="\\t"  'BEGIN{{print "empty","0"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_train_edge}
         else
             cat {input.sample_train_nodes} | \
-            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
-            grep -v empty > {output.merged_train_node}
+            awk -v OFS="\\t"  'BEGIN{{print "empty","0"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_train_node}
             
             cat {input.sample_train_edges} | \
-            awk -v OFS="\\t"  '{{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' | \
-            grep -v empty > {output.merged_train_edge}
+            awk -v OFS="\\t"  'BEGIN{{print "empty","0"}} {{tp=0;fp=0;for(i=2;i<=NF;i++) {{if($i=="TP")tp+=1;if($i=="FP")fp+=1}} if(tp>0 && fp==0) print $1,"1"; if(tp==0 && fp>0) print $1,"0" }}' > {output.merged_train_edge}
         fi
         """
         
@@ -114,12 +106,14 @@ rule gnn_feature_extract:
         edge_feature = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature",
         node_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label",
         edge_feature_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label"
+    params:
+        tmp_dir = "c7_graph_construction/subgraph/subgraph_{id}"
     resources:
         mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 8
     shell:
         """
-        python3 scripts/simplify_pangenome/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ scripts/simplify_pangenome/orca.exe {output.node_feature} {output.edge_feature}
+        python3 scripts/simplify_pangenome/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ {params.tmp_dir} {output.node_feature} {output.edge_feature}
         csvtk -H -t join --left-join -f 1 --na NONE {output.node_feature} {input.merged_train_node} > {output.node_feature_label}
         csvtk -H -t join --left-join -f 1 --na NONE {output.edge_feature} {input.merged_train_edge} > {output.edge_feature_label}
         """
@@ -183,10 +177,10 @@ rule node_edge_inference:
     threads: 2
     shell:
         """
-            node_threshold=$(echo {train_node_threshold})
-            python3 scripts/simplify_pangenome/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {input.model_node_label}
-            edge_threshold=$(echo {train_edge_threshold})
-            python3 scripts/simplify_pangenome/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {input.model_edge_label}
+            node_threshold=$(cat {input.train_node_threshold})
+            python3 scripts/simplify_pangenome/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {output.model_node_label}
+            edge_threshold=$(cat {input.train_edge_threshold})
+            python3 scripts/simplify_pangenome/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {output.model_edge_label}
         """
 
 rule gfa_ml_filter:
@@ -197,8 +191,10 @@ rule gfa_ml_filter:
         model_edge_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.label",
         filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
     output:
+        model_node_fp_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.fp.label",
+        model_edge_fp_label = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.fp.label",
         ml_filter_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.raw.gfa",
-        ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg",
+        ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg"
     resources:
         mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 4
@@ -206,13 +202,13 @@ rule gfa_ml_filter:
         train_sample = "\\t|".join(set(train_sample_map.keys()))
     shell:
         """
-        cat {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}
-        cat {input.edge_feature_label} {input.model_edge_label} | awk '{{if ($(NF-2)==1 || ($(NF-2)!=1 && $NF=="FP")) print $1}}' > {output.model_edge_fp_label}
+        paste {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==0 || ($(NF-2)!=0 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}
+        paste {input.edge_feature_label} {input.model_edge_label} | awk '{{if ($(NF-2)==0 || ($(NF-2)!=0 && $NF=="FP")) print $1}}' > {output.model_edge_fp_label}
 
         python3 scripts/simplify_pangenome/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
         grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | \
-        vg convert -g - | vg clip -d 1 -s -P CHM13 -P GRCh38 - | vg mod -u - > {output.ml_filter_vg}
+        vg convert -g - | vg clip -d 1 -P CHM13 -P GRCh38 - | vg clip -s - | vg mod -u - > {output.ml_filter_vg}
         """
 
 rule variant_projection:
@@ -227,10 +223,10 @@ rule variant_projection:
         """
         if [ $(vg paths -x {input.ml_filter_vg} -L | grep CHM13 | wc -l) -eq 0 ]
         then \
-            cp {output.ml_filter_vg} {output.variant_project_vg} 
+            cp {input.ml_filter_vg} {output.variant_project_vg} 
         else \
             python3 scripts/simplify_pangenome/graph_variant_projection.py \
-            -g {output.ml_filter_vg} \
+            -g {input.ml_filter_vg} \
             -v {input.variant_vcf} \
             -r CHM13 \
             -o {output.variant_project_vg} \

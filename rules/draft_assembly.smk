@@ -96,7 +96,7 @@ rule personal_ref_dv:
         personal_dv_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.deepvariant.vcf.gz",
         personal_dv_filter_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.deepvariant.filter.vcf.gz"
     singularity:
-        "/storage/yangjianLab/wangyifei/software/deepvariant/deepvariant_v1.3_sandbox/"
+        "scripts/call_lr_snv/deepvariant.sif"
     threads: 16
     resources:
         mem_mb = 64*1024
