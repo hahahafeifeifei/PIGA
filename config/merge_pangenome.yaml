@@ -6,5 +6,8 @@ samples:
 prefix:
     test
 
-#if no "subgraph_list" key, default input will be : "c7_graph_construction/chr_mc/subgraph.list" 
+#if no "subgraph_list" key, default input will be : "c7_graph_construction/subgraph_id.list" 
 subgraph_id_list: 
+
+#if no "subgraph_gfa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa" 
+subgraph_gfa: 

@@ -16,8 +16,14 @@ prefix:
 
 phased_snv:
 
-#if no "linear_gfaffix_gfa" key, default input will be c7_graph_construction/chr_mc/{chr}/subgraph/subgraph{subgraph_id}/t2t.grch38.58hifi.1064zmw.{chr}.subgraph_{subgraph_id}.seqwish.smoothxg2.gfaffix.linearize.gfa
-gfaffix_gfa: 
+#if no "subgraph_list" key, default input will be : "c7_graph_construction/subgraph_id.list" 
+subgraph_id_list: 
+
+#if no "subgraph_fa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta" 
+subgraph_fa:
+
+#if no "subgraph_gfa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa" 
+subgraph_gfa: 
 
 
     

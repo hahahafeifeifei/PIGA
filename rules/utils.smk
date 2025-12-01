@@ -101,6 +101,25 @@ def get_internal_assembly_list(wildcards):
 def get_internal_assembly_fa(wildcards):
     return internal_assembly_id_dict[wildcards.internal_assembly_id]
 
+def get_already_subgraph_ids(wildcards):
+    if "subgraph_id.list" in config:
+        subgraph_id_list = config["subgraph_id.list"]
+    else:
+        subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
+    with open(subgraph_id_list) as f:
+        return [line.strip() for line in f if line.strip()]
+
+def get_subgraph_fa(wildcards):
+    if "subgraph_fa" in config:
+        return config["subgraph_fa"]
+    else:
+        return f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta"
+
+def get_subgraph_gfa(wildcards):
+    if "subgraph_gfa" in config:
+        return config["subgraph_gfa"]
+    else:
+        return f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
 
 def get_hapl_input(wildcards):
     if "hapl" in config:

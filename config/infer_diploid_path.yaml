@@ -13,7 +13,8 @@ lr_zmw_fastqs:
 lr_hifi_fastqs:
     - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
-        
+train_sample_list: test_data/train_sample.list
+
 prefix:
     test
 

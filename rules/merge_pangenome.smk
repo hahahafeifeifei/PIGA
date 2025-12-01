@@ -1,15 +1,7 @@
 
 chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
-def get_already_subgraph_ids():
-    if "subgraph_id.list" in config:
-        subgraph_id_list = config["subgraph_id.list"]
-    else:
-        subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
-    with open(subgraph_id_list) as f:
-        return [line.strip() for line in f if line.strip()]
-
-id_list = get_already_subgraph_ids
+id_list = get_already_subgraph_ids()
 wildcard_constraints:
     id = "|".join(id_list)
 
@@ -67,7 +59,7 @@ rule node_ids:
     shell:
         """
         index=$(awk -v id={wildcards.id} '{{if($1==id) print $2}}' {input.node_sum_counts})
-        python3 scripts/graph-simplification/gfa_ids.py {input.gfaffix_gfa} {output.ids_gfa} $index
+        python3 scripts/simplify_pangenome/gfa_ids.py {input.gfaffix_gfa} {output.ids_gfa} $index
         grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa}
         grep snv {output.ids_gfa} > {output.ids_variant_path}
         """
@@ -92,7 +84,7 @@ rule chr_merge:
             echo c7_graph_construction/subgraph/subgraph_${id}/{params.prefix}_subgraph_${id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa
         done > {input.gfa_list}
         
-        python3 scripts/graph-simplification/gfa_merge.py {input.gfa_list} {output.merged_gfa} \
+        python3 scripts/simplify_pangenome/gfa_merge.py {input.gfa_list} {output.merged_gfa} \
         c7_graph_construction/graph_merge/tmp.merge.{wildcards.chr} CHM13 {threads}
 
         awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.chr_subgraph_list} | while read id
