@@ -63,9 +63,9 @@ def get_chain_input(wildcards):
     else:
         return "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.chain"
 
-def get_sample_vcf_input(wildcards):
-    if "sample_vcf" in config:
-        return config["sample_vcf"]
+def get_sample_phased_vcf_input(wildcards):
+    if "sample_phased_vcf" in config:
+        return config["sample_phased_vcf"]
     else:
         return "c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz"
 

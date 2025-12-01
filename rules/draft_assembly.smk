@@ -69,7 +69,7 @@ rule sample_origin_snv_liftover:
         consensus_fasta = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta",
         consensus_fasta_dict = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.dict",
         chain = get_chain_input,
-        sample_vcf = get_sample_vcf_input
+        sample_phased_vcf = get_sample_phased_vcf_input
     output:
         sample_personal_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.shapeit.vcf.gz"
     threads: 1
@@ -78,7 +78,7 @@ rule sample_origin_snv_liftover:
     shell:
         """
         gatk LiftoverVcf \
-            -I {input.sample_vcf} \
+            -I {input.sample_phased_vcf} \
             -O {output.sample_personal_vcf} \
             -C {input.chain} \
             --REJECT /dev/null \
