@@ -73,7 +73,7 @@ def get_sample_meryl_input(wildcards):
     if "sample_meryl" in config:
         return config["sample_meryl"]
     else:
-        return "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl"
+        return "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
 
 def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     sex = config['sex'][wildcards.sample]

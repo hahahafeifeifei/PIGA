@@ -574,7 +574,7 @@ rule complete_assembly_polish_region_merqury_clip:
         """
         mkdir -p {params.merqury_dir}
         cd {params.merqury_dir}
-        merqury.sh {params.merqury_dir} {input.complete_assembly_hap1_polish_fa} {input.complete_assembly_hap2_polish_fa} merqury
+        merqury.sh {params.sample_meryl_dir} {input.complete_assembly_hap1_polish_fa} {input.complete_assembly_hap2_polish_fa} merqury
         
         cd -
         bedtools merge -i {params.merqury_dir}/{wildcards.sample}.hap1.complete_assembly.polish_only.bed -d 2000 | \
