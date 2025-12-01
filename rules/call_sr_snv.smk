@@ -271,24 +271,6 @@ rule construct_gvcf_map:
         awk -F "/" '{{print $(NF-1)"\\t"$0}}' {output.gvcf_map} > c1_call_sr_snv/sample_gvcf/tmp.gvcf.map && mv c1_call_sr_snv/sample_gvcf/tmp.gvcf.map {output.gvcf_map}
         """
 
-# rule generate_intervals:
-#     input:
-#         []
-#     output:
-#         "CHM13.20mb.interval"
-#     shell:
-#         bedtools makewindows -g {input} -w 20000000 > {output}
-
-# rule add_intervals_to_config:
-#     input:
-#         interval_file = "/storage/yangjianLab/wangyifei/project/01.{config['prefix']}/10.SR_variant/CHM13/03.merge/analysis_set/CHM13.20mb.interval"
-#     output:
-#         touch("c1_call_sr_snv/interval_vcf/.intervals_generated")
-#     run:
-#         with open(input.interval_file) as f:
-#             intervals_list = [line.split("\t")[0] for line in f]
-#         config['intervals'] = intervals_list
-        
         
 rule GenomicsDB_GenotypeGVCFs_interval:
     input:
@@ -326,10 +308,28 @@ rule GenomicsDB_GenotypeGVCFs_interval:
         rm -rf {params.interval_db}
         """
 
+checkpoint generate_intervals:
+    input:
+        ref_fai = config['reference']['CHM13'] + ".fai"
+    output:
+        genome_size = "c1_call_sr_snv/CHM13.size",
+        genome_interval = "c1_call_sr_snv/CHM13.20mb.interval"
+    shell:
+        """
+        awk -v FS='\t' '{{print $1"\\t"$2}}' {input.ref_fai} > {output.genome_size}
+        bedtools makewindows -g {output.genome_size} -w 20000000 | awk '{print $1":"$2+1"-"$3}' > {output.genome_interval}
+        """
+
+def get_intervals_list(wildcards):
+    genome_interval_file = checkpoints.generate_intervals.get().output[1]
+    with open(genome_interval_file) as f:
+        intervals_list = [line.split("\t")[0].strip() for line in f]
+    return intervals_list
+
 
 rule merge_intervals:
     input:
-        vcfs = expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",interval = intervals_list)
+        vcfs = expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",interval = get_intervals_list)
     output:
         vcf_list = "c1_call_sr_snv/merged_vcf/interval.vcf.list",
         merged_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.vcf.gz"

@@ -25,6 +25,7 @@ def get_sr_vcf_input(wildcards):
     else:
         return f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz"
 
+
 def get_lr_vcf_input(wildcards):
     if "lr_vcf" in config:
         return config["lr_vcf"]

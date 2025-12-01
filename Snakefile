@@ -16,8 +16,6 @@ configfile: "config/config.yaml"
 # }
 # # from functools import partial
 
-with open('CHM13.20mb.interval') as f:
-    intervals_list = [line.split("\t")[0].strip() for line in f]
 
 samples_list, sex_list, sample_sex_dict = [], [], {}
 with open(config['samples']) as f:
@@ -34,8 +32,7 @@ with open(config['samples']) as f:
 config['sex'] = sample_sex_dict
 
 wildcard_constraints:
-    sample='|'.join(samples_list),
-    interval='|'.join(intervals_list)
+    sample='|'.join(samples_list)
 
 
 #load the included snakemake files.
