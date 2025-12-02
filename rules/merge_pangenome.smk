@@ -23,8 +23,8 @@ rule subgraph_feature:
         mem_mb = 60*1024
     shell:
         """
-        grep ^S {output.gfaffix_gfa} | wc -l | awk -v id={wildcards.id} '{{print id"\\t"$1}}' > {output.node_count}
-        chr=$(grep CHM13 {output.gfaffix_gfa} | head -1 | awk '{{split($4,a,".");print a[length(a)]}}')
+        grep ^S {input.gfaffix_gfa} | wc -l | awk -v id={wildcards.id} '{{print id"\\t"$1}}' > {output.node_count}
+        chr=$(grep CHM13 {input.gfaffix_gfa} | awk '{{if(NR==1) {{split($4,a,".");print a[length(a)]}}}}')
         echo -e $chr"\\t"{wildcards.id} > {output.chr_subgraph}
         """
 
@@ -40,7 +40,7 @@ rule feature_merge:
         mem_mb = 60*1024
     shell:
         """
-        cat {input.counts} > {output.node_counts}
+        cat {input.counts} | sort -k 1n > {output.node_counts}
         awk 'BEGIN{{sum=0}}{{print $1"\\t"sum;sum+=$2}}' {output.node_counts} > {output.node_sum_counts}
         cat {input.chr_subgraphs} > {output.chr_subgraph_list}
         """
@@ -67,6 +67,8 @@ rule node_ids:
 
 rule chr_merge:
     input:
+        ids_assembly_gfas = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa", id=id_list),
+        ids_variant_paths = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path", id=id_list),
         chr_subgraph_list = f"c7_graph_construction/{config['prefix']}.chr_subgraph.list"
     output:
         gfa_list = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.gfa.list",
@@ -81,15 +83,15 @@ rule chr_merge:
         """
         awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.chr_subgraph_list} | while read id
         do
-            echo c7_graph_construction/subgraph/subgraph_${id}/{params.prefix}_subgraph_${id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa
-        done > {input.gfa_list}
+            echo c7_graph_construction/subgraph/subgraph_$id/{params.prefix}_subgraph_$id.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa
+        done > {output.gfa_list}
         
-        python3 scripts/simplify_pangenome/gfa_merge.py {input.gfa_list} {output.merged_gfa} \
+        python3 scripts/simplify_pangenome/gfa_merge.py {output.gfa_list} {output.merged_gfa} \
         c7_graph_construction/graph_merge/tmp.merge.{wildcards.chr} CHM13 {threads}
 
         awk -v chr={wildcards.chr} '{{if($1==chr) print$2}}' {input.chr_subgraph_list} | while read id
         do
-            cat c7_graph_construction/subgraph/subgraph_${id}/{params.prefix}_subgraph_${id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path
+            cat c7_graph_construction/subgraph/subgraph_$id/{params.prefix}_subgraph_$id.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path
         done > {output.merged_variant_path}
         """
 

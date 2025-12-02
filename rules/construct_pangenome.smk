@@ -160,7 +160,7 @@ rule concat_chr_minigraph:
         mem_mb = 200*1024
     shell:
         """
-        vg concat {input.minigraph_external_chr_gfas} > {output.minigraph_gfa}
+        vg concat -p {input.minigraph_external_chr_gfas} > {output.minigraph_gfa}
         """
 
 rule minigraph_clip:
