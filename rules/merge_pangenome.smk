@@ -60,8 +60,8 @@ rule node_ids:
         """
         index=$(awk -v id={wildcards.id} '{{if($1==id) print $2}}' {input.node_sum_counts})
         python3 scripts/simplify_pangenome/gfa_ids.py {input.gfaffix_gfa} {output.ids_gfa} $index
-        grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa}
-        grep snv {output.ids_gfa} > {output.ids_variant_path}
+        grep -v snv {output.ids_gfa} > {output.ids_assembly_gfa} || true
+        grep snv {output.ids_gfa} > {output.ids_variant_path} || true
         """
 
 
@@ -122,7 +122,7 @@ rule merged_gbz:
     threads: 25
     shell:
         """
-        grep "^S\\|^L" {input.chr_gfas} > {output.merge_gfa}
+        cat {input.chr_gfas} | grep "^S\\|^L" > {output.merge_gfa}
         vg convert -g {output.merge_gfa} -x > {output.merge_xg}
         vg gbwt -f {input.chr_gbwts} -o {output.merge_gbwt}
         vg gbwt -x {output.merge_xg} {output.merge_gbwt} --gbz-format -g {output.merge_gbz}

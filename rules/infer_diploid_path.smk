@@ -26,6 +26,7 @@ rule kmc_prepare_sample_kmer:
         kff = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer.kff"
     params:
         tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp",
+        tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer"
     threads: 4
     resources:
@@ -38,7 +39,7 @@ rule kmc_prepare_sample_kmer:
         echo {input.hifi_fq} >> {output.kmer_list}
         
         mkdir -p {params.tmp_dir}
-        kmc -k29 -m28 -o kff -t {threads} -hp @{output.kmer_list} {output.kff} {params.prefix}
+        kmc -k29 -m28 -okff -t{threads} -hp @{output.kmer_list} {params.prefix} {params.tmp_dir}
         rm -rf {params.tmp_dir}
         """
         
@@ -50,7 +51,7 @@ rule get_sample_haplotype_path:
     output:
         sample_haplotype_gbz = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.haplotypes.gbz"),
         sample_haplotype_gfa = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.haplotypes.gfa")
-    threads: 4
+    threads: 8
     resources:
         mem_mb= 450*1024,
     shell:
@@ -77,9 +78,9 @@ rule form_sample_merge_chr_gfa:
         """
         > {output.sample_merge_gfa}
         cat {input.gfa} >> {output.sample_merge_gfa}
-        grep "{wildcards.sample}" {input.variant_path} >> {output.sample_merge_gfa}
-        grep -P "{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa}
-        python3 scripts/simplify_pangenome/gfa_remove_ac0_reverse.py {input.sample_merge_gfa} {output.rmac0_gfa}
+        grep "{wildcards.sample}" {input.variant_path} >> {output.sample_merge_gfa} || true
+        grep -P "{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa} || true
+        python3 scripts/simplify_pangenome/gfa_remove_ac0_reverse.py {output.sample_merge_gfa} {output.rmac0_gfa}
         python3 scripts/infer_diploid_path/gfa_fa.py {output.rmac0_gfa} recombination_ref 1 {output.ref_fa}
         """
 
@@ -95,21 +96,21 @@ rule sample_chr_gfa_deconstruct:
         sex = get_sex
     threads: 4
     resources:
-        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt,
+        mem_mb = lambda wildcards, attempt: 100 * 1024 * attempt
     shell:
         """
         vg mod -u {input.rmac0_gfa} | vg view - > {output.unchop_gfa}
         gfaffix {output.unchop_gfa} > {output.unchop_gfaffix_gfa} 
         vg deconstruct -t {threads} -P recombination_ref -a -e -C {output.unchop_gfaffix_gfa} > {output.vcf}
-        python3 ~/software/script/infer_diploid_path/pangenie_norm.py {output.vcf} {wildcards.sample},{wildcards.sample}.snv,recombination {wildcards.sample} {params.sex} | \
+        python3 scripts/infer_diploid_path/pangenie_norm.py {output.vcf} {wildcards.sample},{wildcards.sample}.snv,recombination {wildcards.sample} {params.sex} | \
         bcftools view -o {output.norm_vcf}
         tabix -f {output.norm_vcf}
         """
 
 rule ref_fasta_vcf_merge:
     input:
-        ref_fastas = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.ref.fasta", chr = chr_list, allow_missing=True),
-        norm_chr_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.norm.vcf.gz", chr = chr_list, allow_missing=True)
+        ref_fastas = expand("c8_diploid_path_infer/sample_assembly/{{sample}}/{{sample}}.{chr}.ref.fasta", chr = chr_list),
+        norm_chr_vcfs = expand("c8_diploid_path_infer/sample_assembly/{{sample}}/{{sample}}.{chr}.norm.vcf.gz", chr = chr_list)
     output:
         merge_ref_fasta = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.ref.fasta",
         merge_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.norm.vcf.gz"),
@@ -126,7 +127,7 @@ rule ref_fasta_vcf_merge:
         fi
         bcftools concat --threads {threads} {input.norm_chr_vcfs} -o {output.merge_vcf}
         tabix -f {output.merge_vcf}
-        vcfbub --input {input.merge_vcf} -l 0 -a 50000 | bcftools view -a - | bcftools view -e "ALT=='.'" -o {output.vcfbub_vcf}
+        vcfbub --input {output.merge_vcf} -l 0 -a 50000 | bcftools view -a - | bcftools view -e "ALT=='.'" -o {output.vcfbub_vcf}
         """
 
 
@@ -142,10 +143,11 @@ rule vcfbub_vcf_genotype:
         vcfbub_vcf_gz = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.norm.vcfbub.vcf.gz")
     params:
         pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre",
+        pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan"
     resources:
        mem_mb= 120*1024,
-    threads: 4
+    threads: 8
     shell:
         """
         cat {input.kmer_list} | while read line;
@@ -154,8 +156,8 @@ rule vcfbub_vcf_genotype:
         done > {output.kmer_fa}
 
         PanGenie-index -v {input.vcfbub_vcf} -r {input.merge_ref_fasta} -t {threads} -o {params.pre_prefix}
-        PanGenie -j {threads} -t {threads} -i {input.kmer_fa} -f {params.pre_prefix} -o {params.prefix}
-        PanGenie -j {threads} -t {threads} -i {input.kmer_fa} -f {params.pre_prefix} -p -o {params.prefix}
+        PanGenie -j {threads} -t {threads} -i {output.kmer_fa} -f {params.pre_prefix} -o {params.prefix}
+        PanGenie -j {threads} -t {threads} -i {output.kmer_fa} -f {params.pre_prefix} -p -o {params.prefix}
         
         bgzip -f -@ {threads} c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.pan_genotyping.vcf
         tabix -f {output.genotype_vcf}
@@ -281,24 +283,25 @@ rule margin_chr_phase:
         chr_margin_vcf_gz = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}.phased.vcf.gz"
     params:
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}",
+        phase_json = "config/config/margin.phase_sv.json"
     shell:
         """
         margin phase \
             {input.zmw_bam} \
             {input.merge_ref_fasta} \
             {input.genotype_final_vcf} \
-            test_data/params/allParams.phase_vcf.ont.sv.json \
+            {params.phase_json} \
             -M -t 1 \
             -o {params.prefix} \
             -r {wildcards.chr}
         
         bgzip -f {params.prefix}.phase.vcf
-        tabix -f {output.chr_margin_vcf}
+        tabix -f {output.chr_margin_vcf_gz}
         """  
 
 rule merge_margin_phased_vcf:
     input:
-        chr_margin_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}.phased.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"], allow_missing=True)
+        chr_margin_vcfs = expand("c8_diploid_path_infer/sample_assembly/{{sample}}/{{sample}}.margin.{chr}.phased.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"])
     output:
         merge_margin_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.phase.vcf.gz"
     threads: 4
@@ -426,6 +429,7 @@ rule get_phase_assembly_sv_vcf:
     output:
         complete_assembly_phase_assembly_hap1_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.phase_assembly.vcf.gz"),
         complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz"),
+        complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz"),
         complete_assembly_phase_assembly_hap1_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap1.complete_assembly.phase_assembly.sv.vcf"),
         complete_assembly_phase_assembly_hap2_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap2.complete_assembly.phase_assembly.sv.vcf")
     threads: 8
@@ -475,7 +479,7 @@ rule validate_sv:
     shell:
         """
         minimap2 -t {threads} -ax map-pb -Y -L --eqx --cs \
-            {input.complete_assembly_hap1_fa} {input.zmw_fq} | \ 
+            {input.complete_assembly_hap1_fa} {input.zmw_fq} | \
             samtools view -@ {threads} -hb - | \
             samtools sort -@ {threads} -o {output.complete_assembly_zmw_reads_hap1_bam}
         samtools index -@ {threads} {output.complete_assembly_zmw_reads_hap1_bam}
@@ -542,12 +546,12 @@ rule complete_assembly_polish_region_consensus:
         """
         bcftools view -R {input.complete_assembly_hap1_polish_region_bed} {input.complete_assembly_phase_assembly_hap1_vcf} -o {output.complete_assembly_phase_assembly_hap1_polish_region_vcf}
         tabix {output.complete_assembly_phase_assembly_hap1_polish_region_vcf}
-        bcftools consensus -H 2 -f {input.complete_assembly_hap1_fa} {input.complete_assembly_phase_assembly_hap1_polish_region_vcf} > {output.complete_assembly_hap1_polish_fa}
+        bcftools consensus -H 2 -f {input.complete_assembly_hap1_fa} {output.complete_assembly_phase_assembly_hap1_polish_region_vcf} > {output.complete_assembly_hap1_polish_fa}
         samtools faidx {output.complete_assembly_hap1_polish_fa}
 
         bcftools view -R {input.complete_assembly_hap2_polish_region_bed} {input.complete_assembly_phase_assembly_hap2_vcf} -o {output.complete_assembly_phase_assembly_hap2_polish_region_vcf}
         tabix {output.complete_assembly_phase_assembly_hap2_polish_region_vcf}
-        bcftools consensus -H 2 -f {input.complete_assembly_hap2_fa} {input.complete_assembly_phase_assembly_hap2_polish_region_vcf} > {output.complete_assembly_hap2_polish_fa}
+        bcftools consensus -H 2 -f {input.complete_assembly_hap2_fa} {output.complete_assembly_phase_assembly_hap2_polish_region_vcf} > {output.complete_assembly_hap2_polish_fa}
         samtools faidx {output.complete_assembly_hap2_polish_fa}
         """
 
@@ -565,8 +569,8 @@ rule complete_assembly_polish_region_merqury_clip:
         final_hap1_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta",
         final_hap2_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta"
     params:
-        sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl),
-        merqury_dir = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.merqury"
+        merqury_dir = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.merqury",
+        sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl)
     threads: 4
     resources:
         mem_mb= 30*1024,
