@@ -22,23 +22,23 @@ This pipeline performs reference-guided draft diploid genome assembly.
 
 ### Requirement
 
-- BWA
-- GATK
-- minimap2
-- WhatsHap
-- Samtools
-- Bcftools
-- Seqkit
-- MECAT2
-- wtdbg2s
-- Racon
-- Arrow
-- cutadapt
-- phasebook
-- Sniffles2
-- Jasmine
-- Freebayes
-- Bedtools
+- [BWA](https://github.com/lh3/bwa)
+- [GATK](https://github.com/broadinstitute/gatk)
+- [minimap2](https://github.com/lh3/minimap2)
+- [WhatsHap](https://github.com/whatshap/whatshap)
+- [Samtools](https://github.com/samtools/samtools)
+- [Bcftools](https://github.com/samtools/bcftools)
+- [Seqkit](https://github.com/shenwei356/seqkit)
+- [MECAT2](https://github.com/xiaochuanle/MECAT2)
+- [wtdbg2](https://github.com/ruanjue/wtdbg2)
+- [Racon](https://github.com/isovic/racon)
+- [Arrow](https://github.com/PacificBiosciences/gcpp#)
+- [cutadapt](https://github.com/marcelm/cutadapt/)
+- [phasebook](https://github.com/phasebook/phasebook)
+- [Sniffles2](https://github.com/fritzsedlazeck/Sniffles)
+- [Jasmine](https://github.com/mkirsche/Jasmine)
+- [Freebayes](https://github.com/freebayes/freebayes)
+- [Bedtools](https://github.com/arq5x/bedtools2)
 
 ### Configuration (`draft_assembly.yaml`)
 

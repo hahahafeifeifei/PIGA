@@ -16,13 +16,13 @@ This pipeline generates personalized reference and SNV haplotype for each indivi
 
 ### Requirement
 
-- VG
-- GraphAligner
-- Bcftool
-- GATK
-- BWA
-- DeepVariant
-- WhasHap
+- [VG](https://github.com/vgteam/vg)
+- [GraphAligner](https://github.com/maickrau/GraphAligner)
+- [Bcftool](https://github.com/samtools/bcftools)
+- [GATK](https://github.com/broadinstitute/gatk)
+- [BWA](https://github.com/lh3/bwa)
+- [DeepVariant](https://github.com/google/deepvariant)
+- [WhasHap](https://github.com/whatshap/whatshap)
 
 ### Configuration (generate_personal_reference.yaml)
 

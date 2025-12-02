@@ -20,14 +20,14 @@ This pipeline performs pangenome construction and simplification.
 
 ### Requirement
 
-- minigraph
-- seqkit
-- VG
-- cactus-gfa-tools
-- Samtools
-- seqiwsh
-- smoothxg
-- GFAffix
+- [minigraph](https://github.com/lh3/minigraph)
+- [seqkit](https://github.com/shenwei356/seqkit)
+- [VG](https://github.com/vgteam/vg)
+- [cactus-gfa-tools](https://github.com/ComparativeGenomicsToolkit/cactus)
+- [Samtools](https://github.com/samtools/samtools)
+- [seqiwsh](https://github.com/pangenome/seqwish)
+- [smoothxg](https://github.com/pangenome/smoothxg)
+- [GFAffix](https://github.com/codialab/GFAffix)
 
 ### Configuration (construct_pangenome.yaml)
 
@@ -79,8 +79,8 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/construct_pangen
 
 ### Requirement
 
-- PyTorch
-- VG
+- [PyTorch](https://pytorch.org/)
+- [VG](https://github.com/vgteam/vg)
 
 ### Configuration (simplify_pangenome.yaml)
 
@@ -132,7 +132,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/simplify_pangeno
 
 ### Requirement
 
-- VG
+- [VG](https://github.com/vgteam/vg)
 
 ### Configuration (`merge_pangenome.yaml`)
 

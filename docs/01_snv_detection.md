@@ -12,10 +12,10 @@ This pipeline performs population-level SNV detection by leveraging PacBio long 
 
 ### Requirement
 
-- BWA
-- Samtools
-- GATK
-- Bcftools
+- [BWA](https://github.com/lh3/bwa)
+- [Samtools](https://github.com/samtools/samtools)
+- [GATK](https://github.com/broadinstitute/gatk)
+- [Bcftools](https://github.com/samtools/bcftools)
 
 ### Configuration(call_sr_snv.yaml)
 
@@ -62,12 +62,12 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_sr_snv.yaml
 
 ### Requirement
 
-- minimap2
-- DeepVariant
-- GLnexus
-- Bcftools
-- WhatsHap
-- Beagle4
+- [minimap2](https://github.com/lh3/minimap2)
+- [DeepVariant](https://github.com/google/deepvariant)
+- [GLnexus](https://github.com/dnanexus-rnd/GLnexus)
+- [Bcftools](https://github.com/samtools/bcftools)
+- [WhatsHap](https://github.com/whatshap/whatshap)
+- [Beagle4](https://faculty.washington.edu/browning/beagle/b4_1.html)
 
 ### Configuration(call_lr_snv.yaml)
 
@@ -106,8 +106,8 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_lr_snv.yaml
 
 ### Requirement
 
-- Bcftools
-- Merfin
+- [Bcftools](https://github.com/samtools/bcftools)
+- [Merfin](https://github.com/arangrhie/merfin)
 
 ### Configuration(merge_snv.yaml)
 

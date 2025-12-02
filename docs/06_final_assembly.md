@@ -17,20 +17,20 @@ This pipeline reconstructs the final diploid assembly by inferring the diploid p
 
 ### Requirement
 
-- VG
-- GFAffix
-- vcfbub
-- Bcftools
-- Pangenie
-- MarginPhase
-- Hiphase
-- minimap2
-- Secphase
-- cuteSV
-- paftools
-- Merqury
-- Bedtools
-- Samtools
+- [VG](https://github.com/vgteam/vg)
+- [GFAffix](https://github.com/codialab/GFAffix)
+- [vcfbub](https://github.com/pangenome/vcfbub)
+- [Bcftools](https://github.com/samtools/bcftools)
+- [Pangenie](https://github.com/eblerjana/PanGenie)
+- [MarginPhase](https://github.com/benedictpaten/marginPhase)
+- [Hiphase](https://github.com/PacificBiosciences/HiPhase)
+- [minimap2](https://github.com/lh3/minimap2)
+- [Secphase](https://github.com/mobinasri/secphase)
+- [cuteSV](https://github.com/tjiangHIT/cuteSV)
+- [paftools](https://github.com/RBGKew/pypaftol)
+- [Merqury](https://github.com/marbl/merqury)
+- [Bedtools](https://github.com/arq5x/bedtools2)
+- [Samtools](https://github.com/samtools/samtools)
 
 ### Configuration (infer_diploid_path.yaml)
 

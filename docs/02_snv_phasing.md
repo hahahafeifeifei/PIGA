@@ -13,9 +13,9 @@ This pipeline performs SNV phasing by integrating information from long reads an
 
 ### Requirement
 
-- Bcftools
-- WhatsHap
-- Shapeit4
+- [Bcftools](https://github.com/samtools/bcftools)
+- [WhatsHap](https://github.com/whatshap/whatshap)
+- [Shapeit4](https://github.com/odelaneau/shapeit4)
 
 ### Configuration (`phase_snv.yaml`)
 
