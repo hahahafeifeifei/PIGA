@@ -9,9 +9,8 @@ sr_fastqs:
 lr_zmw_fastqs:
   - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
-#https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC3/release/Graph_Genomes/1.0/2024_02_23_minigraph_cactus_hgsvc3_hprc/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 external_pangenome:
-  - test_data/external_pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+  - test_data/reference/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 
 reference:
   CHM13: test_data/reference/chm13v2.0.fa

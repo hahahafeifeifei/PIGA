@@ -18,7 +18,7 @@ lr_subreads_bam:
 reference:
   CHM13: test_data/reference/chm13v2.0.fa
 
-par_region: test_data/chm13v2.0_chrX_PAR.bed
+par_region: test_data/reference/chm13v2.0_chrX_PAR.bed
 
 prefix: test
 # #if no "consensus_fasta" key, default input will be “c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta”

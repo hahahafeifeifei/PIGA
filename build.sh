@@ -2,6 +2,8 @@
 # Download and build tools needed for PIGA.  They are
 # - Margin
 # - Secphase
+# - cactus-gfa-tools
+# - orca
 # - Beagle utilities
 # - MECAT2
 # - Merqury

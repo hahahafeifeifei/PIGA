@@ -25,13 +25,18 @@ reference:
   CHM13: test_data/reference/chm13v2.0.fasta
   GRCh38: test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
-#https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC3/release/Graph_Genomes/1.0/2024_02_23_minigraph_cactus_hgsvc3_hprc/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+GATK_Resource:
+  hapmap: test_data/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz
+  omni: test_data/reference/gatk_bundle/1000G_omni2.5.chm13_liftover.vcf.gz
+  1000G: test_data/reference/gatk_bundle/1000G_phase1.snps.high_confidence.chm13_liftover.vcf.gz
+  known_indel: test_data/reference/gatk_bundle/Homo_sapiens_assembly38.known_indels.chm13_liftover.vcf.gz
+  mills: test_data/reference/gatk_bundle/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz
+  axiomPoly: test_data/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
+
 external_pangenome:
-  - test_data/external_pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+  - test_data/reference/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 
-par_region: test_data/chm13v2.0_chrX_PAR.bed
-
-internal_assembly_list: test_data/internal_assembly.list
+par_region: test_data/reference/chm13v2.0_chrX_PAR.bed
 
 external_assembly_list: test_data/external_assembly.list
 

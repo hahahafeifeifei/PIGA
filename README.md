@@ -45,6 +45,7 @@ bash build.sh
 #### Download the test dataset
 
 ```bash
+# Download the test dataset
 cd test_data
 bash download.sh
 ```
@@ -54,7 +55,7 @@ bash download.sh
 The configuration file should contain:
 
 - **`samples`**: Specify the path to a text file listing all samples.
-  The file must be **space-delimited**, with:
+  The file must be **tab-delimited**, with:
   - **Column 1:** Sample name
   - **Column 2:** Sample sex
 
@@ -64,41 +65,29 @@ The configuration file should contain:
 - **`lr_hifi_fastqs`**: Specify the path(s) to **PacBio HiFi long-read FASTQ files**.
   Use `{sample}` as a wildcard.
 
-- **`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW FASTQ files**.(Selected representative read for each ZMW)
+- **`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW FASTQ files** (selected representative read for each ZMW).
   Use `{sample}` as a wildcard.
 
 - **`lr_subreads_bam`**: Specify the path(s) to **PacBio subreads BAM files**.
   Use `{sample}` as a wildcard.
 
 - **`reference`**:
-  - `CHM13`: Path to the **T2T CHM13 reference genome** (FASTA format, indexed by `samtools faidx` and `bwa index`).
+  - `CHM13`: Path to the **CHM13 reference genome** (FASTA format, indexed by `samtools faidx` and `bwa index`).
   - `GRCh38`: Path to the **GRCh38 reference genome**in FASTA format.
 
-- **`GATK_Resource`**: Paths to **GATK reference resource datasets**:
-  - `hapmap` – HapMap 3.3
-
-  - `omni` – 1000G Omni 2.5
-
-  - `1000G` – 1000 Genomes phase 1 high-confidence SNPs
-
-  - `known_indel` – Known indels in hg38.
-
-  - `mills` – Mills + 1000G gold-standard indels
-
-  - `axiomPoly` – Axiom Exome Plus polymorphism dataset
+- **`GATK_Resource`**: Paths to **GATK reference resource datasets** for quality control.
 
 - **`external_pangenome`**: Path to the **external pangenome graph** (GBZ format).
 
 - **`par_region`**: Path to the **pseudoautosomal region (PAR) BED file** for CHM13.
 
-- **`internal_assembly_list`**: Path to a file listing **internal genome assemblies**.
-
 - **`external_assembly_list`**: Path to a file listing **external genome assemblies**.
 
-- **`train_sample_list`**: Path to a file listing samples used for model training.
+- **`train_sample_list`**: Path to a file listing matched assemblies of the same sample used for model training.
+  - **Column 1:** Name of PIGA draft assembly from training sample
+  - **Column 2:** Name of matched high-quality assembly from training sample using as truth
 
 - **`prefix`**: Prefix used for naming output files.
-  You are now ready to run the workflow.
 
 ## Running the Workflow
 
