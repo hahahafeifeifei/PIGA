@@ -30,7 +30,7 @@ rule rename_reference:
         """
 
 external_assembly_id_dict, external_assembly_id_list = {}, []
-with open(get_external_assembly_list()) as f:
+with open(get_external_assembly_list(config)) as f:
     for line in f:
         if not line.strip():
             continue
@@ -38,6 +38,17 @@ with open(get_external_assembly_list()) as f:
         assembly = line.strip().split()[1]
         external_assembly_id_list.append(assembly_id)
         external_assembly_id_dict[assembly_id] = assembly
+
+
+internal_assembly_id_dict, internal_assembly_id_list = {}, []
+with open(get_internal_assembly_list(config)) as f:
+    for line in f:
+        if not line.strip():
+            continue
+        assembly_id = line.strip().split()[0]
+        assembly = line.strip().split()[1]
+        internal_assembly_id_list.append(assembly_id)
+        internal_assembly_id_dict[assembly_id] = assembly
 
 rule rename_external_assembly:
     input:
@@ -91,16 +102,6 @@ rule external_chr_minigraph:
             gfatools view -R CHM13.{wildcards.chr} {input.minigraph_external_gfa} > {output.minigraph_external_chr_gfa}
         fi
         """
-
-internal_assembly_id_dict, internal_assembly_id_list = {}, []
-with open(get_internal_assembly_list()) as f:
-    for line in f:
-        if not line.strip():
-            continue
-        assembly_id = line.strip().split()[0]
-        assembly = line.strip().split()[1]
-        internal_assembly_id_list.append(assembly_id)
-        internal_assembly_id_dict[assembly_id] = assembly
 
 rule rename_internal_assembly:
     input:

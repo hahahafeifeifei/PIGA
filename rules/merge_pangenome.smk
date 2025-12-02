@@ -69,7 +69,7 @@ rule chr_merge:
     input:
         chr_subgraph_list = f"c7_graph_construction/{config['prefix']}.chr_subgraph.list"
     output:
-        gfa_list = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.gfa.list"
+        gfa_list = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.gfa.list",
         merged_gfa = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa",
         merged_variant_path = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
     threads: 8

@@ -9,10 +9,10 @@ reference:
 train_sample_list: test_data/train_sample.list
 
 prefix: test
-# #if no "subgraph_list" key, default input will be : "c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.shapeit.vcf.gz"
+# #if no "phased_snv" key, default input will be : "c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.shapeit.vcf.gz"
 # phased_snv:
 #
-# #if no "subgraph_list" key, default input will be : "c7_graph_construction/subgraph_id.list"
+# #if no "subgraph_id_list" key, default input will be : "c7_graph_construction/subgraph_id.list"
 # subgraph_id_list:
 #
 # #if no "subgraph_fa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta"

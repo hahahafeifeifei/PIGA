@@ -1,4 +1,4 @@
-id_list = get_already_subgraph_ids()
+id_list = get_already_subgraph_ids(config)
 wildcard_constraints:
     id = "|".join(id_list)
 
@@ -8,7 +8,7 @@ rule all_simplify_pangenome:
 
 rule graph_bed_filtering:
     input:
-        fa = get_subgraph_fa
+        fa = get_subgraph_fa,
         gfa = get_subgraph_gfa
     output:
         high_coverage_bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.high_coverage.bed",
