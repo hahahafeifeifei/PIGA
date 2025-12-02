@@ -1,12 +1,26 @@
 rule all_call_sr_snv:
     input:
         f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz",
-        
+
+rule personal_ref_bwa_map:
+    input:
+        ref = config['reference']['CHM13']
+    output:
+        ref_index = config['reference']['CHM13'] + ".bwt"
+    threads: 4
+    resources:
+        mem_mb = 64*1024
+    shell:
+        """
+        bwa index {input.ref}
+        """
+
 rule sr_bwa_map:
     input:
         sr_fq1 = config['sr_fastqs'][0],
         sr_fq2 = config['sr_fastqs'][1],
-        ref = config['reference']['CHM13']
+        ref = config['reference']['CHM13'],
+        ref_index = config['reference']['CHM13'] + ".bwt"
     output:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.bam",
         bai = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.bam.bai"
