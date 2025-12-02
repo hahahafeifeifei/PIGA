@@ -55,37 +55,38 @@ bash download.sh
 The configuration file should contain:
 
 - **`samples`**: Path to a text file listing all samples.
-  The file must be **tab-delimited**, with:
-  - **Column 1:** Sample name
-  - **Column 2:** Sample sex
+  The file should be tab-delimited, with:
+  - Column 1: Sample name
+  - Column 2: Sample sex
 
-- **`sr_fastqs`**: Paths to the **paired-end short-read FASTQ files**.
+- **`sr_fastqs`**: Paths to the paired-end short-read FASTQ files.
   Use `{sample}` as a wildcard.
 
-- **`lr_hifi_fastqs`**: Paths to **PacBio HiFi long-read FASTQ files**.
+- **`lr_hifi_fastqs`**: Paths to PacBio HiFi long-read FASTQ files.
   Use `{sample}` as a wildcard.
 
-- **`lr_zmw_fastqs`**: Paths to **PacBio ZMW FASTQ files** (selected representative read for each ZMW).
+- **`lr_zmw_fastqs`**: Paths to PacBio ZMW FASTQ files (selected representative read for each ZMW).
   Use `{sample}` as a wildcard.
 
-- **`lr_subreads_bam`**: Paths to **PacBio subreads BAM files**.
+- **`lr_subreads_bam`**: Paths to PacBio subreads BAM files.
   Use `{sample}` as a wildcard.
 
 - **`reference`**:
-  - `CHM13`: Path to the **CHM13 reference genome** in FASTA format.
-  - `GRCh38`: Path to the **GRCh38 reference genome** in FASTA format.
+  - `CHM13`: Path to the CHM13 reference genome in FASTA format.
+  - `GRCh38`: Path to the GRCh38 reference genome in FASTA format.
 
-- **`GATK_Resource`**: Paths to **GATK reference resource datasets** for quality control.
+- **`GATK_Resource`**: Paths to GATK reference resource datasets for quality control.
 
-- **`external_pangenome`**: Path to the **external pangenome graph** (GBZ format).
+- **`external_pangenome`**: Path to the external pangenome graph (GBZ format).
 
-- **`par_region`**: Path to the **pseudoautosomal region (PAR) BED file** for CHM13.
+- **`par_region`**: Path to the pseudoautosomal region (PAR) BED file** for CHM13.
 
-- **`external_assembly_list`**: Path to a file listing **external genome assemblies** used for constructing PIGA pangenome.
+- **`external_assembly_list`**: Path to a file listing external genome assemblies used for constructing PIGA pangenome.
 
 - **`train_sample_list`**: Path to a file listing names of matched assemblies from training samples used for model training.
-  - **Column 1:** Names of PIGA draft assemblies from training samples
-  - **Column 2:** Names of matched high-quality assemblies from training samples used as the truth
+The file should be tab-delimited, with:
+  - Column 1: Names of PIGA draft assemblies from training samples
+  - Column 2: Names of matched high-quality assemblies from training samples used as the truth
 
 - **`prefix`**: Prefix used for naming output files.
 
