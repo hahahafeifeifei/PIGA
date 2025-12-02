@@ -1,9 +1,0 @@
-tools:
-  bwa: ""
-  gatk: ""
-  pbmm2: ""
-  singularity: ""
-  deepvariant: ""
-  glnexus: ""
-  bcftools: ""
-  samtools: ""
