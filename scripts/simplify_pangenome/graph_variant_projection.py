@@ -4,7 +4,6 @@ import argparse
 import bdsg
 from bdsg.bdsg import PackedGraph
 from pysam import VariantFile
-from config_logging import logger
 
 def openfile(filename):
     if filename == "-":
@@ -66,7 +65,7 @@ def main():
             split_pos_set.add(variant_end)
             variant_list.append([variant_start, variant_end])
         split_pos_list = sorted(list(split_pos_set))
-        logger.info("{} variants located in {}.".format(len(variant_list), path_contig + ":" + str(path_start + 1) + "-" + str(path_end)))
+        print("{} variants located in {}.".format(len(variant_list), path_contig + ":" + str(path_start + 1) + "-" + str(path_end)))
         
         
         ####Detect the split pos of nodes
@@ -125,7 +124,7 @@ def main():
     for node_id, node_split_pos in node_split_pos_dict.items():
         split_handles = g.divide_handle(g.get_handle(node_id), bdsg.std.vector_unsigned_long(sorted(list(node_split_pos))))
         split_node_map_dict[node_id] = [g.get_id(handle) for handle in split_handles]
-    logger.info("{} variant nodes are split.".format(len(node_split_pos_dict)))
+    print("{} variant nodes are split.".format(len(node_split_pos_dict)))
 
 
     ####Patch the path with the reverse split node at path start or forward split node at path end
@@ -144,7 +143,7 @@ def main():
             patch_handles = bdsg.std.vector_handlegraph_handle_t([g.get_handle(node_id, False) for node_id in split_node_map_dict[g.get_id(g.get_handle_of_step(end_handle))]])
             g.rewrite_segment(end_handle, g.path_end(path_handle), patch_handles)
             patch_i += 1
-    logger.info("{} path ends are patched.".format(patch_i))
+    print("{} path ends are patched.".format(patch_i))
     
     
     for ref_path in ref_path_list:
@@ -314,7 +313,7 @@ def main():
                                 next_handles = flanking_handles_dict[int(chain_path[i + 1][1:])]
                                 g.create_edge(handles[-1], next_handles[0])
 
-        logger.info("{} haplotype chains are found.".format(len(chain_path_list)))
+        print("{} haplotype chains are found.".format(len(chain_path_list)))
         
         ####Add the handle paths
         for chain_path in chain_path_list:

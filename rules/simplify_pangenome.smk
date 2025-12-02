@@ -207,8 +207,8 @@ rule gfa_ml_filter:
 
         python3 scripts/simplify_pangenome/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
-        grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | \
-        vg convert -g - | vg clip -d 1 -P CHM13 -P GRCh38 - | vg clip -s - | vg mod -u - > {output.ml_filter_vg}
+        grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | sed "s/CHM13.chr/chr/g" | \
+        vg convert -g - | vg clip -d 1 -P CHM13 -P GRCh38 - | vg clip -s - -P CHM13 | vg mod -u - > {output.ml_filter_vg}
         """
 
 rule variant_projection:
