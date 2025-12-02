@@ -324,7 +324,7 @@ checkpoint generate_intervals:
         genome_interval = "c1_call_sr_snv/CHM13.20mb.interval"
     shell:
         """
-        awk -v FS='\t' '{{print $1"\\t"$2}}' {input.ref_fai} > {output.genome_size}
+        awk -v FS='\\t' '{{print $1"\\t"$2}}' {input.ref_fai} > {output.genome_size}
         bedtools makewindows -g {output.genome_size} -w 20000000 | awk '{print $1":"$2+1"-"$3}' > {output.genome_interval}
         """
 
