@@ -2,10 +2,11 @@
 
 ## Full Workflow Execution
 
-```shell
-pip install snakemake
-pip install snakemake-executor-plugin_slurm
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config.yaml --workflow-profile ./profile
+```bash
+# slurm system
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --workflow-profile ./profile/config_slurm/
+# local run
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/
 ```
 
 ## Running step by step
