@@ -1,3 +1,0 @@
-# Singularity
-use-singularity: true
-singularity-args: "-B /$(pwd | cut -d'/' -f2):/$(pwd | cut -d'/' -f2)"
