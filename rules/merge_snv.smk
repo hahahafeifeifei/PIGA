@@ -162,7 +162,7 @@ rule prepare_ref_kmer:
 rule merfin_filter:
     input:
         consensus_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.vcf.gz",
-        sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex",
+        sample_meryl = get_sample_meryl_input,
         ref = config['reference']['CHM13'],
         ref_meryl = "c3_merge_snv/sample_meryl/chm13/chm13.meryl/merylIndex"
     output:

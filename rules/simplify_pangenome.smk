@@ -46,7 +46,7 @@ rule prepare_train_gfa:
         train_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train_raw.gfa",
         train_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.gfa"
     params:
-        all_sample = "\\t|".join(set(train_sample_map.keys()) | set(train_sample_map.values()))
+        all_sample = "\\t\\|".join(set(train_sample_map.keys()) | set(train_sample_map.values()))
     shell:
         """
         grep -v $'{params.all_sample}\\t' {input.filter_gfa} > {output.train_raw_gfa}        
@@ -199,7 +199,7 @@ rule gfa_ml_filter:
         mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 4
     params:
-        train_sample = "\\t|".join(set(train_sample_map.keys()))
+        train_sample = "\\t\\|".join(set(train_sample_map.keys()))
     shell:
         """
         paste {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==0 || ($(NF-2)!=0 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}
@@ -207,7 +207,7 @@ rule gfa_ml_filter:
 
         python3 scripts/simplify_pangenome/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
-        grep -v $'{params.train_sample}\\t|_MINIGRAPH_\\t' | sed "s/CHM13.chr/chr/g" | \
+        grep -v $'{params.train_sample}\\t\\|_MINIGRAPH_\\t' | sed "s/CHM13.chr/chr/g" | \
         vg convert -g - | vg clip -d 1 -P CHM13 -P GRCh38 - | vg clip -s - -P CHM13 | vg mod -u - > {output.ml_filter_vg}
         """
 
