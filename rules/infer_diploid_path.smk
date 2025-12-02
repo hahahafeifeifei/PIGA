@@ -25,7 +25,7 @@ rule kmc_prepare_sample_kmer:
         kmer_list = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer.list",
         kff = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer.kff"
     params:
-        tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp"
+        tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer"
     threads: 4
     resources:
@@ -108,8 +108,8 @@ rule sample_chr_gfa_deconstruct:
 
 rule ref_fasta_vcf_merge:
     input:
-        ref_fastas = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.ref.fasta", chr = chr_list),
-        norm_chr_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.norm.vcf.gz", chr = chr_list)
+        ref_fastas = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.ref.fasta", chr = chr_list, allow_missing=True),
+        norm_chr_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{chr}.norm.vcf.gz", chr = chr_list, allow_missing=True)
     output:
         merge_ref_fasta = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.ref.fasta",
         merge_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.norm.vcf.gz"),
@@ -141,9 +141,8 @@ rule vcfbub_vcf_genotype:
         phasing_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_phasing.vcf.gz"),
         vcfbub_vcf_gz = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.norm.vcfbub.vcf.gz")
     params:
-        pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre"
+        pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan"
-    container:
     resources:
        mem_mb= 120*1024,
     threads: 4
@@ -299,7 +298,7 @@ rule margin_chr_phase:
 
 rule merge_margin_phased_vcf:
     input:
-        chr_margin_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}.phased.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"])
+        chr_margin_vcfs = expand("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}.phased.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"], allow_missing=True)
     output:
         merge_margin_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.phase.vcf.gz"
     threads: 4
@@ -426,7 +425,7 @@ rule get_phase_assembly_sv_vcf:
         phase_assembly_correct_hap2_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.phase_assembly.fasta"
     output:
         complete_assembly_phase_assembly_hap1_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.phase_assembly.vcf.gz"),
-        complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz")
+        complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz"),
         complete_assembly_phase_assembly_hap1_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap1.complete_assembly.phase_assembly.sv.vcf"),
         complete_assembly_phase_assembly_hap2_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap2.complete_assembly.phase_assembly.sv.vcf")
     threads: 8
@@ -566,6 +565,7 @@ rule complete_assembly_polish_region_merqury_clip:
         final_hap1_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.polish.clip.fasta",
         final_hap2_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.clip.fasta"
     params:
+        sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl),
         merqury_dir = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.merqury"
     threads: 4
     resources:
@@ -594,12 +594,3 @@ rule complete_assembly_polish_region_merqury_clip:
         awk -v sample={wildcards.sample} 'BEGIN{{sum=1}}{{if(substr($0,1,1)==">"){{split($1,a,">");split(a[2],b,":");print ">"sample"_hap2_ctg"sum"_"b[1];sum+=1}} else print $0}}' > {output.final_hap2_fa}
         rm -rf {params.merqury_dir}
         """
-        
-# rule xxx:
-#     input:
-#     output:
-#     threads:
-#     shell:
-#         """
-        
-#         """

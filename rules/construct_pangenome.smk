@@ -169,7 +169,7 @@ rule minigraph_clip:
     output:
         snarls=f"c7_graph_construction/{config['prefix']}.minigraph.snarls",
         node_clip_gfa=f"c7_graph_construction/{config['prefix']}.minigraph.node_clip.gfa",
-        edge_clip_gfa=f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
+        node_edge_clip_gfa=f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
         node_clip_rgfa=f"c7_graph_construction/{config['prefix']}.minigraph.node_clip.rgfa",
         node_len=f"c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv",
         subgraph_info=f"c7_graph_construction/{config['prefix']}.subgraph.info"
@@ -181,9 +181,9 @@ rule minigraph_clip:
     shell:
         """
         vg snarls {input.minigraph_gfa} | vg view -R - > {output.snarls}
-        python3 scripts/construct_pangenome/gfa_border_node_select.py {input.minigraph_gfa} {output.snarls} {params.tmp_dir} {output.node_clip_gfa} {output.edge_clip_gfa} {output.subgraph_info}
+        python3 scripts/construct_pangenome/gfa_border_node_select.py {input.minigraph_gfa} {output.snarls} {params.tmp_dir} {output.node_clip_gfa} {output.node_edge_clip_gfa} {output.subgraph_info}
         vg convert -g {output.node_clip_gfa} -f -Q CHM13.chr | awk '{{if(substr($0,1,1)=="S" && $6!="SR:i:0")print$0"\\tSN:Z:Other\\tSO:i:0\\tSR:i:1";else print$0}}' | \
-        awk -v OFS='\\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' > {output.node_clip_rgfa}
+          awk -v OFS='\\t' '{{if(substr($0,1,1)=="S")print$1,"s"$2,$3,$4,$5,$6;else {{if(substr($0,1,1)=="L")print$1,"s"$2,$3,"s"$4,$5,$6;else print$0}} }}' > {output.node_clip_rgfa}
         grep ^S {output.node_clip_rgfa} | awk '{{print $2"\\t"length($3)}}' > {output.node_len}
         """
 
@@ -244,11 +244,12 @@ checkpoint minigraph_aln_partition:
         node_edge_clip_gfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
         node_len = f"c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv"
     output:
-        subgraph_dir = directory("c7_graph_construction/subgraph"),
         gaf = f"c7_graph_construction/{config['prefix']}.gaf",
         paf = f"c7_graph_construction/{config['prefix']}.paf",
         subgraph_id_list = f"c7_graph_construction/subgraph_id.list",
+        subgraph_record = "c7_graph_construction/.subgraph_finish"
     params:
+        subgraph_dir = "c7_graph_construction/subgraph",
         prefix = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph"
     resources:
         mem_mb = 100*1024,
@@ -256,29 +257,28 @@ checkpoint minigraph_aln_partition:
     threads: 8
     shell:
         """
-        mkdir {output.subgraph_dir}
+        mkdir {params.subgraph_dir}
         cat {input.gafs} > {output.gaf}
         gaf2paf -l {input.node_len} {output.gaf} > {output.paf}
         vg chunk -C -x {input.node_edge_clip_gfa} --prefix {params.prefix} -O gfa
-        python3 scripts/construct_pangenome/subgraph_paf_fa.py {params.prefix} {output.paf} {output.gaf} {output.subgraph_dir}
+        python3 scripts/construct_pangenome/subgraph_paf_fa.py {params.prefix} {output.paf} {output.gaf} {params.subgraph_dir}
         ls {params.prefix}_*.gfa | awk '{{split($1,a,"_");split(a[length(a)],b,".");print b[1]}}' > {output.subgraph_id_list}
+        > {output.subgraph_record}
         """
 
 #Rule: minigraph sequence partition
 rule minigraph_seq_partition:
     input:
-        fa_dir = "c7_graph_construction/fasta",
-        bed = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.bed",
-        gfa = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.gfa", 
-        paf = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph_{{id}}.paf"
+        subgraph_record = "c7_graph_construction/.subgraph_finish"
     output:
-        subgraph_dir=directory("c7_graph_construction/subgraph/subgraph_{id}"),
-        subgraph_fa_dir=directory("c7_graph_construction/subgraph/subgraph_{id}/fasta"),
         fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
         bed = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.bed",
         paf = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.paf",
         gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.gfa"
     params:
+        fa_dir = "c7_graph_construction/fasta",
+        subgraph_dir="c7_graph_construction/subgraph/subgraph_{id}",
+        subgraph_fa_dir="c7_graph_construction/subgraph/subgraph_{id}/fasta",
         prefix = f"c7_graph_construction/subgraph/{config['prefix']}_subgraph"
     wildcard_constraints:
         id='[0-9]+'
@@ -288,19 +288,19 @@ rule minigraph_seq_partition:
     threads: 1
     shell:
         """
-        mkdir -p {output.subgraph_dir}
-        mkdir -p {output.subgraph_fa_dir}
-        awk '{{print $1}}' {input.bed} | while read sample
+        mkdir -p {params.subgraph_dir}
+        mkdir -p {params.subgraph_fa_dir}
+        awk '{{print $1}}' {params.prefix}_{wildcards.id}.bed | while read sample
         do
-            awk -v sample=$sample '{{if($1==sample)print$2}}' {input.bed} > {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed
-            samtools faidx -r {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed {input.fa_dir}/$sample.fasta > {output.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.fasta
+            awk -v sample=$sample '{{if($1==sample)print$2}}' {params.prefix}_{wildcards.id}.bed > {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed
+            samtools faidx -r {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed {params.fa_dir}/$sample.fasta > {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.fasta
         done
-        awk '{{if($1=="S")print">_MINIGRAPH_.s"$2"\\n"$3}}' {input.gfa} > {output.subgraph_fa_dir}/_MINIGRAPH_.subgraph_{wildcards.id}.fasta
-        cat {output.subgraph_fa_dir}/*fasta > {output.fa}
-        mv {input.bed} {output.bed}
-        mv {input.gfa} {output.gfa}
-        awk -v OFS='\\t' '{{$6="_MINIGRAPH_."$6; print $0}}' {input.paf} > {output.paf}
-        rm {input.paf}
+        awk '{{if($1=="S")print">_MINIGRAPH_.s"$2"\\n"$3}}' {params.prefix}_{wildcards.id}.gfa > {params.subgraph_fa_dir}/_MINIGRAPH_.subgraph_{wildcards.id}.fasta
+        cat {params.subgraph_fa_dir}/*fasta > {output.fa}
+        mv {params.prefix}_{wildcards.id}.bed {output.bed}
+        mv {params.prefix}_{wildcards.id}.gfa {output.gfa}
+        awk -v OFS='\\t' '{{$6="_MINIGRAPH_."$6; print $0}}' {params.prefix}_{wildcards.id}.paf > {output.paf}
+        rm {params.prefix}_{wildcards.id}.paf
         """
 
 

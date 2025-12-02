@@ -1,7 +1,7 @@
 
 chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
 
-id_list = get_already_subgraph_ids()
+id_list = get_already_subgraph_ids(config)
 wildcard_constraints:
     id = "|".join(id_list)
 

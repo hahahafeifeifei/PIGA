@@ -83,7 +83,7 @@ def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     return chr_list
 
 
-def get_external_assembly_list(wildcards):
+def get_external_assembly_list(config):
     if "external_assembly_list" in config:
         return config["external_assembly_list"]
     else:
@@ -92,7 +92,7 @@ def get_external_assembly_list(wildcards):
 def get_external_assembly_fa(wildcards):
     return external_assembly_id_dict[wildcards.external_assembly_id]
 
-def get_internal_assembly_list(wildcards):
+def get_internal_assembly_list(config):
     if "internal_assembly_list" in config:
         return config["internal_assembly_list"]
     else:
@@ -101,9 +101,9 @@ def get_internal_assembly_list(wildcards):
 def get_internal_assembly_fa(wildcards):
     return internal_assembly_id_dict[wildcards.internal_assembly_id]
 
-def get_already_subgraph_ids(wildcards):
-    if "subgraph_id.list" in config:
-        subgraph_id_list = config["subgraph_id.list"]
+def get_already_subgraph_ids(config):
+    if "subgraph_id_list" in config:
+        subgraph_id_list = config["subgraph_id_list"]
     else:
         subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
     with open(subgraph_id_list) as f:
