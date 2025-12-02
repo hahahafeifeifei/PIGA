@@ -2,20 +2,6 @@ shell.prefix = ['set -e']
 
 import os
 
-configfile: "config/config.yaml"
-# # check the path of tools
-# def validate_tool(tool_path):
-#     
-#     if not os.path.exists(tool_path):
-#         raise ValueError(f"Tool path {tool_path} does not exist!")
-#     return tool_path
-# 
-# # set a dictionary to check and store the path of tools.
-# TOOLS = {
-#     tool: validate_tool(path) for tool, path in config['tools'][category].items() for category in config['tools']
-# }
-# # from functools import partial
-
 
 samples_list, sex_list, sample_sex_dict = [], [], {}
 with open(config['samples']) as f:
