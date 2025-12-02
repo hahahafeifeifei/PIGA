@@ -54,7 +54,7 @@ bash download.sh
 
 The configuration file should contain:
 
-- **`samples`**: Path to a text file listing all samples.
+- `samples`: Path to a text file listing all samples.
   The file should be tab-delimited, with:
   - Column 1: Sample name
   - Column 2: Sample sex
@@ -77,11 +77,11 @@ The configuration file should contain:
 
 - `GATK_Resource`: Paths to GATK reference resource datasets for quality control.
 
-- `external_pangenome`**: Path to the external pangenome graph (GBZ format).
+- `external_pangenome`: Path to the external pangenome graph in GBZ format.
 
-- `par_region`: Path to the pseudoautosomal region (PAR) BED file** for CHM13.
+- `par_region`: Path to the pseudoautosomal region (PAR) BED file for CHM13.
 
-- `external_assembly_list`: Path to a file listing external genome assemblies used for constructing PIGA pangenome.
+- `external_assembly_list`: Path to a file listing external genome assemblies used for constructing the PIGA pangenome.
 
 - `train_sample_list`: Path to a file listing names of matched assemblies from training samples used for model training.
 The file should be tab-delimited, with:
