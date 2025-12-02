@@ -1,7 +1,8 @@
 rule all_draft_assembly:
     input:
-        expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.rename.fasta", sample = samples_list),
-        expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.rename.fasta", sample = samples_list)
+        expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta", sample = samples_list),
+        expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta", sample = samples_list),
+        "c6_draft_assembly/sample_assembly/internal_assembly.list"
 
 # Create a symblink to the consensus fasta.
 rule personal_ref_create_dict:
@@ -331,18 +332,16 @@ rule phase_assembly:
             -t {threads}
         """
 
-rule rename_assembly:
+rule assembly_list:
     input:
-        hap1_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta",
-        hap2_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta",
+        hap1_fa = expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta", sample = samples_list),
+        hap2_fa = expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta", sample = samples_list)
     output:
-        hap1_rename_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.rename.fasta",
-        hap2_rename_fa = "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.rename.fasta",
-    threads: 1
+        internal_assembly_list = "c6_draft_assembly/sample_assembly/internal_assembly.list"
     resources:
-        mem_mb = 10*1024
+        mem_mb = 30*1024
     shell:
         """
-        awk -v sample={wildcards.sample} '{{if(substr($1,1,1)==">") print ">"sample"_hap1_"substr($1,2,length($1));else print $0}}' {input.hap1_fa} > {output.hap1_rename_fa}
-        awk -v sample={wildcards.sample} '{{if(substr($1,1,1)==">") print ">"sample"_hap2_"substr($1,2,length($1));else print $0}}' {input.hap2_fa} > {output.hap2_rename_fa}
+        ls {input.hap1_fa} {input.hap2_fa} | \
+        awk '{{split($1,a,"/");split(a[length(a)],b,".");split(b[2],c,"hap");print b[1]"."c[2]-1"\\t"$1}}' > {output.internal_assembly_list}
         """
