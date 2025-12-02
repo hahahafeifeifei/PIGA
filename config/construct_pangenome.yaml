@@ -10,7 +10,6 @@ reference:
         test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
 internal_assembly_list:
-    test_data/internal_assembly.list
 
 external_assembly_list:
     test_data/external_assembly.list

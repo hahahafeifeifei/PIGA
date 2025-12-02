@@ -96,7 +96,7 @@ def get_internal_assembly_list(wildcards):
     if "internal_assembly_list" in config:
         return config["internal_assembly_list"]
     else:
-        return "c6_draft_assembly/sample_assembly/internal_assembly.seqfile"
+        return "c6_draft_assembly/sample_assembly/internal_assembly.list"
 
 def get_internal_assembly_fa(wildcards):
     return internal_assembly_id_dict[wildcards.internal_assembly_id]

@@ -39,6 +39,8 @@ def main():
     node_split_pos_dict = {}
     for ref_path in ref_path_list:
         path_contig = ref_path.split("#")[2]
+        if path_contig not in list(vcf_file.header.contigs):
+            continue
         path_range = ref_path.split("#")[3]
         path_handle = g.get_path_handle(ref_path)
         ####Select the reference path region
