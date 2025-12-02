@@ -1,41 +1,38 @@
 Infer_Diploid_Path: true
 
-samples:
-    test_data/samples.list
-    
+samples: test_data/samples.list
+
 sr_fastqs:
-    - test_data/{sample}/{sample}.sr.R1.fastq.gz
-    - test_data/{sample}/{sample}.sr.R2.fastq.gz
+  - test_data/{sample}/{sample}.sr.R1.fastq.gz
+  - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_zmw_fastqs:
-    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
+  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 lr_hifi_fastqs:
-    - test_data/{sample}/{sample}.lr_hifi.fastq.gz
+  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
 train_sample_list: test_data/train_sample.list
 
-prefix:
-    test
+prefix: test
+# #if no "hapl" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
+# hapl:
+#
+# #if no "gbz" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
+# gbz:
+#
+# #if no "gfa" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa"
+# gfa:
+#
+# #if no "variant_path" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
+# variant_path:
+#
+# #if no "hap1_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta"
+# hap1_fa:
+#
+# #if no "hap2_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"
+# hap2_fa:
+#
+# #if no "sample_meryl" key, default input will be "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
+# sample_meryl:
 
-
-#if no "hapl" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
-hapl: 
-
-#if no "gbz" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
-gbz: 
-
-#if no "gfa" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa"
-gfa: 
-
-#if no "variant_path" key, default input will be "c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
-variant_path: 
-
-#if no "hap1_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta"
-hap1_fa:
-
-#if no "hap2_fa" key, default input will be "c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta"
-hap2_fa:
-
-#if no "sample_meryl" key, default input will be "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl"
-sample_meryl:

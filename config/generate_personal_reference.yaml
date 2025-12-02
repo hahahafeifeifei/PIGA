@@ -1,25 +1,19 @@
 Generate_Personal_Reference: true
 
-samples:
-    test_data/samples.list
-    
+samples: test_data/samples.list
+
 sr_fastqs:
-    - test_data/{sample}/{sample}.sr.R1.fastq.gz
-    - test_data/{sample}/{sample}.sr.R2.fastq.gz
+  - test_data/{sample}/{sample}.sr.R1.fastq.gz
+  - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_zmw_fastqs:
-    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
-
+  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 #https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC3/release/Graph_Genomes/1.0/2024_02_23_minigraph_cactus_hgsvc3_hprc/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 external_pangenome:
-    - test_data/pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+  - test_data/external_pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
 
 reference:
-    CHM13:
-        test_data/reference/chm13v2.0.fa
+  CHM13: test_data/reference/chm13v2.0.fa
 
-prefix:
-    test
-
-
+prefix: test

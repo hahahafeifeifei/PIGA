@@ -1,30 +1,8 @@
 samples: test_data/samples.list
 
-training_samples:
-  - CKCG-00202
-
-test_samples:
-  - CKCG-00202
-
-validate_samples:
-  - CKCG-00202
-
 sr_fastqs:
   - test_data/{sample}/{sample}.sr.R1.fastq.gz
   - test_data/{sample}/{sample}.sr.R2.fastq.gz
-
-lr_hifi_fastqs:
-  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
-
-lr_zmw_fastqs:
-  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
-
-reference:
-  CHM13: test_data/reference/chm13v2.0_maskedY_rCRS.fasta
-  GRCh38: test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai
-
-kmer:
-  CHM13: test_data/reference/CHM13_21mer_meryl/
 
 GATK_Resource:
   hapmap: test_data/reference/gatk_bundle/hapmap_3.3.chm13_liftover.vcf.gz
@@ -34,6 +12,29 @@ GATK_Resource:
   mills: test_data/reference/gatk_bundle/Mills_and_1000G_gold_standard.indels.chm13_liftover.vcf.gz
   axiomPoly: test_data/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
 
-genetic_map: "test_data/genetic_map/genetic_map_chm13_{chr}.reform.txt"
+lr_hifi_fastqs:
+  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
-prefix: CKCG
+lr_zmw_fastqs:
+  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
+
+lr_subreads_bam:
+  - test_data/{sample}/{sample}.lr_subreads.bam
+
+reference:
+  CHM13: test_data/reference/chm13v2.0.fasta
+  GRCh38: test_data/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+
+#https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC3/release/Graph_Genomes/1.0/2024_02_23_minigraph_cactus_hgsvc3_hprc/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+external_pangenome:
+  - test_data/external_pangenome/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+
+par_region: test_data/chm13v2.0_chrX_PAR.bed
+
+internal_assembly_list: test_data/internal_assembly.list
+
+external_assembly_list: test_data/external_assembly.list
+
+train_sample_list: test_data/train_sample.list
+
+prefix: test

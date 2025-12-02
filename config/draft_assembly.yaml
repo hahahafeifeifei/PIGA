@@ -1,42 +1,34 @@
 Draft_Assembly: true
 
-samples:
-    test_data/samples.list
-    
+samples: test_data/samples.list
+
 sr_fastqs:
-    - test_data/{sample}/{sample}.sr.R1.fastq.gz
-    - test_data/{sample}/{sample}.sr.R2.fastq.gz
+  - test_data/{sample}/{sample}.sr.R1.fastq.gz
+  - test_data/{sample}/{sample}.sr.R2.fastq.gz
 
 lr_zmw_fastqs:
-    - test_data/{sample}/{sample}.lr_zmw.fastq.gz
+  - test_data/{sample}/{sample}.lr_zmw.fastq.gz
 
 lr_hifi_fastqs:
-    - test_data/{sample}/{sample}.lr_hifi.fastq.gz
+  - test_data/{sample}/{sample}.lr_hifi.fastq.gz
 
 lr_subreads_bam:
-    - test_data/{sample}/{sample}.lr_subreads.bam
+  - test_data/{sample}/{sample}.lr_subreads.bam
 
 reference:
-    CHM13:
-        test_data/reference/chm13v2.0.fa
+  CHM13: test_data/reference/chm13v2.0.fa
 
-par_region:
-    test_data/chm13v2.0_chrX_PAR.bed
+par_region: test_data/chm13v2.0_chrX_PAR.bed
 
-prefix:
-    test
-
-
-
-#if no "consensus_fasta" key, default input will be “c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta”
-consensus_fasta: 
-
-#if no "chain" key, default input will be "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
-chain: 
-
-#if no "sample_vcf" key, default input will be "c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz"
-sample_vcf: 
-
-#if no "sample_WGS_meryl" key, default input will be "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl" (directory)
-sample_WGS_meryl: 
-    
+prefix: test
+# #if no "consensus_fasta" key, default input will be “c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.fasta”
+# consensus_fasta:
+#
+# #if no "chain" key, default input will be "c5_personal_ref/consensus_fasta/{sample}/CHM13.af_pangenome.{sample}_polish.chain"
+# chain:
+#
+# #if no "sample_phased_vcf" key, default input will be "c4_phase_snv/shapeit4/samples/{sample}/{sample}.shapeit4.vcf.gz"
+# sample_phased_vcf:
+#
+# #if no "sample_WGS_meryl" key, default input will be "c3_merge_snv/meryl/{sample}/{sample}-WGS.meryl" (directory)
+# sample_WGS_meryl:

@@ -1,29 +1,22 @@
 Simplify_Pangenome: true
 
-samples:
-    test_data/samples.list
+samples: test_data/samples.list
 
 reference:
-    CHM13:
-        test_data/reference/chm13v2.0_maskedY_rCRS.fasta
-    GRCh38:
-        test_data/reference/GRCh38_no_alt_analysis_set.fasta
+  CHM13: test_data/reference/chm13v2.0.fasta
+  GRCh38: test_data/reference/GRCh38_no_alt_analysis_set.fasta
 
 train_sample_list: test_data/train_sample.list
 
-prefix:
-    test
-
-phased_snv:
-
-#if no "subgraph_list" key, default input will be : "c7_graph_construction/subgraph_id.list" 
-subgraph_id_list: 
-
-#if no "subgraph_fa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta" 
-subgraph_fa:
-
-#if no "subgraph_gfa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa" 
-subgraph_gfa: 
-
-
-    
+prefix: test
+# #if no "subgraph_list" key, default input will be : "c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.shapeit.vcf.gz"
+# phased_snv:
+#
+# #if no "subgraph_list" key, default input will be : "c7_graph_construction/subgraph_id.list"
+# subgraph_id_list:
+#
+# #if no "subgraph_fa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta"
+# subgraph_fa:
+#
+# #if no "subgraph_gfa" key, default input will be : "c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.gfa"
+# subgraph_gfa:
