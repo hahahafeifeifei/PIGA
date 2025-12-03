@@ -26,7 +26,6 @@ rule kmc_prepare_sample_kmer:
         kff = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer.kff"
     params:
         tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp",
-        tmp_dir = "c8_diploid_path_infer/sample_assembly/{sample}/tmp",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer"
     threads: 4
     resources:
@@ -142,7 +141,6 @@ rule vcfbub_vcf_genotype:
         phasing_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_phasing.vcf.gz"),
         vcfbub_vcf_gz = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.norm.vcfbub.vcf.gz")
     params:
-        pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre",
         pre_prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_pre",
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan"
     resources:
@@ -428,7 +426,6 @@ rule get_phase_assembly_sv_vcf:
         phase_assembly_correct_hap2_fa = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.phase_assembly.fasta"
     output:
         complete_assembly_phase_assembly_hap1_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap1.complete_assembly.phase_assembly.vcf.gz"),
-        complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz"),
         complete_assembly_phase_assembly_hap2_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.phase_assembly.vcf.gz"),
         complete_assembly_phase_assembly_hap1_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap1.complete_assembly.phase_assembly.sv.vcf"),
         complete_assembly_phase_assembly_hap2_sv_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}.hap2.complete_assembly.phase_assembly.sv.vcf")

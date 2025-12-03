@@ -44,13 +44,6 @@ The file must be **space-delimited**, with:
 - `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
 - `GRCh38`: Provide the path to the **GRCh38 reference genome** (FASTA format. Indexed by `samtools faidx`).
 
-**`internal_assembly_list`**: Specify the path to a file listing **internal genome assemblies** to be included in pangenome construction.
-The file must be **space-delimited**, with:
-
-- **Column 1:** Haplotype/assembly name
-- **Column 2:** Path to the haplotype/assembly `fasta` file
-
-One assembly path per line.
 
 **`external_assembly_list`**: Specify the path to a file listing **external genome assemblies** to be included in pangenome construction.
 The file must be **space-delimited**, with:
@@ -59,6 +52,12 @@ The file must be **space-delimited**, with:
 - **Column 2:** Path to the haplotype/assembly `fasta` file
 
 **`prefix`**: Prefix used for naming output files.
+
+**`internal_assembly_list`**(optional): Specify the path to a file listing **internal genome assemblies** to be included in pangenome construction.
+The file must be **space-delimited**, with:
+
+- **Column 1:** Haplotype/assembly name
+- **Column 2:** Path to the haplotype/assembly `fasta` file
 
 ### Usage
 

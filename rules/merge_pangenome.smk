@@ -1,9 +1,4 @@
-
 chr_list= [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
-
-id_list = get_already_subgraph_ids(config)
-wildcard_constraints:
-    id = "|".join(id_list)
 
 rule all_merge_pangenome:
     input:
@@ -30,8 +25,8 @@ rule subgraph_feature:
 
 rule feature_merge:
     input:
-        counts = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.node.count", id=id_list),
-        chr_subgraphs = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.chr_subgraph.list", id=id_list)
+        counts = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.node.count", id=get_already_subgraph_ids),
+        chr_subgraphs = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.chr_subgraph.list", id=get_already_subgraph_ids)
     output:
         node_counts = f"c7_graph_construction/{config['prefix']}.node.count",
         node_sum_counts = f"c7_graph_construction/{config['prefix']}.node.sum.count",
@@ -67,8 +62,8 @@ rule node_ids:
 
 rule chr_merge:
     input:
-        ids_assembly_gfas = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa", id=id_list),
-        ids_variant_paths = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path", id=id_list),
+        ids_assembly_gfas = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa", id=get_already_subgraph_ids),
+        ids_variant_paths = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path", id=get_already_subgraph_ids),
         chr_subgraph_list = f"c7_graph_construction/{config['prefix']}.chr_subgraph.list"
     output:
         gfa_list = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.gfa.list",

@@ -30,7 +30,7 @@ rule rename_reference:
         """
 
 external_assembly_id_dict, external_assembly_id_list = {}, []
-with open(get_external_assembly_list(config)) as f:
+with open(config['external_assembly_list']) as f:
     for line in f:
         if not line.strip():
             continue
@@ -39,25 +39,12 @@ with open(get_external_assembly_list(config)) as f:
         external_assembly_id_list.append(assembly_id)
         external_assembly_id_dict[assembly_id] = assembly
 
-
-internal_assembly_id_dict, internal_assembly_id_list = {}, []
-with open(get_internal_assembly_list(config)) as f:
-    for line in f:
-        if not line.strip():
-            continue
-        assembly_id = line.strip().split()[0]
-        assembly = line.strip().split()[1]
-        internal_assembly_id_list.append(assembly_id)
-        internal_assembly_id_dict[assembly_id] = assembly
-
 rule rename_external_assembly:
     input:
         fa = get_external_assembly_fa
     output:
         rename_fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta',
         rename_fai = 'c7_graph_construction/fasta/{external_assembly_id}.fasta.fai'
-    wildcard_constraints:
-        external_assembly_id = "|".join([re.escape(str(i)) for i in external_assembly_id_list])
     resources:
         mem_mb = 30*1024,
     shell:
@@ -109,8 +96,6 @@ rule rename_internal_assembly:
     output:
         rename_fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta',
         rename_fai = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta.fai'
-    wildcard_constraints:
-        internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
     resources:
         mem_mb = 30*1024
     shell:
@@ -139,7 +124,7 @@ rule split_internal_assembly_by_chr:
 rule internal_chr_minigraph:
     input:
         minigraph_external_chr_gfa = f"c7_graph_construction/chr_gfa/{config['prefix']}.minigraph_external.{{chr}}.gfa",
-        internal_assembly_fa = expand('c7_graph_construction/chr_fasta/{{chr}}/{internal_assembly_id}.{{chr}}.fasta', internal_assembly_id = internal_assembly_id_list)
+        internal_assembly_fa = expand('c7_graph_construction/chr_fasta/{{chr}}/{internal_assembly_id}.{{chr}}.fasta', internal_assembly_id = get_internal_assembly_id_list)
     output:
         minigraph_chr_gfa = f"c7_graph_construction/chr_gfa/{config['prefix']}.minigraph.{{chr}}.gfa"
     threads: 8
@@ -212,8 +197,6 @@ rule minigraph_alignment_external_assembly:
         fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta'
     output:
         gaf = "c7_graph_construction/gaf/{external_assembly_id}.gaf"
-    wildcard_constraints:
-        external_assembly_id = "|".join([re.escape(str(i)) for i in external_assembly_id_list])
     resources:
         mem_mb = 100*1024
     threads: 10
@@ -228,8 +211,6 @@ rule minigraph_alignment_internal_assembly:
         fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
     output:
         gaf = "c7_graph_construction/gaf/{internal_assembly_id}.gaf"
-    wildcard_constraints:
-        internal_assembly_id = "|".join([re.escape(str(i)) for i in internal_assembly_id_list])
     resources:
         mem_mb = 100*1024
     threads: 10
@@ -240,7 +221,7 @@ rule minigraph_alignment_internal_assembly:
 
 checkpoint minigraph_aln_partition:
     input:
-        gafs = expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = ["GRCh38", "CHM13"] + internal_assembly_id_list + external_assembly_id_list),
+        gafs = expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = lambda wildcards: ["GRCh38", "CHM13"] + get_internal_assembly_id_list(wildcards) + external_assembly_list),
         node_edge_clip_gfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
         node_len = f"c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv"
     output:

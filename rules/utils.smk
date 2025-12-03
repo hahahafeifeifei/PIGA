@@ -83,29 +83,58 @@ def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     return chr_list
 
 
-def get_external_assembly_list(config):
-    if "external_assembly_list" in config:
-        return config["external_assembly_list"]
-    else:
-        return "/dev/null"
-
 def get_external_assembly_fa(wildcards):
     return external_assembly_id_dict[wildcards.external_assembly_id]
 
-def get_internal_assembly_list(config):
+
+def generate_internal_assembly_dict(config):
+    
     if "internal_assembly_list" in config:
-        return config["internal_assembly_list"]
+        internal_assembly_list_file = config["internal_assembly_list"]
     else:
-        return "c6_draft_assembly/sample_assembly/internal_assembly.list"
+        ### Step by step mode, 'c6_draft_assembly/sample_assembly/internal_assembly.list' has been provided.
+        if os.path.exists('c6_draft_assembly/sample_assembly/internal_assembly.list'):
+            internal_assembly_list_file = 'c6_draft_assembly/sample_assembly/internal_assembly.list'
+        ### Run All mode, 'c6_draft_assembly/sample_assembly/internal_assembly.list' hasn't been generated yet.
+        else:
+            internal_assembly_list_file = checkpoints.assembly_list.get().output.internal_assembly_list
+
+
+    with open(internal_assembly_list_file) as f:
+
+      internal_assembly_dict = {}
+      for line in f:
+          if not line.strip():
+              continue
+          assembly_id = line.strip().split()[0]
+          assembly = line.strip().split()[1]
+          internal_assembly_dict[assembly_id] = assembly
+      return internal_assembly_dict
+
+def get_internal_assembly_id_list(wildcards):
+    
+    if "internal_assembly_dict" not in config:
+        config['internal_assembly_dict'] = generate_internal_assembly_dict(config)
+
+    return [id for id in config['internal_assembly_dict'].keys()]
 
 def get_internal_assembly_fa(wildcards):
-    return internal_assembly_id_dict[wildcards.internal_assembly_id]
+    
+    if "internal_assembly_dict" not in config:
+        config['internal_assembly_dict'] = generate_internal_assembly_dict(config)
 
-def get_already_subgraph_ids(config):
+    return config['internal_assembly_dict'][wildcards.internal_assembly_id]
+
+def get_already_subgraph_ids(wildcards):
     if "subgraph_id_list" in config:
         subgraph_id_list = config["subgraph_id_list"]
     else:
-        subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
+        ### Step by step mode, 'c7_graph_construction/subgraph_id_list' has been provided.
+        if os.path.exists('c7_graph_construction/subgraph_id.list'):
+            subgraph_id_list = 'c7_graph_construction/subgraph_id.list'
+        ### Run All mode, 'c7_graph_construction/subgraph_id_list' hasn't been generated yet.
+        else:
+            subgraph_id_list = checkpoints.minigraph_aln_partition.get().output.subgraph_id_list
     with open(subgraph_id_list) as f:
         return [line.strip() for line in f if line.strip()]
 

@@ -332,7 +332,7 @@ rule phase_assembly:
             -t {threads}
         """
 
-rule assembly_list:
+checkpoint assembly_list:
     input:
         hap1_fa = expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap1.fasta", sample = samples_list),
         hap2_fa = expand("c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.hap2.fasta", sample = samples_list)
