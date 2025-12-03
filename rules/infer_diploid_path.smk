@@ -576,6 +576,7 @@ rule complete_assembly_polish_region_merqury_clip:
         mem_mb= 30*1024,
     shell:
         """
+        export MERQURY=$CONDA_PREFIX/bin
         mkdir -p {params.merqury_dir}
         cd {params.merqury_dir}
         merqury.sh {input.sample_meryl} {input.complete_assembly_hap1_polish_fa} {input.complete_assembly_hap2_polish_fa} merqury

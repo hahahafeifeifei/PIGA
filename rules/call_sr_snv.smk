@@ -2,7 +2,7 @@ rule all_call_sr_snv:
     input:
         f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz",
 
-rule personal_ref_bwa_map:
+rule bwa_index:
     input:
         ref = config['reference']['CHM13']
     output:
@@ -351,7 +351,8 @@ def get_intervals_list(wildcards):
 
 rule merge_intervals:
     input:
-        vcfs = expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",interval = get_intervals_list)
+        vcfs = lambda wildcards: expand("c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz",
+            interval=get_intervals_list(wildcards))
     output:
         vcf_list = "c1_call_sr_snv/merged_vcf/interval.vcf.list",
         merged_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.vcf.gz"

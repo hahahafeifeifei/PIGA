@@ -94,11 +94,12 @@ cd ${buildDir}
 wget https://github.com/marbl/merqury/archive/v1.3.tar.gz
 tar -zxvf v1.3.tar.gz
 cd merqury-1.3
-sed 's/$MERQURY\/eval\///g' ~/miniforge3/envs/test4/bin/merqury.sh
 mv merqury.sh ${binDir}
+mv build ${binDir}
+mv eval ${binDir}
+mv plot ${binDir}
 mv trio ${binDir}
 mv util ${binDir}
-mv eval ${binDir}
 cd ${buildDir}
 
 # Download Beagle utilities
