@@ -48,7 +48,7 @@ Use `{sample}` as a wildcard, which will be replaced automatically by the sample
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_sr_snv.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_sr_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
 
 ## call_lr_snv
@@ -94,7 +94,7 @@ Use `{sample}` as a wildcard; it will be automatically replaced with sample name
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_lr_snv.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_lr_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
 
 ## merge_snv
@@ -136,5 +136,5 @@ If omitted, the workflow will use the default:
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_snv.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_snv.yaml --workflow-profile ./profile/config_slurm/
 ```

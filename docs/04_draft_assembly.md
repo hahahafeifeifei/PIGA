@@ -90,5 +90,5 @@ If omitted, the workflow will use the default:
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/draft_assembly.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/draft_assembly.yaml --workflow-profile ./profile/config_slurm/
 ```

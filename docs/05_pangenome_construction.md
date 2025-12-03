@@ -64,7 +64,7 @@ The file must be **space-delimited**, with:
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/construct_pangenome.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/construct_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```
 
 ## simplify_pangenome
@@ -122,7 +122,7 @@ If omitted, the workflow will use the default:
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/simplify_pangenome.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/simplify_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```
 
 ## merge_pangenome
@@ -158,5 +158,5 @@ If omitted, the workflow will use the default:
 ### Usage
 
 ```bash
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_pangenome.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```

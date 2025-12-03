@@ -84,7 +84,7 @@ The configuration file should contain:
 - `external_assembly_list`: Path to a file listing external genome assemblies used for constructing the PIGA pangenome.
 
 - `train_sample_list`: Path to a file listing names of matched assemblies from training samples used for model training.
-The file should be tab-delimited, with:
+  The file should be tab-delimited, with:
   - Column 1: Names of PIGA draft assemblies from training samples
   - Column 2: Names of matched high-quality assemblies from training samples used as the truth
 
@@ -100,7 +100,7 @@ This method is suitable for running PIGA on a single, powerful machine. It will 
 
 ```bash
 # Run PIGA locally using up to 64 cores
-snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local.yaml
+snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/
 ```
 
 #### Option 2: Cluster Execution (with Profile)
@@ -109,7 +109,7 @@ This method is designed for high-performance computing (HPC) environments and us
 
 ```bash
 # Run PIGA using a workflow profile to submit jobs to a cluster
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --workflow-profile ./profile/config_slurm.yaml
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --workflow-profile ./profile/config_slurm/
 ```
 
 **Note:** By default, we provide a profile which is configured to use the **SLURM** job scheduler. You can customize the cluster settings (e.g., switch to a different scheduler or change resource allocation) by editing the configuration file.
