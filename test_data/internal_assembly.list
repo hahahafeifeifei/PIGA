@@ -1,6 +1,6 @@
-test-sample1.0  c6_draft_assembly/sample_assembly/test-sample1/assembly/test-sample1.hap1.fasta
-test-sample1.1  c6_draft_assembly/sample_assembly/test-sample1/assembly/test-sample1.hap2.fasta
-test-sample2.0  c6_draft_assembly/sample_assembly/test-sample2/assembly/test-sample2.hap1.fasta
-test-sample2.1  c6_draft_assembly/sample_assembly/test-sample2/assembly/test-sample2.hap2.fasta
-test-sample3.0  c6_draft_assembly/sample_assembly/test-sample3/assembly/test-sample3.hap1.fasta
-test-sample3.1  c6_draft_assembly/sample_assembly/test-sample3/assembly/test-sample3.hap2.fasta
+test-sample1.0  c6_draft_assembly/test-sample1/assembly/test-sample1.hap1.fasta
+test-sample1.1  c6_draft_assembly/test-sample1/assembly/test-sample1.hap2.fasta
+test-sample2.0  c6_draft_assembly/test-sample2/assembly/test-sample2.hap1.fasta
+test-sample2.1  c6_draft_assembly/test-sample2/assembly/test-sample2.hap2.fasta
+test-sample3.0  c6_draft_assembly/test-sample3/assembly/test-sample3.hap1.fasta
+test-sample3.1  c6_draft_assembly/test-sample3/assembly/test-sample3.hap2.fasta
