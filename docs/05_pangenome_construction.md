@@ -44,7 +44,6 @@ The file must be **space-delimited**, with:
 - `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
 - `GRCh38`: Provide the path to the **GRCh38 reference genome** (FASTA format. Indexed by `samtools faidx`).
 
-
 **`external_assembly_list`**: Specify the path to a file listing **external genome assemblies** to be included in pangenome construction.
 The file must be **space-delimited**, with:
 
@@ -53,7 +52,10 @@ The file must be **space-delimited**, with:
 
 **`prefix`**: Prefix used for naming output files.
 
-**`internal_assembly_list`**(optional): Specify the path to a file listing **internal genome assemblies** to be included in pangenome construction.
+**`internal_assembly_list`** _(optional)_: Specify the path to a file listing **internal genome assemblies** to be included in pangenome construction.
+If omitted, the workflow will use the default:
+`c6_draft_assembly/sample_assembly/internal_assembly.list`
+
 The file must be **space-delimited**, with:
 
 - **Column 1:** Haplotype/assembly name
