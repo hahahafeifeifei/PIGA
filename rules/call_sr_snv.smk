@@ -339,7 +339,7 @@ checkpoint generate_intervals:
     shell:
         """
         awk -v FS='\\t' '{{print $1"\\t"$2}}' {input.ref_fai} > {output.genome_size}
-        bedtools makewindows -g {output.genome_size} -w 20000000 | awk '{print $1":"$2+1"-"$3}' > {output.genome_interval}
+        bedtools makewindows -g {output.genome_size} -w 20000000 | awk '{{print $1":"$2+1"-"$3}}' > {output.genome_interval}
         """
 
 def get_intervals_list(wildcards):
