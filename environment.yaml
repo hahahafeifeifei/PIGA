@@ -9,13 +9,13 @@ dependencies:
   - pip
   - pip:
       - bdsg
-  - snakemake
+  - snakemake>=8
   - pandas
   - numpy
   - scikit-learn
   - pytorch
   - pysam
-  - singularity>=8
+  - singularity
   - minigraph
   - seqkit
   - vg
