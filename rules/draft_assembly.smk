@@ -201,7 +201,7 @@ rule haplotype_largest_block:
 
 rule concat_final_phase_vcf:
     input:
-        sample_chr_assembly_merge_phase_vcfs = expand("c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.whatshap_phase.{chr}.vcf.gz", chr=concat_final_phase_vcf_sex_specific_chrlist, allow_missing=True)
+        sample_chr_assembly_merge_phase_vcfs = lambda wildcards: expand("c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.whatshap_phase.{chr}.vcf.gz", chr=concat_final_phase_vcf_sex_specific_chrlist(wildcards), allow_missing=True)
     output:
         sample_assembly_merge_phase_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.phase.vcf.gz"
     threads: 4
@@ -213,6 +213,21 @@ rule concat_final_phase_vcf:
             -Oz -o {output.sample_assembly_merge_phase_vcf}
         tabix -f {output.sample_assembly_merge_phase_vcf}
         """
+
+# rule concat_final_phase_vcf:
+#     input:
+#         sample_chr_assembly_merge_phase_vcfs = expand("c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.whatshap_phase.{chr}.vcf.gz", chr=concat_final_phase_vcf_sex_specific_chrlist, allow_missing=True)
+#     output:
+#         sample_assembly_merge_phase_vcf = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.merge.phase.vcf.gz"
+#     threads: 4
+#     resources: 
+#         mem_mb = 30*1024
+#     shell:
+#         """
+#         bcftools concat --threads {threads} {input.sample_chr_assembly_merge_phase_vcfs} \
+#             -Oz -o {output.sample_assembly_merge_phase_vcf}
+#         tabix -f {output.sample_assembly_merge_phase_vcf}
+#         """
 
 rule correct_switch_error:
     input:

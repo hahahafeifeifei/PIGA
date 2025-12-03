@@ -1,6 +1,6 @@
 rule all_simplify_pangenome:
     input:
-        expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = get_already_subgraph_ids)
+        lambda wildcards: expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa", id = get_already_subgraph_ids(wildcards))
 
 rule graph_bed_filtering:
     input:
@@ -116,8 +116,8 @@ rule gnn_feature_extract:
 
 rule statistic_prepare:
     input:
-        node_feature_labels = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label", id = get_already_subgraph_ids),
-        edge_feature_labels = expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label", id = get_already_subgraph_ids)
+        node_feature_labels = lambda wildcards: expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.node.feature_label", id = get_already_subgraph_ids(wildcards)),
+        edge_feature_labels = lambda wildcards: expand(f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.edge.feature_label", id = get_already_subgraph_ids(wildcards))
     output:
         train_node_info = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.info",
         train_node_statistics = f"c7_graph_construction/ml_model/{config['prefix']}.train_node.statistics",

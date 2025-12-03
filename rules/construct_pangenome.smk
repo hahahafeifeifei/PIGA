@@ -124,7 +124,7 @@ rule split_internal_assembly_by_chr:
 rule internal_chr_minigraph:
     input:
         minigraph_external_chr_gfa = f"c7_graph_construction/chr_gfa/{config['prefix']}.minigraph_external.{{chr}}.gfa",
-        internal_assembly_fa = expand('c7_graph_construction/chr_fasta/{{chr}}/{internal_assembly_id}.{{chr}}.fasta', internal_assembly_id = get_internal_assembly_id_list)
+        internal_assembly_fa = lambda wildcards: expand('c7_graph_construction/chr_fasta/{{chr}}/{internal_assembly_id}.{{chr}}.fasta', internal_assembly_id = get_internal_assembly_id_list(wildcards))
     output:
         minigraph_chr_gfa = f"c7_graph_construction/chr_gfa/{config['prefix']}.minigraph.{{chr}}.gfa"
     threads: 8
@@ -221,7 +221,7 @@ rule minigraph_alignment_internal_assembly:
 
 checkpoint minigraph_aln_partition:
     input:
-        gafs = expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = lambda wildcards: ["GRCh38", "CHM13"] + get_internal_assembly_id_list(wildcards) + external_assembly_list),
+        gafs = lambda wildcards: expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = ["GRCh38", "CHM13"] + get_internal_assembly_id_list(wildcards) + external_assembly_list),
         node_edge_clip_gfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
         node_len = f"c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv"
     output:
