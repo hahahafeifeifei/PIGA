@@ -1,4 +1,4 @@
-test-sample2.0  test_data/test-sample2/test-sample2.high.hap1.fasta
-test-sample2.1  test_data/test-sample2/test-sample2.high.hap2.fasta
-test-sample3.0  test_data/test-sample3/test-sample3.high.hap1.fasta
-test-sample3.1  test_data/test-sample3/test-sample3.high.hap1.fasta
+test-sample2_high.0  test_data/test-sample2/test-sample2.high.hap1.fasta
+test-sample2_high.1  test_data/test-sample2/test-sample2.high.hap2.fasta
+test-sample3_high.0  test_data/test-sample3/test-sample3.high.hap1.fasta
+test-sample3_high.1  test_data/test-sample3/test-sample3.high.hap1.fasta

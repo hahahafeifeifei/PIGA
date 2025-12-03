@@ -15,10 +15,10 @@ rule rename_reference:
         chm13_fa=config["reference"]["CHM13"],
         grch38_fa=config["reference"]["GRCh38"]
     output:
-        chm13_rename_fa='c7_graph_construction/fasta/CHM13.fasta',
-        chm13_rename_fai='c7_graph_construction/fasta/CHM13.fasta.fai',
-        grch38_rename_fa='c7_graph_construction/fasta/GRCh38.fasta',
-        grch38_rename_fa_fai='c7_graph_construction/fasta/GRCh38.fasta.fai'
+        chm13_rename_fa='c7_graph_construction/fasta/reference/CHM13.fasta',
+        chm13_rename_fai='c7_graph_construction/fasta/reference/CHM13.fasta.fai',
+        grch38_rename_fa='c7_graph_construction/fasta/reference/GRCh38.fasta',
+        grch38_rename_fa_fai='c7_graph_construction/fasta/reference/GRCh38.fasta.fai'
     resources:
         mem_mb = 30*1024,
     shell:
@@ -43,8 +43,8 @@ rule rename_external_assembly:
     input:
         fa = get_external_assembly_fa
     output:
-        rename_fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta',
-        rename_fai = 'c7_graph_construction/fasta/{external_assembly_id}.fasta.fai'
+        rename_fa = 'c7_graph_construction/fasta/external/{external_assembly_id}.fasta',
+        rename_fai = 'c7_graph_construction/fasta/external/{external_assembly_id}.fasta.fai'
     resources:
         mem_mb = 30*1024,
     shell:
@@ -57,9 +57,9 @@ rule rename_external_assembly:
 
 rule external_minigraph:
     input:
-        chm13_fa='c7_graph_construction/fasta/CHM13.fasta',
-        grch38_fa='c7_graph_construction/fasta/GRCh38.fasta',
-        external_assembly_fa = expand('c7_graph_construction/fasta/{external_assembly_id}.fasta', external_assembly_id = external_assembly_id_list)
+        chm13_fa='c7_graph_construction/fasta/reference/CHM13.fasta',
+        grch38_fa='c7_graph_construction/fasta/reference/GRCh38.fasta',
+        external_assembly_fa = expand('c7_graph_construction/fasta/external/{external_assembly_id}.fasta', external_assembly_id = external_assembly_id_list)
     output:
         minigraph_external_gfa = f"c7_graph_construction/{config['prefix']}.minigraph_external.gfa"
     threads: 16
@@ -94,8 +94,8 @@ rule rename_internal_assembly:
     input:
         fa = get_internal_assembly_fa 
     output:
-        rename_fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta',
-        rename_fai = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta.fai'
+        rename_fa = 'c7_graph_construction/fasta/internal/{internal_assembly_id}.fasta',
+        rename_fai = 'c7_graph_construction/fasta/internal/{internal_assembly_id}.fasta.fai'
     resources:
         mem_mb = 30*1024
     shell:
@@ -108,7 +108,7 @@ rule rename_internal_assembly:
 
 rule split_internal_assembly_by_chr:
     input:
-        fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+        fa = 'c7_graph_construction/fasta/internal/{internal_assembly_id}.fasta'
     output:
         chr_fa = "c7_graph_construction/chr_fasta/{chr}/{internal_assembly_id}.{chr}.fasta"
     wildcard_constraints:
@@ -177,8 +177,8 @@ rule minigraph_clip:
 rule minigraph_alignment_reference:
     input:
         node_clip_rgfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_clip.rgfa",
-        chm13_fa = 'c7_graph_construction/fasta/CHM13.fasta',
-        grch38_fa = 'c7_graph_construction/fasta/GRCh38.fasta'
+        chm13_fa = 'c7_graph_construction/fasta/reference/CHM13.fasta',
+        grch38_fa = 'c7_graph_construction/fasta/reference/GRCh38.fasta'
     output:
         chm13_gaf = "c7_graph_construction/gaf/CHM13.gaf",
         grch38_gaf = "c7_graph_construction/gaf/GRCh38.gaf"
@@ -194,7 +194,7 @@ rule minigraph_alignment_reference:
 rule minigraph_alignment_external_assembly:
     input:
         node_clip_rgfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_clip.rgfa",
-        fa = 'c7_graph_construction/fasta/{external_assembly_id}.fasta'
+        fa = 'c7_graph_construction/fasta/external/{external_assembly_id}.fasta'
     output:
         gaf = "c7_graph_construction/gaf/{external_assembly_id}.gaf"
     resources:
@@ -208,7 +208,7 @@ rule minigraph_alignment_external_assembly:
 rule minigraph_alignment_internal_assembly:
     input:
         node_clip_rgfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_clip.rgfa",
-        fa = 'c7_graph_construction/fasta/{internal_assembly_id}.fasta'
+        fa = 'c7_graph_construction/fasta/internal/{internal_assembly_id}.fasta'
     output:
         gaf = "c7_graph_construction/gaf/{internal_assembly_id}.gaf"
     resources:
@@ -274,7 +274,7 @@ rule minigraph_seq_partition:
         awk '{{print $1}}' {params.prefix}_{wildcards.id}.bed | while read sample
         do
             awk -v sample=$sample '{{if($1==sample)print$2}}' {params.prefix}_{wildcards.id}.bed > {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed
-            samtools faidx -r {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed {params.fa_dir}/$sample.fasta > {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.fasta
+            samtools faidx -r {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.bed {params.fa_dir}/*/$sample.fasta > {params.subgraph_fa_dir}/$sample.subgraph_{wildcards.id}.fasta
         done
         awk '{{if($1=="S")print">_MINIGRAPH_.s"$2"\\n"$3}}' {params.prefix}_{wildcards.id}.gfa > {params.subgraph_fa_dir}/_MINIGRAPH_.subgraph_{wildcards.id}.fasta
         cat {params.subgraph_fa_dir}/*fasta > {output.fa}
