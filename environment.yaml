@@ -8,14 +8,14 @@ dependencies:
   - python<=3.10
   - pip
   - pip:
-    - bdsg
+      - bdsg
   - snakemake
   - pandas
   - numpy
   - scikit-learn
   - pytorch
   - pysam
-  - singularity
+  - singularity>=8
   - minigraph
   - seqkit
   - vg
@@ -49,3 +49,4 @@ dependencies:
   - sniffles
   - jasminesv
   - freebayes
+
