@@ -99,6 +99,8 @@ After setting up the configuration file (`config/config.yaml`) with your sample 
 This method is suitable for running PIGA on a single, powerful machine. It will use the specified number of cores on the local machine.
 
 ```bash
+# Dry run test
+snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/ --dry-run
 # Run PIGA locally using up to 64 cores
 snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/
 ```
