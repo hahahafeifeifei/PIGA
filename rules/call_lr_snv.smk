@@ -59,7 +59,7 @@ rule lr_hifi_dv:
         DV_INTERMEDIATE_DIR = "c2_call_lr_snv/sample_gvcf/{sample}/dv_intermediate_outputs",
         REF_DIR = lambda wildcards, input: os.path.dirname(input.ref)
     singularity:
-        "scripts/call_lr_snv/deepvariant.sif"
+        "file://scripts/call_lr_snv/deepvariant.sif"
     threads: 16
     shell:
         """

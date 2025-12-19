@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - compilers
-  - cmake
+  - cmake=3
   - gcc=9
   - python<=3.10
   - pip
@@ -15,7 +15,7 @@ dependencies:
   - scikit-learn
   - pytorch
   - pysam
-  - singularity
+  - singularity=3
   - minigraph
   - seqkit
   - vg
