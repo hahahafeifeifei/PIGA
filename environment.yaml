@@ -9,7 +9,7 @@ dependencies:
   - pip
   - pip:
       - bdsg
-  - snakemake>=8
+  - snakemake
   - pandas
   - numpy
   - scikit-learn
