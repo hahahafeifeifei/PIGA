@@ -66,10 +66,17 @@ rule chr_consensus_vcf_shapeit:
         mem_mb = 100*1024,
     shell:
         """
-        shapeit4 --input {input.merge_whatshap_filter_vcf} \
-            --region {wildcards.chr} \
-            --pbwt-depth 8 -T {threads} --sequencing --use-PS 0.0001 \
-            --out {output.consensus_whatshap_shapeit_vcf}
+        sample_number=$(bcftools query -l {input.merge_whatshap_filter_vcf} | wc -l)
+        if [ ${sample_number} -lt 20 ];
+        then
+            bcftools view {input.merge_whatshap_filter_vcf} {wildcards.chr} | \ 
+            awk -v OFS='\\t' -v FS='\\t' '{{if(substr($1,1,1)!="#") {{for(i=10;i<=NF;i++) gsub("/", "|", $i)}};print $0 }}' | bgzip -c > {output.consensus_whatshap_shapeit_vcf}
+        else
+            shapeit4 --input {input.merge_whatshap_filter_vcf} \
+                --region {wildcards.chr} \
+                --pbwt-depth 8 -T {threads} --sequencing --use-PS 0.0001 \
+                --out {output.consensus_whatshap_shapeit_vcf}
+        fi
         tabix -f {output.consensus_whatshap_shapeit_vcf}
         """
 
