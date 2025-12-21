@@ -67,7 +67,7 @@ rule chr_consensus_vcf_shapeit:
     shell:
         """
         sample_number=$(bcftools query -l {input.merge_whatshap_filter_vcf} | wc -l)
-        if [ ${sample_number} -lt 20 ];
+        if [ $sample_number -lt 20 ];
         then
             bcftools view {input.merge_whatshap_filter_vcf} {wildcards.chr} | \ 
             awk -v OFS='\\t' -v FS='\\t' '{{if(substr($1,1,1)!="#") {{for(i=10;i<=NF;i++) gsub("/", "|", $i)}};print $0 }}' | bgzip -c > {output.consensus_whatshap_shapeit_vcf}
