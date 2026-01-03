@@ -60,7 +60,7 @@ rule lr_hifi_dv:
         REF_DIR = lambda wildcards, input: os.path.dirname(input.ref)
     singularity:
         "file://scripts/call_lr_snv/deepvariant.sif"
-    threads: 16
+    threads: 8
     shell:
         """
         mkdir -p {params.DV_INTERMEDIATE_DIR}
@@ -179,9 +179,7 @@ rule lr_whatshap_vcf_merge:
         merge_whatshap_snp_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.vcf.gz",
         merge_whatshap_filter_snp_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.vcf.gz",
         merge_whatshap_filter_snp_vcf_tbi = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.vcf.gz.tbi"
-    threads: 16
-    resources:
-        max_mem_gb = 300
+    threads: 4
     shell:
         """
         bcftools merge --threads {threads} -m none {input.whatshap_reform_snp_vcfs} -Oz -o {output.merge_whatshap_snp_vcf}

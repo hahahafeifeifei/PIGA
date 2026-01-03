@@ -48,11 +48,11 @@ rule personal_pangenome:
         """
         ls {input.sr_fq1} {input.sr_fq2} {input.lr_hifi_fastqs} > {output.kmer_fq_list}
         mkdir {params.prefix}_tmp
-        kmc -k29 -m{resources.max_mem_gb} -okff -t{threads} -hp @{output.kmer_fq_list} {params.prefix} {params.prefix}_tmp
+        kmc -k29 -okff -t{threads} -hp @{output.kmer_fq_list} {params.prefix} {params.prefix}_tmp
         rm -rf {params.prefix}_tmp
 
         vg haplotypes -t {threads} --include-reference --num-haplotypes 8 --linear-structure -i {input.pangenome_hapl} -k {output.sample_kff} -g {output.sample_chop_gbz} {input.pangenome_gbz}
-        vg view --threads {threads} {output.sample_chop_gbz} | vg mod -t {threads} -u - | vg view --threads {threads} - > {output.sample_gfa}
+        vg view {output.sample_chop_gbz} | vg mod -t {threads} -u - | vg view - > {output.sample_gfa}
         vg autoindex -g {output.sample_gfa} -w giraffe -t {threads} -p {params.prefix}
         """
 
@@ -75,7 +75,8 @@ rule graph_call:
         mem_mb = 100 * 1024,
     shell:
         """
-        GraphAligner -t {threads} -g {input.sample_gfa} -f {input.lr_zmw_fastqs} -a {output.sample_gam} -x vg --multimap-score-fraction 1
+        GraphAligner -t {threads} -g {input.sample_gfa} -f {input.lr_zmw_fastqs} -a {output.sample_gam} \
+        --seeds-mxm-length 30 --seeds-mem-count 10000 --bandwidth 15 --multimap-score-fraction 0.99 --min-alignment-score 100 --clip-ambiguous-ends 100 --overlap-incompatible-cutoff 0.15 --max-trace-count 5 --mem-index-no-wavelet-tree
         vg giraffe -t {threads} --named-coordinates -Z {input.sample_gbz} -m {input.sample_min} -z {input.sample_zipcodes} -d {input.sample_dist} -f {input.sr_fq1} -f {input.sr_fq2} >> {output.sample_gam}
         vg pack -t {threads} -x {input.sample_gfa} -g {output.sample_gam} -o {output.sample_pack}
         vg call -t {threads} {input.sample_gfa} -k {output.sample_pack} -s {wildcards.sample} -S CHM13 | bgzip -c > {output.sample_vcf}

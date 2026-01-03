@@ -328,7 +328,7 @@ rule phase_assembly:
         sex = get_sex,
         tmp_dir = "c6_draft_assembly/sample_assembly/{sample}/{sample}_tmp",
         assembly_dir = "c6_draft_assembly/sample_assembly/{sample}/assembly"
-    threads: 28
+    threads: 8
     resources:
         mem_mb = 200*1024
     shell:

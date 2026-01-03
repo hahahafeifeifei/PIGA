@@ -26,7 +26,7 @@ GATK_Resource:
   axiomPoly: test_data/reference/gatk_bundle/Axiom_Exome_Plus.genotypes.all_populations.poly.chm13_liftover.vcf.gz
 
 external_pangenome:
-  - test_data/reference/hgsvc3-hprc-2024-02-23-mc-chm13.gbz
+  - test_data/reference/hgsvc3-hprc.clip_d21.gbz
 
 par_region: test_data/reference/chm13v2.0_chrX_PAR.bed
 

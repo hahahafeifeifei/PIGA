@@ -2,17 +2,19 @@ rule all_call_sr_snv:
     input:
         f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz",
 
-rule bwa_index:
+rule ref_index:
     input:
         ref = config['reference']['CHM13']
     output:
-        ref_index = config['reference']['CHM13'] + ".bwt"
+        bwa_index = config['reference']['CHM13'] + ".bwt",
+        dict_index = config['reference']['CHM13'].split(".fasta")[0] + ".dict"
     threads: 4
     resources:
         mem_mb = 64*1024
     shell:
         """
         bwa index {input.ref}
+        gatk CreateSequenceDictionary -R {input.ref} -O {output.dict_index}
         """
 
 rule sr_bwa_map:
