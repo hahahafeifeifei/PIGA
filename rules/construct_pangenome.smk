@@ -101,8 +101,8 @@ rule rename_internal_assembly:
     shell:
         """
         sample=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[1]}}')
-        haplotype=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[2]+1}}')
-        awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} > {output.rename_fa}
+        haplotype=$(echo {wildcards.internal_assembly_id} | awk '{{split($1,a,".");print a[2]}}')
+        awk -v sample=$sample -v hap=$haplotype '{{if(substr($0,1,1)==">") print ">"sample"."hap"."substr($1,2,length($1));else print $0}}' {input.fa} | sed "s/:/-/g" > {output.rename_fa}
         samtools faidx {output.rename_fa}
         """
 
@@ -221,7 +221,7 @@ rule minigraph_alignment_internal_assembly:
 
 checkpoint minigraph_aln_partition:
     input:
-        gafs = lambda wildcards: expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = ["GRCh38", "CHM13"] + get_internal_assembly_id_list(wildcards) + external_assembly_list),
+        gafs = lambda wildcards: expand("c7_graph_construction/gaf/{assembly_id}.gaf", assembly_id = ["GRCh38", "CHM13"] + get_internal_assembly_id_list(wildcards) + external_assembly_id_list),
         node_edge_clip_gfa = f"c7_graph_construction/{config['prefix']}.minigraph.node_edge_clip.gfa",
         node_len = f"c7_graph_construction/{config['prefix']}.minigraph.node_len.tsv"
     output:
@@ -309,7 +309,9 @@ rule smoothxg:
         fa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.fasta",
         seqwish_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.gfa"
     output:
-        smoothxg_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfa"
+        smoothxg_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.raw.gfa",
+        smoothxg_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfa",
+        groom_path= f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.groom.path"
     params:
         smoothxg_dir = 'c7_graph_construction/subgraph/subgraph_{id}/tmp'
     resources:
@@ -320,7 +322,12 @@ rule smoothxg:
         """
         mkdir -p {params.smoothxg_dir}
         sample_number=$(grep ">" {input.fa} | awk '{{split($1,a,".");if(length(a)==2) print a[1];else print a[1]"."a[2] }}' | sort -u | wc -l)
-        smoothxg -t {threads} -g {input.seqwish_gfa} --base {params.smoothxg_dir} -r ${sample_number} --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400,2200 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_gfa}
+        if ! smoothxg -t {threads} -g {input.seqwish_gfa} --base {params.smoothxg_dir} -r $sample_number --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400,2200 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_raw_gfa}
+        then
+            smoothxg -t {threads} -g {input.seqwish_gfa} --base {params.smoothxg_dir} -r $sample_number --chop-to 100 -I 0.98 -R 0 -j 0 -e 0 -l 1400 -p 1,4,6,2,26,1 -O 0.001 -Y $[100*$sample_number] -d 0 -D 0 -V -c 200M -W 1 -o {output.smoothxg_raw_gfa}
+        fi
+        grep ^P {output.smoothxg_raw_gfa} | grep CHM13 | awk '{{print $2}}' > {output.groom_path}
+        odgi groom -R {output.groom_path} -i {output.smoothxg_raw_gfa} -o - | odgi view -i - -g > {output.smoothxg_gfa}
         """
 
         

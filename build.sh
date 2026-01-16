@@ -12,6 +12,7 @@
 mainDir=$PWD
 buildDir=$PWD/piga_tools_build
 calllrDir=$PWD/scripts/call_lr_snv
+inferDir=$PWD/scripts/infer_diploid_path
 binDir=$CONDA_PREFIX/bin
 
 rm -rf ${buildDir}
@@ -33,7 +34,8 @@ export LDFLAGS="-L$CONDA_PREFIX/lib -ldeflate"
 cmake .
 make -j 8
 mv ./margin ${binDir}
-mv params/phase/allParams.phase_vcf.ont.sv.json ${mainDir}/config/margin.phase_sv.json
+mv params/phase/allParams.phase_vcf.ont.sv.json ${inferDir}/margin.phase_sv.json
+mv params/phase/base_params.json ${mainDir}/scripts/base_params.json
 cd ${buildDir}
 
 # Build Secphase

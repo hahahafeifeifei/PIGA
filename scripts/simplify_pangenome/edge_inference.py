@@ -74,7 +74,7 @@ threshold = float(sys.argv[4])
 
 outputs = []
 for inputs in loader:
-    outputs += torch.sigmoid(model(inputs[0])).detach().squeeze().tolist()
+    outputs += torch.sigmoid(model(inputs[0])).detach().flatten().tolist()
 labels = ["TP" if output >= threshold else "FP" for output in outputs]
 
 for i in range(len(data)):

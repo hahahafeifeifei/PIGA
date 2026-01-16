@@ -90,6 +90,7 @@ rule concat_consensus_vcf_shapeit:
         """        
         bcftools concat {input.consensus_whatshap_shapeit_vcfs} \
             --threads {threads} -Oz -o {output.concat_consensus_whatshap_shapeit_vcf}
+        tabix {output.concat_consensus_whatshap_shapeit_vcf}
         """
 
 

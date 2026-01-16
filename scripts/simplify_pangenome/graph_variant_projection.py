@@ -280,13 +280,13 @@ def main():
         path_step = g.get_next_step(path_step)
         node_start = node_end
         node_end = node_start + g.get_length(node_handle)
-
-        if chain_path[-1][0] == "V":
-            pre_node_start = node_start
-            chain_path.append("F" + str(pre_node_start))
-            flanking_handles_dict[pre_node_start] = [node_handle]
-        else:
-            flanking_handles_dict[pre_node_start].append(node_handle)
+        if chain_path != []:
+            if chain_path[-1][0] == "V":
+                pre_node_start = node_start
+                chain_path.append("F" + str(pre_node_start))
+                flanking_handles_dict[pre_node_start] = [node_handle]
+            else:
+                flanking_handles_dict[pre_node_start].append(node_handle)
         
         add_path = False
         for chain_item in chain_path:

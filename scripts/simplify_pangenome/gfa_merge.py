@@ -12,12 +12,28 @@ def openfile(filename):
     else:
         return open(filename, "r")
 
-subgraph_index = 0
+
 gfa_list = sys.argv[1]
 out_gfa_file = sys.argv[2]
 prefix = sys.argv[3]
-concat_sample = sys.argv[4]
+ref_sample = sys.argv[4]
 threads = int(sys.argv[5])
+
+ref_pos_list = []
+for gfa_file in openfile(gfa_list):
+    gfa_file = gfa_file.strip()
+    for line in openfile(gfa_file):
+        line_info = line.strip().split()
+        if line[0] == "W" and line.split()[3] == ref_sample:
+            ref_pos_list.append([gfa_file, line_info[1], int(line_info[4])])
+
+ref_sorted_pos_list = sorted(ref_pos_list, key=lambda x: x[2])
+gfa_index_dict = {}
+for i, item in enumerate(ref_sorted_pos_list):
+    key = item[0]
+    if key not in gfa_index_dict:
+        gfa_index_dict[key] = i
+
 
 fo1 = open(prefix + '.S_L', "w")
 fo2 = open(prefix + '.W_subgraph', "w")
@@ -27,8 +43,7 @@ for gfa_file in openfile(gfa_list):
         if line[0] == "S" or line[0] == "L":
             fo1.write(line)
         elif line[0] == "W":
-            fo2.write("\t".join(line.strip().split() + [str(subgraph_index)]) + "\n")
-    subgraph_index += 1
+            fo2.write("\t".join(line.strip().split() + [str(gfa_index_dict[gfa_file])]) + "\n")
 fo1.close()
 fo2.close()
 
@@ -45,7 +60,7 @@ for line in openfile(prefix + ".sort.W_subgraph"):
     start = line_info[4]
     end = line_info[5]
     path = line_info[6]
-    subgraph = line_info[7]
+    subgraph = int(line_info[7])
     if pre_contig == "null":
         pre_sample = sample
         pre_hap = hap
@@ -54,7 +69,7 @@ for line in openfile(prefix + ".sort.W_subgraph"):
         pre_start = start
         pre_end = end
         pre_subgraph = subgraph
-    elif sample == concat_sample and pre_sample == sample and contig == pre_contig and start == pre_end and subgraph != pre_subgraph:
+    elif pre_sample == sample and contig == pre_contig and start == pre_end and abs(subgraph-pre_subgraph)<=1:
         pre_path_end_node = re.split('<|>', pre_path)[1:][-1]
         pre_path_end_direct = re.split('\d+', pre_path)[:-1][-1].replace(">","+").replace("<","-")
         path_start_node = re.split('<|>', path)[1:][0]

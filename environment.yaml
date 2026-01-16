@@ -31,7 +31,7 @@ dependencies:
   - hiphase
   - pangenie
   - hdf5
-  - cutesv
+  - cutesv=2.1.1
   - truvari
   - meryl
   - bwa

@@ -55,9 +55,10 @@ rule get_sample_haplotype_path:
         mem_mb= 450*1024,
     shell:
         """
-        vg haplotypes -t {threads} -i {input.hapl} -k {input.sample_kff} -g {output.sample_haplotype_gbz} {input.gbz} --num-haplotypes 17 --include-reference --set-reference {wildcards.sample}
+        vg haplotypes -t {threads} -i {input.hapl} -k {input.sample_kff} -g {output.sample_haplotype_gbz} {input.gbz} --num-haplotypes 17
         vg convert -f {output.sample_haplotype_gbz} | \
-        awk -v FS='\\t' -v OFS='\\t' '{{if($2=="recombination") {{if($3==1) $2="recombination_ref"; else $3=$3-1}} print $0}}' > {output.sample_haplotype_gfa}
+        awk -v FS='\\t' -v OFS='\\t' 'BEGIN{{ctg_num=1}}{{if(substr($1,1,1)=="W") {{split($4,a,"_");if(a[2]<=21) $4="chr"a[2]+1; if(a[2]==22) $4="chrX"; if(a[2]==23) $4="chrY";if(a[2]==24) $4="chrM"}} \
+            if($2=="recombination") {{if($3==1) {{$2="recombination_ref";$4=$4"-ctg"ctg_num;ctg_num+=1;$6=$6-$5;$5=0}} else $3=$3-1;}} print $0}}' > {output.sample_haplotype_gfa}
         """
         
 rule form_sample_merge_chr_gfa:
@@ -76,11 +77,12 @@ rule form_sample_merge_chr_gfa:
     shell:
         """
         > {output.sample_merge_gfa}
-        cat {input.gfa} >> {output.sample_merge_gfa}
-        grep "{wildcards.sample}" {input.variant_path} >> {output.sample_merge_gfa} || true
-        grep -P "{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa} || true
-        python3 scripts/simplify_pangenome/gfa_remove_ac0_reverse.py {output.sample_merge_gfa} {output.rmac0_gfa}
+        grep "^S\|^L\|{wildcards.sample}\\t" {input.gfa} >> {output.sample_merge_gfa} || true
+        grep "{wildcards.sample}.snv\\t" {input.variant_path} >> {output.sample_merge_gfa} || true
+        grep -P "{wildcards.chr}-|{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa} || true
+        python3 scripts/infer_diploid_path/gfa_remove_ac0_reverse.py {output.sample_merge_gfa} {output.rmac0_gfa}
         python3 scripts/infer_diploid_path/gfa_fa.py {output.rmac0_gfa} recombination_ref 1 {output.ref_fa}
+        samtools faidx {output.ref_fa}
         """
 
 rule sample_chr_gfa_deconstruct:
@@ -102,7 +104,7 @@ rule sample_chr_gfa_deconstruct:
         gfaffix {output.unchop_gfa} > {output.unchop_gfaffix_gfa} 
         vg deconstruct -t {threads} -P recombination_ref -a -e -C {output.unchop_gfaffix_gfa} > {output.vcf}
         python3 scripts/infer_diploid_path/pangenie_norm.py {output.vcf} {wildcards.sample},{wildcards.sample}.snv,recombination {wildcards.sample} {params.sex} | \
-        bcftools view -o {output.norm_vcf}
+        awk -v OFS='\\t' '{{if($1=="#CHROM" && $12=="recombination") {{for(i=12;i<=19;i++) $i="recombination-"i-11}} print $0}}' | bcftools view -o {output.norm_vcf}
         tabix -f {output.norm_vcf}
         """
 
@@ -166,7 +168,7 @@ rule vcfbub_vcf_genotype:
         bgzip -f -@ {threads} {input.vcfbub_vcf}
         tabix {output.vcfbub_vcf_gz}
         
-        rm {params.pre_prefix}* *histo
+        rm {params.pre_prefix}*
         """
 
 rule pangenie_refine:
@@ -185,12 +187,12 @@ rule pangenie_refine:
         mem_mb= 30*1024,
     shell:
         """
-        python3 scripts/graph-simplification/pangenie_phase_fix.py {input.phasing_vcf} {params.phasing_refine_vcf}
+        python3 scripts/infer_diploid_path/pangenie_phase_fix.py {input.phasing_vcf} {params.phasing_refine_vcf}
         bgzip -f -@ {threads} {params.phasing_refine_vcf}
         tabix -f {output.phasing_refine_vcf_gz}
 
         bcftools merge -m all --force-samples {input.genotype_vcf} {input.vcfbub_vcf} | \
-            python3 scripts/graph-simplification/graph_genotype_refine.py - {output.genotype_refine_vcf} sample {wildcards.sample}.snv {wildcards.sample}
+            python3 scripts/infer_diploid_path/graph_genotype_refine.py - {output.genotype_refine_vcf} sample {wildcards.sample}.snv {wildcards.sample}
         bcftools view -a {output.genotype_refine_vcf} | bcftools view -i "ALT!='.'" -o {output.genotype_final_vcf}
         tabix -f {output.genotype_final_vcf}
         """  
@@ -272,16 +274,17 @@ rule hiphase_phase:
         tabix -f {output.hiphase_vcf}
         """
 
-rule margin_chr_phase:
+rule margin_phase:
     input:
         merge_ref_fasta = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.ref.fasta",
         zmw_bam = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.ref.zmw.bam",
         genotype_final_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.genotype.vcf.gz"
     output:
-        chr_margin_vcf_gz = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}.phased.vcf.gz"
+        margin_vcf_gz = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.phase.vcf.gz"
+    threads: 8
     params:
-        prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.{chr}",
-        phase_json = "config/config/margin.phase_sv.json"
+        prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin",
+        phase_json = "scripts/infer_diploid_path/margin.phase_sv.json"
     shell:
         """
         margin phase \
@@ -289,28 +292,13 @@ rule margin_chr_phase:
             {input.merge_ref_fasta} \
             {input.genotype_final_vcf} \
             {params.phase_json} \
-            -M -t 1 \
+            -M -t {threads} \
             -o {params.prefix} \
-            -r {wildcards.chr}
         
+        mv {params.prefix}.phased.vcf {params.prefix}.phase.vcf
         bgzip -f {params.prefix}.phase.vcf
-        tabix -f {output.chr_margin_vcf_gz}
-        """  
-
-rule merge_margin_phased_vcf:
-    input:
-        chr_margin_vcfs = expand("c8_diploid_path_infer/sample_assembly/{{sample}}/{{sample}}.margin.{chr}.phased.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"])
-    output:
-        merge_margin_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.phase.vcf.gz"
-    threads: 4
-    shell:
+        tabix -f {output.margin_vcf_gz}
         """
-        bcftools concat --threads {threads} {input.chr_margin_vcfs} -o {output.merge_margin_vcf}
-        tabix -f {output.merge_margin_vcf}
-        
-        rm c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.margin.chr*.chunks.csv c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.margin.chr*.phaseset.bed
-        rm c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.margin.chr*.phased.vcf.gz c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.margin.chr*.phased.vcf.gz.tbi
-        """  
         
 rule integrate_phase:
     input:
@@ -353,30 +341,30 @@ rule complete_assembly:
         max_mem_mb = 30
     shell:
         """
-        if [ {params.sex} -eq "female" ]; then
+        if [ {params.sex} == "female" ]; then
             > {output.complete_assembly_hap1_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{1..22}} | \
+            seqkit grep -r -p $(for i in chr{{1..22}};do echo -n $i",";done) {input.merge_ref_fasta} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
-            samtools faidx {input.merge_ref_fasta} chrX | \
+            seqkit grep -r -p chrX {input.merge_ref_fasta} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
                 
             > {output.complete_assembly_hap2_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{1..22}} | \
+            seqkit grep -r -p $(for i in chr{{1..22}};do echo -n $i",";done) {input.merge_ref_fasta} | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{X,M}} | \
+            seqkit grep -r -p chrX,chrM {input.merge_ref_fasta}  | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
                 
         else 
             > {output.complete_assembly_hap1_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{1..22}} | \
+            seqkit grep -r -p $(for i in chr{{1..22}};do echo -n $i",";done) {input.merge_ref_fasta} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
-            samtools faidx {input.merge_ref_fasta} chrY | \
+            seqkit grep -r -p chrY {input.merge_ref_fasta}  | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap1_fa}
                 
             > {output.complete_assembly_hap2_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{1..22}} | \
+            seqkit grep -r -p $(for i in chr{{1..22}};do echo -n $i",";done) {input.merge_ref_fasta}  | \
                 bcftools consensus -H 2 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
-            samtools faidx {input.merge_ref_fasta} chr{{X,M}} | \
+            seqkit grep -r -p chrX,chrM {input.merge_ref_fasta} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
         fi
         """  
@@ -403,6 +391,7 @@ rule secphase_correct_bam:
         > {output.merge_complete_assembly_fa}
         sed "s/chr/H1_chr/g" {input.complete_assembly_hap1_fa} >> {output.merge_complete_assembly_fa}                                                                       
         sed "s/chr/H2_chr/g" {input.complete_assembly_hap2_fa} >> {output.merge_complete_assembly_fa}
+        samtools faidx {output.merge_complete_assembly_fa}
 
         minimap2 -t {threads} -I 8G -ax asm20 -Y -L --eqx --cs \
             {output.merge_complete_assembly_fa} \
@@ -436,7 +425,7 @@ rule get_phase_assembly_sv_vcf:
         """
         minimap2 -t {threads} -c --cs -x asm20 -B 2 -E 3,1 -O 6,100 \
             {input.complete_assembly_hap1_fa} {input.phase_assembly_correct_hap1_fa} | \
-            sort -k6,6 -k8,8n | paftools.js call -f {input.complete_assembly_hap1_fa} -l 5000 -L 5000 - \
+            sort -k6,6 -k8,8n | paftools.js call -f {input.complete_assembly_hap1_fa} -l 5000 -L 5000 - | \
             bcftools view -o {output.complete_assembly_phase_assembly_hap1_vcf}
         tabix -f {output.complete_assembly_phase_assembly_hap1_vcf}
         zcat {output.complete_assembly_phase_assembly_hap1_vcf} | \
@@ -445,7 +434,7 @@ rule get_phase_assembly_sv_vcf:
         
         minimap2 -t {threads} -c --cs -x asm20 -B 2 -E 3,1 -O 6,100 \
             {input.complete_assembly_hap2_fa} {input.phase_assembly_correct_hap2_fa} | \
-            sort -k6,6 -k8,8n | paftools.js call -f {input.complete_assembly_hap2_fa} -l 5000 -L 5000 - \
+            sort -k6,6 -k8,8n | paftools.js call -f {input.complete_assembly_hap2_fa} -l 5000 -L 5000 - | \
             bcftools view -o {output.complete_assembly_phase_assembly_hap2_vcf}
         tabix -f {output.complete_assembly_phase_assembly_hap2_vcf}
         zcat {output.complete_assembly_phase_assembly_hap2_vcf} | \
@@ -496,9 +485,8 @@ rule validate_sv:
             awk '{{if($4<=0) svlen=-1*$4;else svlen=$4;if(($2-3*svlen)<=0)print $1"\\t0\\t"$2+3*svlen;else print $1"\\t"$2-3*svlen"\\t"$2+3*svlen}}' | \
             bedtools sort -i | bedtools merge -i - > {output.complete_assembly_hap1_polish_region_bed}
         
-        
         minimap2 -t {threads} -ax map-pb -Y -L --eqx --cs \
-            {input.complete_assembly_hap2_fa} {input.zmw_fq} | \ 
+            {input.complete_assembly_hap2_fa} {input.zmw_fq} | \
             samtools view -@ {threads} -hb - | \
             samtools sort -@ {threads} -o {output.complete_assembly_zmw_reads_hap2_bam}
         samtools index -@ {threads} {output.complete_assembly_zmw_reads_hap2_bam}
@@ -574,11 +562,12 @@ rule complete_assembly_polish_region_merqury_clip:
     shell:
         """
         export MERQURY=$CONDA_PREFIX/bin
+        pwd=$PWD
         mkdir -p {params.merqury_dir}
         cd {params.merqury_dir}
-        merqury.sh {input.sample_meryl} {input.complete_assembly_hap1_polish_fa} {input.complete_assembly_hap2_polish_fa} merqury
+        merqury.sh $pwd/{input.sample_meryl} $pwd/{input.complete_assembly_hap1_polish_fa} $pwd/{input.complete_assembly_hap2_polish_fa} merqury
         
-        cd -
+        cd $pwd
         bedtools merge -i {params.merqury_dir}/{wildcards.sample}.hap1.complete_assembly.polish_only.bed -d 2000 | \
             awk '{{if($3-$2>10000)print$0}}' | \
             bedtools complement -i - -g {input.complete_assembly_hap1_polish_fai} | \

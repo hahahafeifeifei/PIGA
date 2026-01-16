@@ -73,7 +73,7 @@ def get_sample_meryl_input(wildcards):
     if "sample_meryl" in config:
         return config["sample_meryl"]
     else:
-        return "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
+        return "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl"
 
 def concat_final_phase_vcf_sex_specific_chrlist(wildcards):
     sex = config['sex'][wildcards.sample]
@@ -88,7 +88,6 @@ def get_external_assembly_fa(wildcards):
 
 
 def generate_internal_assembly_dict(config):
-    
     if "internal_assembly_list" in config:
         internal_assembly_list_file = config["internal_assembly_list"]
     else:
@@ -98,7 +97,6 @@ def generate_internal_assembly_dict(config):
         ### Run All mode, 'c6_draft_assembly/sample_assembly/internal_assembly.list' hasn't been generated yet.
         else:
             internal_assembly_list_file = checkpoints.assembly_list.get().output.internal_assembly_list
-
 
     with open(internal_assembly_list_file) as f:
 
@@ -166,7 +164,7 @@ def get_gfa_input(wildcards):
     if "gfa" in config:
         return config["gfa"]
     else:
-        return f"c7_graph_construction/graph_merge/{config['prefix']}.nopath.gfa"
+        return f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa"
 
 def get_variant_path_input(wildcards):
     if "variant_path" in config:

@@ -110,8 +110,8 @@ rule gnn_feature_extract:
     shell:
         """
         python3 scripts/simplify_pangenome/ml_feature_extraction.py {input.train_gfa} GRCh38,CHM13 _MINIGRAPH_ {params.tmp_dir} {output.node_feature} {output.edge_feature}
-        csvtk -H -t join --left-join -f 1 --na NONE {output.node_feature} {input.merged_train_node} > {output.node_feature_label}
-        csvtk -H -t join --left-join -f 1 --na NONE {output.edge_feature} {input.merged_train_edge} > {output.edge_feature_label}
+        csvtk -H -t join --left-join -f 1 --na NONE {output.node_feature} {input.merged_train_node} | awk '{{if($1!="empty") print $0}}' > {output.node_feature_label}
+        csvtk -H -t join --left-join -f 1 --na NONE {output.edge_feature} {input.merged_train_edge} | awk '{{if($1!="empty") print $0}}' > {output.edge_feature_label}
         """
 
 rule statistic_prepare:
@@ -173,10 +173,21 @@ rule node_edge_inference:
     threads: 2
     shell:
         """
-            node_threshold=$(cat {input.train_node_threshold})
-            python3 scripts/simplify_pangenome/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {output.model_node_label}
-            edge_threshold=$(cat {input.train_edge_threshold})
-            python3 scripts/simplify_pangenome/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {output.model_edge_label}
+            if [ -s {input.node_feature_label} ]
+            then
+                node_threshold=$(cat {input.train_node_threshold})
+                python3 scripts/simplify_pangenome/node_inference.py {input.node_feature_label} {input.train_node_statistics} {input.train_node_model} $node_threshold > {output.model_node_label}
+            else
+                > {output.model_node_label}
+            fi
+
+            if [ -s {input.edge_feature_label} ]
+            then
+                edge_threshold=$(cat {input.train_edge_threshold})
+                python3 scripts/simplify_pangenome/edge_inference.py {input.edge_feature_label} {input.train_edge_statistics} {input.train_edge_model} $edge_threshold > {output.model_edge_label}
+            else
+                > {output.model_edge_label}
+            fi
         """
 
 rule gfa_ml_filter:
@@ -204,7 +215,7 @@ rule gfa_ml_filter:
         python3 scripts/simplify_pangenome/gfa_node_edge_filtering.py {input.filter_gfa} {output.model_node_fp_label} {output.model_edge_fp_label} CHM13,GRCh38,_MINIGRAPH_ {output.ml_filter_raw_gfa}
         awk '{{if($1!="W" || ($2=="GRCh38" || $2=="CHM13") || $6-$5>50) print$0}}' {output.ml_filter_raw_gfa} | \
         grep -v $'{params.train_sample}\\t\\|_MINIGRAPH_\\t' | sed "s/CHM13.chr/chr/g" | \
-        vg convert -g - | vg clip -d 1 -P CHM13 -P GRCh38 - | vg clip -s - -P CHM13 | vg mod -u - > {output.ml_filter_vg}
+        vg convert -g - | vg clip -d 1 -P CHM13 - | vg mod -u - > {output.ml_filter_vg}
         """
 
 rule variant_projection:
@@ -214,6 +225,7 @@ rule variant_projection:
     output:
         variant_project_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.vg",
         variant_project_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfa",
+        ref_component_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.ref_component.gfa",
         gfaffix_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa"
     shell:
         """
@@ -231,7 +243,8 @@ rule variant_projection:
         fi
         
         vg convert -f {output.variant_project_vg} > {output.variant_project_gfa}
-        gfaffix {output.variant_project_gfa} | vg convert -g - | vg mod -X 1024 - | vg view - > {output.gfaffix_gfa}
+        python3 scripts/simplify_pangenome/gfa_ref_component.py {output.variant_project_gfa} {output.ref_component_gfa} CHM13
+        gfaffix {output.ref_component_gfa} -x CHM13 | vg convert -g - | vg mod -X 1024 - | vg view - > {output.gfaffix_gfa}
         """
 
 
