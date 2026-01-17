@@ -565,7 +565,7 @@ rule complete_assembly_polish_region_merqury_clip:
         pwd=$PWD
         mkdir -p {params.merqury_dir}
         cd {params.merqury_dir}
-        merqury.sh $pwd/{input.sample_meryl} $pwd/{input.complete_assembly_hap1_polish_fa} $pwd/{input.complete_assembly_hap2_polish_fa} merqury
+        merqury.sh $pwd/{params.sample_meryl_dir} $pwd/{input.complete_assembly_hap1_polish_fa} $pwd/{input.complete_assembly_hap2_polish_fa} merqury
         
         cd $pwd
         bedtools merge -i {params.merqury_dir}/{wildcards.sample}.hap1.complete_assembly.polish_only.bed -d 2000 | \

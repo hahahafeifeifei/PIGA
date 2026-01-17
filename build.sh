@@ -35,7 +35,7 @@ cmake .
 make -j 8
 mv ./margin ${binDir}
 mv params/phase/allParams.phase_vcf.ont.sv.json ${inferDir}/margin.phase_sv.json
-mv params/phase/base_params.json ${mainDir}/scripts/base_params.json
+mv params/base_params.json ${mainDir}/scripts/base_params.json
 cd ${buildDir}
 
 # Build Secphase
