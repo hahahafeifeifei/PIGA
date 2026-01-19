@@ -17,7 +17,9 @@ dependencies:
   - pysam
   - singularity=3
   - minigraph
+  - gfatools
   - seqkit
+  - crossmap
   - vg
   - samtools
   - csvtk
