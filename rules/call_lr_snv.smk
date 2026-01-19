@@ -63,6 +63,7 @@ rule lr_hifi_dv:
     threads: 8
     shell:
         """
+        rm -r {params.DV_INTERMEDIATE_DIR} {params.TMP_DIR}
         mkdir -p {params.DV_INTERMEDIATE_DIR}
         mkdir -p {params.TMP_DIR}
 
