@@ -100,9 +100,9 @@ This method is suitable for running PIGA on a single, powerful machine. It will 
 
 ```bash
 # Dry run test
-snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/ --dry-run
+snakemake -s Snakefile --cores 64 --configfile config/config.yaml --profile ./profile/config_local/ --dry-run
 # Run PIGA locally using up to 64 cores
-snakemake -s Snakefile --cores 64 --configfile config/config.yaml --workflow-profile ./profile/config_local/
+snakemake -s Snakefile --cores 64 --configfile config/config.yaml --profile ./profile/config_local/
 ```
 
 #### Option 2: Cluster Execution (with Profile)
@@ -111,7 +111,7 @@ This method is designed for high-performance computing (HPC) environments and us
 
 ```bash
 # Run PIGA using a workflow profile to submit jobs to a cluster
-snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --workflow-profile ./profile/config_slurm/
+snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/config.yaml --profile ./profile/config_slurm/
 ```
 
 **Note:** By default, we provide a profile which is configured to use the **SLURM** job scheduler. You can customize the cluster settings (e.g., switch to a different scheduler or change resource allocation) by editing the configuration file.
