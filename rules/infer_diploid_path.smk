@@ -77,7 +77,7 @@ rule form_sample_merge_chr_gfa:
     shell:
         """
         > {output.sample_merge_gfa}
-        grep "^S\|^L\|{wildcards.sample}\\t" {input.gfa} >> {output.sample_merge_gfa} || true
+        grep "^S\\|^L\\|{wildcards.sample}\\t" {input.gfa} >> {output.sample_merge_gfa} || true
         grep "{wildcards.sample}.snv\\t" {input.variant_path} >> {output.sample_merge_gfa} || true
         grep -P "{wildcards.chr}-|{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa} || true
         python3 scripts/infer_diploid_path/gfa_remove_ac0_reverse.py {output.sample_merge_gfa} {output.rmac0_gfa}
