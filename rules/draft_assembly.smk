@@ -309,7 +309,7 @@ rule liftover_chrX_par_region:
         chrX_personal_par = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.chrX_PAR.bed"
     shell:
         """
-        liftOver {input.chrX_par} {input.chain} {output.chrX_personal_par} /dev/null
+        CrossMap region {input.chain} {input.chrX_par} {output.chrX_personal_par}
         """
 
 
