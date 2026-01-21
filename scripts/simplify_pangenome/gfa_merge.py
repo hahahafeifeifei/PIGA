@@ -24,7 +24,7 @@ for gfa_file in openfile(gfa_list):
     gfa_file = gfa_file.strip()
     for line in openfile(gfa_file):
         line_info = line.strip().split()
-        if line[0] == "W" and line.split()[3] == ref_sample:
+        if line[0] == "W" and line.split()[1] == ref_sample:
             ref_pos_list.append([gfa_file, line_info[1], int(line_info[4])])
 
 ref_sorted_pos_list = sorted(ref_pos_list, key=lambda x: x[2])
