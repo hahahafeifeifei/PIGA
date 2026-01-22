@@ -47,7 +47,7 @@ rule personal_pangenome:
     shell:
         """
         ls {input.sr_fq1} {input.sr_fq2} {input.lr_hifi_fastqs} > {output.kmer_fq_list}
-        mkdir {params.prefix}_tmp
+        mkdir -p {params.prefix}_tmp
         kmc -k29 -okff -t{threads} -hp @{output.kmer_fq_list} {params.prefix} {params.prefix}_tmp
         rm -rf {params.prefix}_tmp
 

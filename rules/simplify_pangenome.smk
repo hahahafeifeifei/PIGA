@@ -42,7 +42,7 @@ rule prepare_train_gfa:
         train_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train_raw.gfa",
         train_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.gfa"
     params:
-        all_sample = "\\t\\|".join(set(train_sample_map.keys()) | set(train_sample_map.values()))
+        all_sample = "\\t\\|".join(list(train_sample_map.keys()) + list(train_sample_map.values()))
     shell:
         """
         grep -v $'{params.all_sample}\\t' {input.filter_gfa} > {output.train_raw_gfa}        
@@ -58,7 +58,7 @@ rule process_train_node_edge:
     params:
         truth_sample = lambda wildcards: train_sample_map.get(wildcards.train_sample)
     wildcard_constraints:
-        train_sample = "|".join(set(train_sample_map.keys()))
+        train_sample = "|".join(list(train_sample_map.keys()))
     shell:
         """
         python3 scripts/simplify_pangenome/ml_training_selection.py {input.filter_gfa} {wildcards.train_sample} {params.truth_sample} {output.sample_train_node} {output.sample_train_edge}
@@ -206,7 +206,7 @@ rule gfa_ml_filter:
         mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
     threads: 4
     params:
-        train_sample = "\\t\\|".join(set(train_sample_map.keys()))
+        train_sample = "\\t\\|".join(list(train_sample_map.keys()))
     shell:
         """
         paste {input.node_feature_label} {input.model_node_label} | awk '{{if ($(NF-2)==0 || ($(NF-2)!=0 && $NF=="FP")) print $1}}' > {output.model_node_fp_label}

@@ -367,6 +367,8 @@ rule complete_assembly:
             seqkit grep -r -p chrX,chrM {input.merge_ref_fasta} | \
                 bcftools consensus -H 1 {input.integrate_phase_filter_vcf} >> {output.complete_assembly_hap2_fa}
         fi
+        samtools faidx {output.complete_assembly_hap1_fa}
+        samtools faidx {output.complete_assembly_hap2_fa}
         """  
 
         

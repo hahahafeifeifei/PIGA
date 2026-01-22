@@ -21,6 +21,7 @@ dependencies:
   - seqkit
   - crossmap
   - vg
+  - vcfbub
   - samtools
   - csvtk
   - bedtools
