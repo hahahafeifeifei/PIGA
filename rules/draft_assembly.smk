@@ -101,8 +101,18 @@ rule personal_ref_dv:
     threads: 16
     resources:
         mem_mb = 64*1024
+    params:
+        TMP_DIR = "c6_draft_assembly/sample_assembly/{sample}/tmp",
+        DV_INTERMEDIATE_DIR = "c6_draft_assembly/sample_assembly/{sample}/dv_intermediate_outputs",
     shell:
         """
+        export TMPDIR={params.TMP_DIR}
+        if [ -d {params.DV_INTERMEDIATE_DIR} ]; then
+            rm -rf {params.DV_INTERMEDIATE_DIR} {params.TMP_DIR}
+        fi
+        mkdir -p {params.DV_INTERMEDIATE_DIR}
+        mkdir -p {params.TMP_DIR}
+        
         /opt/deepvariant/bin/run_deepvariant \
             --num_shards {threads} \
             --model_type=PACBIO \

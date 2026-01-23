@@ -75,6 +75,7 @@ rule lr_hifi_dv:
         mkdir -p {params.DV_INTERMEDIATE_DIR}
         mkdir -p {params.TMP_DIR}
 
+        export TMPDIR={params.TMP_DIR}
         /opt/deepvariant/bin/run_deepvariant \
             --num_shards {threads} \
             --model_type=PACBIO \
