@@ -1,7 +1,6 @@
 #!/bin/bash
 # Download the required test dataset
 expected_md5="27419a5f52905a44e42a6cd311a4306d" 
-# 尝试从第一个地址下载
 if wget -c https://lab-storage.oss-cn-hangzhou.aliyuncs.com/Pub_sharedata/wangyifei/piga.test_data.tar.gz; then
     echo "Download successful."
 else
