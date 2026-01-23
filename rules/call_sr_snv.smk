@@ -304,8 +304,7 @@ rule GenomicsDB_GenotypeGVCFs_interval:
     output:
         vcf = "c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz"
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 40*1024
     threads: 2
     params:
         interval_tmp = "c1_call_sr_snv/interval_vcf/{interval}_tmp",
@@ -340,6 +339,8 @@ checkpoint generate_intervals:
     output:
         genome_size = "c1_call_sr_snv/CHM13.size",
         genome_interval = "c1_call_sr_snv/CHM13.20mb.interval"
+    resources:
+        mem_mb = 10*1024
     shell:
         """
         awk -v FS='\\t' '{{print $1"\\t"$2}}' {input.ref_fai} > {output.genome_size}
@@ -360,6 +361,9 @@ rule merge_intervals:
     output:
         vcf_list = "c1_call_sr_snv/merged_vcf/interval.vcf.list",
         merged_vcf = f"c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.raw_variant.vcf.gz"
+    threads: 4
+    resources:
+        mem_mb = 200*1024
     shell:
         """
         ls {input.vcfs} > {output.vcf_list}
@@ -381,9 +385,7 @@ rule merged_vcf_snp_VQSR:
         snp_recal = "c1_call_sr_snv/merged_vcf/snps.recal",
         snp_tranches = "c1_call_sr_snv/merged_vcf/snps.tranches"
     resources:
-        mem_mb = 60*1024,
-        max_mem_gb = 60,
-        min_mem_gb = 40    
+        mem_mb = 100*1024  
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
@@ -424,9 +426,7 @@ rule merged_vcf_indel_VQSR:
         indel_recal = "c1_call_sr_snv/merged_vcf/indels.recal",
         indel_tranches = "c1_call_sr_snv/merged_vcf/indels.tranches"
     resources:
-        mem_mb = 60*1024,
-        max_mem_gb = 60,
-        min_mem_gb = 40    
+        mem_mb = 100*1024  
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
@@ -465,6 +465,8 @@ rule gatk_vcf_filter:
     params:
         missing = len(samples_list)
     threads: 16
+    resources:
+        mem_mb = 100*1024
     shell:
         """
         bcftools view --threads {threads} -f PASS {input.snp_indel_recalibrated_vcf} | \

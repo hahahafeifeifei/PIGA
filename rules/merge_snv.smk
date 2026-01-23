@@ -140,8 +140,7 @@ rule prepare_sample_kmer:
         sample_meryl = "c3_merge_snv/sample_meryl/{sample}/{sample}.meryl/merylIndex"
     threads: 4
     resources:
-        mem_mb = 30*1024,
-        max_mem_gb = 30
+        mem_mb = 30*1024
     params:
         sample_meryl_dir = lambda wildcards, output: os.path.dirname(output.sample_meryl)
     shell:
@@ -220,8 +219,7 @@ rule merge_merfin_vcf:
         merge_merfin_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz"
     threads: 16
     resources:
-        mem_mb = 60*1024,
-        max_mem_gb = 60
+        mem_mb = 60*1024
     shell:
         """
         bcftools merge -0 -m none --threads {threads} {input.final_vcfs} | \

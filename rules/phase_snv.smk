@@ -9,6 +9,8 @@ rule generate_sample_vcf_to_phase:
         output:
             unphase_sample_vcf = "c4_phase_snv/sample_vcf/{sample}/{sample}.consensus.vcf.gz"
         threads: 4
+        resources:
+            mem_mb = 30*1024
         shell:
             """
             bcftools view --threads {threads} -s {wildcards.sample} {input.merge_merfin_filter_vcf} | \

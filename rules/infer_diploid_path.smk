@@ -29,7 +29,7 @@ rule kmc_prepare_sample_kmer:
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.kmer"
     threads: 4
     resources:
-        mem_mb= 30*1024,
+        mem_mb= 30*1024
     shell:
         """
         > {output.kmer_list}
@@ -52,7 +52,7 @@ rule get_sample_haplotype_path:
         sample_haplotype_gfa = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.haplotypes.gfa")
     threads: 8
     resources:
-        mem_mb= 450*1024,
+        mem_mb = lambda wildcards, attempt: 200 * 1024 * attempt
     shell:
         """
         vg haplotypes -t {threads} -i {input.hapl} -k {input.sample_kff} -g {output.sample_haplotype_gbz} {input.gbz} --num-haplotypes 17
@@ -73,7 +73,7 @@ rule form_sample_merge_chr_gfa:
     wildcard_constraints:
         chr = "|".join(chr_list)
     resources:
-        mem_mb= 30*1024,
+        mem_mb=30*1024
     shell:
         """
         > {output.sample_merge_gfa}
@@ -184,7 +184,7 @@ rule pangenie_refine:
         phasing_refine_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.pan_phasing.refine.vcf")
     threads: 4
     resources:
-        mem_mb= 30*1024,
+        mem_mb= 30*1024
     shell:
         """
         python3 scripts/infer_diploid_path/pangenie_phase_fix.py {input.phasing_vcf} {params.phasing_refine_vcf}
@@ -260,7 +260,7 @@ rule hiphase_phase:
         hiphase_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hiphase.phase.vcf.gz"
     threads: 8
     resources:
-        mem_mb= 60*1024,
+        mem_mb= 60*1024
     shell:
         """
         hiphase -t {threads} \
@@ -282,6 +282,8 @@ rule margin_phase:
     output:
         margin_vcf_gz = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin.phase.vcf.gz"
     threads: 8
+    resources:
+        mem_mb= 60*1024
     params:
         prefix = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.margin",
         phase_json = "scripts/infer_diploid_path/margin.phase_sv.json"
@@ -312,6 +314,8 @@ rule integrate_phase:
         integrate_phase_log = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.integrate.phase.log"),
         integrate_phase_vcf = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.integrate.phase.vcf.gz"),
         integrate_phase_filter_vcf = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.integrate.phase.filter.vcf.gz"
+    resources:
+        mem_mb= 30*1024
     shell:
         """
         bcftools merge -m all --force-samples \
@@ -338,7 +342,7 @@ rule complete_assembly:
     params:
         sex = get_sex
     resources:
-        max_mem_mb = 30
+        mem_mb= 40*1024
     shell:
         """
         if [ {params.sex} == "female" ]; then
@@ -388,6 +392,8 @@ rule secphase_correct_bam:
     params:
         secphase_dir = "c8_diploid_path_infer/sample_assembly/{sample}/secphase_out_dir"
     threads: 4
+    resources:
+        mem_mb= 30*1024
     shell:
         """
         > {output.merge_complete_assembly_fa}
@@ -531,7 +537,7 @@ rule complete_assembly_polish_region_consensus:
         complete_assembly_hap2_polish_fai = "c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.complete_assembly.polish.fasta.fai"
     threads: 4
     resources:
-        mem_mb= 30*1024,
+        mem_mb= 30*1024
     shell:
         """
         bcftools view -R {input.complete_assembly_hap1_polish_region_bed} {input.complete_assembly_phase_assembly_hap1_vcf} -o {output.complete_assembly_phase_assembly_hap1_polish_region_vcf}
@@ -563,7 +569,7 @@ rule complete_assembly_polish_region_merqury_clip:
         sample_meryl_dir = lambda wildcards, input: os.path.dirname(input.sample_meryl)
     threads: 4
     resources:
-        mem_mb= 30*1024,
+        mem_mb= 30*1024
     shell:
         """
         export MERQURY=$CONDA_PREFIX/bin
