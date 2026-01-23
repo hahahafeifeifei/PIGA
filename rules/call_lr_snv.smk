@@ -87,8 +87,8 @@ rule lr_hifi_dv:
             --make_examples_extra_args="vsc_min_count_snps=1,vsc_min_fraction_snps=0.12,vsc_min_count_indels=2,vsc_min_fraction_indels=0.06" \
             --sample_name {wildcards.sample}
 
-        tabix -f {output.dv_gvcf}
         rm -rf {params.DV_INTERMEDIATE_DIR}/*
+        tabix -f {output.dv_gvcf}
         """
 
 rule prepare_chr_bed:
@@ -118,6 +118,7 @@ rule lr_glnexus:
         chr_db = "c2_call_lr_snv/chr_vcf/{chrom}_db"
     threads: 16
     resources:
+        max_mem_gb = 200,
         mem_mb = 200*1024
     shell:
         """
@@ -278,7 +279,8 @@ rule chr_num_beagle_vcf_merge:
         chr_beagle_vcf = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.beagle.{{chrom}}.vcf.gz"
     threads: 1
     resources:
-        mem_mb = 10*1024
+        max_mem_gb = 20,
+        mem_mb = 20*1024
     run:
         vcf_num = len(input.chr_num_beagle_vcfs)
 

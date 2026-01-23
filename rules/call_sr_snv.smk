@@ -95,6 +95,7 @@ rule HaplotypeCaller_autosomes:
         intervals = " ".join([f"-L chr{i}" for i in range(1, 23)])
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -120,6 +121,7 @@ rule HaplotypeCaller_male_chrX:
         nonPAR_ploidy = 1
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -152,6 +154,7 @@ rule HaplotypeCaller_female_chrX:
         ploidy = 2
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -176,6 +179,7 @@ rule HaplotypeCaller_male_chrY:
         ploidy = 1
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -199,6 +203,7 @@ rule HaplotypeCaller_chrM:
         ploidy = 1
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -225,6 +230,7 @@ rule male_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.male.gatk.g.vcf.gz"
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -248,6 +254,7 @@ rule female_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.female.gatk.g.vcf.gz"
     threads: 2
     resources:
+        max_mem_gb = 20,
         mem_mb = 20*1024
     shell:
         """
@@ -304,6 +311,7 @@ rule GenomicsDB_GenotypeGVCFs_interval:
     output:
         vcf = "c1_call_sr_snv/interval_vcf/{interval}.raw_variant.vcf.gz"
     resources:
+        max_mem_gb = 40,
         mem_mb = 40*1024
     threads: 2
     params:
@@ -385,6 +393,7 @@ rule merged_vcf_snp_VQSR:
         snp_recal = "c1_call_sr_snv/merged_vcf/snps.recal",
         snp_tranches = "c1_call_sr_snv/merged_vcf/snps.tranches"
     resources:
+        max_mem_gb = 100,
         mem_mb = 100*1024  
     shell:
         """
@@ -426,6 +435,7 @@ rule merged_vcf_indel_VQSR:
         indel_recal = "c1_call_sr_snv/merged_vcf/indels.recal",
         indel_tranches = "c1_call_sr_snv/merged_vcf/indels.tranches"
     resources:
+        max_mem_gb = 100,
         mem_mb = 100*1024  
     shell:
         """
