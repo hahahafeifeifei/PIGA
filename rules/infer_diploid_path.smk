@@ -82,7 +82,6 @@ rule form_sample_merge_chr_gfa:
         grep -P "{wildcards.chr}-|{wildcards.chr}\\t" {input.sample_haplotype_gfa} >> {output.sample_merge_gfa} || true
         python3 scripts/infer_diploid_path/gfa_remove_ac0_reverse.py {output.sample_merge_gfa} {output.rmac0_gfa}
         python3 scripts/infer_diploid_path/gfa_fa.py {output.rmac0_gfa} recombination_ref 1 {output.ref_fa}
-        samtools faidx {output.ref_fa}
         """
 
 rule sample_chr_gfa_deconstruct:
@@ -126,6 +125,7 @@ rule ref_fasta_vcf_merge:
         else
                 cat c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,Y,M}}.ref.fasta > {output.merge_ref_fasta}
         fi
+        samtools faidx {sample}.ref.fasta
         bcftools concat --threads {threads} {input.norm_chr_vcfs} -o {output.merge_vcf}
         tabix -f {output.merge_vcf}
         vcfbub --input {output.merge_vcf} -l 0 -a 50000 | bcftools view -a - | bcftools view -e "ALT=='.'" -o {output.vcfbub_vcf}
@@ -471,7 +471,10 @@ rule validate_sv:
             samtools view -@ {threads} -hb - | \
             samtools sort -@ {threads} -o {output.complete_assembly_zmw_reads_hap1_bam}
         samtools index -@ {threads} {output.complete_assembly_zmw_reads_hap1_bam}
-
+        
+        if [ -d {params.cutesv_tmp} ]; then
+            rm -rf {params.cutesv_tmp}
+        fi
         mkdir -p {params.cutesv_tmp}
         cuteSV {output.complete_assembly_zmw_reads_hap1_bam} {input.complete_assembly_hap1_fa} {output.complete_assembly_hap1_cutesv_vcf} \
             {params.cutesv_tmp} -Ivcf {input.complete_assembly_phase_assembly_hap1_sv_vcf} \

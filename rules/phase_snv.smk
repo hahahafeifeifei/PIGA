@@ -24,9 +24,9 @@ rule consensus_vcf_whatshap_phase:
         zmw_bam = get_zmw_bam_input
     output:
         phase_sample_vcf = "c4_phase_snv/sample_vcf/{sample}/{sample}.consensus.whatshap.vcf.gz"
-    threads: 1
+    threads: 4
     resources:
-        mem_mb = 16*1024,
+        mem_mb = 30*1024
     shell:
         """
         whatshap phase --ignore-read-groups \
@@ -45,7 +45,9 @@ rule merge_consensus_whatshap_vcf:
     output:
         merge_whatshap_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.vcf.gz",
         merge_whatshap_filter_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.unphase_singleton_filter.vcf.gz"
-    threads: 16
+    threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         bcftools merge --threads {threads} -0 -m any {input.phase_sample_vcfs} -O z -o {output.merge_whatshap_vcf}
@@ -63,7 +65,7 @@ rule chr_consensus_vcf_shapeit:
         consensus_whatshap_shapeit_vcf = f"c4_phase_snv/chr_vcf/{{chr}}/{config['prefix']}.consensus.whatshap.shapeit.{{chr}}.vcf.gz"
     threads: 16
     resources:
-        mem_mb = 100*1024,
+        mem_mb = 120*1024
     shell:
         """
         sample_number=$(bcftools query -l {input.merge_whatshap_filter_vcf} | wc -l)
@@ -85,7 +87,9 @@ rule concat_consensus_vcf_shapeit:
         consensus_whatshap_shapeit_vcfs = expand("c4_phase_snv/chr_vcf/{chr}/{prefix}.consensus.whatshap.shapeit.{chr}.vcf.gz", chr = [f"chr{i}" for i in range(1, 23)] + ["chrX"], prefix = config['prefix'])
     output:
         concat_consensus_whatshap_shapeit_vcf = f"c4_phase_snv/merged_vcf/{config['prefix']}.consensus.whatshap.shapeit.vcf.gz"
-    threads: 16
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """        
         bcftools concat {input.consensus_whatshap_shapeit_vcfs} \
@@ -100,6 +104,8 @@ rule prepare_sample_consensus_vcf:
     output:
         sample_vcf = "c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz"
     threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         bcftools view --threads {threads} -s {wildcards.sample} {input.concat_consensus_whatshap_shapeit_vcf} | \

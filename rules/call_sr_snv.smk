@@ -26,7 +26,9 @@ rule sr_bwa_map:
     output:
         bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.bam",
         bai = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.bam.bai"
-    threads: 4
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
         bwa mem -t {threads} -Y -R '@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}\\tPL:ILLUMINA' {input.ref} {input.sr_fq1} {input.sr_fq2} | \
@@ -45,6 +47,8 @@ rule sr_bam_dedup:
         md_bai = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.dedup.bam.bai",
         md_metric = "c1_call_sr_snv/sample_bam/{sample}/{sample}.srt.dedup.metrics"
     threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         gatk MarkDuplicates -R {input.ref} -I {input.bam} -O {output.md_bam} -M {output.md_metric}
@@ -61,6 +65,9 @@ rule sr_bam_BQSR:
     output:
         bqsr_bam = "c1_call_sr_snv/sample_bam/{sample}/{sample}.bqsr.bam",
         recal_table = "c1_call_sr_snv/sample_bam/{sample}/{sample}.recal.table"
+    threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         gatk BaseRecalibrator \
@@ -88,8 +95,7 @@ rule HaplotypeCaller_autosomes:
         intervals = " ".join([f"-L chr{i}" for i in range(1, 23)])
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -114,8 +120,7 @@ rule HaplotypeCaller_male_chrX:
         nonPAR_ploidy = 1
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -147,8 +152,7 @@ rule HaplotypeCaller_female_chrX:
         ploidy = 2
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -172,8 +176,7 @@ rule HaplotypeCaller_male_chrY:
         ploidy = 1
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -196,8 +199,7 @@ rule HaplotypeCaller_chrM:
         ploidy = 1
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" HaplotypeCaller \
@@ -223,8 +225,7 @@ rule male_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.male.gatk.g.vcf.gz"
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" MergeVcfs \
@@ -247,8 +248,7 @@ rule female_merge_vcfs:
         vcf = "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.female.gatk.g.vcf.gz"
     threads: 2
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 20*1024
     shell:
         """
         gatk --java-options "-Xmx{resources.max_mem_gb}G" MergeVcfs \
@@ -271,11 +271,13 @@ def dynamic_merge_vcfs_input(wildcards):
 #     output: "c1_call_sr_snv/sr_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
 
 rule merge_vcfs:
-  input:
-    dynamic_merge_vcfs_input
-  output:
-    "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
-  shell:
+    input:
+        dynamic_merge_vcfs_input
+    output:
+        "c1_call_sr_snv/sample_gvcf/{sample}/{sample}.gatk.g.vcf.gz"
+    resources:
+        mem_mb = 10*1024
+    shell:
     """
     mv {input} {output}
     tabix -f {output}

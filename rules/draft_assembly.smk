@@ -307,6 +307,8 @@ rule liftover_chrX_par_region:
         chain = get_chain_input
     output:
         chrX_personal_par = "c6_draft_assembly/sample_assembly/{sample}/{sample}.personal.chrX_PAR.bed"
+    resources:
+        mem_mb = 20*1024
     shell:
         """
         CrossMap region {input.chain} {input.chrX_par} {output.chrX_personal_par}
@@ -330,7 +332,7 @@ rule phase_assembly:
         assembly_dir = "c6_draft_assembly/sample_assembly/{sample}/assembly"
     threads: 8
     resources:
-        mem_mb = 200*1024
+        mem_mb = 120*1024
     shell:
         """
         python3 scripts/draft_assembly/phase_assembly.version2.py \

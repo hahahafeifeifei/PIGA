@@ -14,6 +14,8 @@ rule sr_lr_bcftools_isec:
     params:
         prefix = f"c3_merge_snv/merged_vcf/srs_lrs_compare"
     threads: 16
+    resources:
+        mem_mb = 100*1024
     shell:
         """
         bcftools isec --threads {threads} \
@@ -36,8 +38,9 @@ rule generate_lrs_sub_lists:
         lr_hwe = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_shared.hwe",
         info = f"c3_merge_snv/merged_vcf/{config['prefix']}.shared.info",
         lrs_sub_list = f"c3_merge_snv/merged_vcf/{config['prefix']}.shared.sub.list.gz"
-    threads: 16
-
+    threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         bcftools query {input.lr_shared_vcf} -f "%INFO/HWE\\n" > {output.lr_hwe}
@@ -74,7 +77,9 @@ rule lrs_sub_process:
         header = "c3_merge_snv/merged_vcf/header",
         sr_filter_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_shared.sub_filter.vcf.gz",
         lr_select_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_shared.sub_select.vcf.gz"
-    threads: 16
+    threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         echo '##FILTER=<ID=LRS_SUB,Description="The short-read genotype of variants is substituted by long-read genotype">' > {output.header}
@@ -108,7 +113,9 @@ rule final_merge:
         sr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.srs_specific.vcf.gz",
         lr_spec_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.lrs_specific.vcf.gz",
         consensus_vcf = f"c3_merge_snv/merged_vcf/{config['prefix']}.consensus.vcf.gz"
-    threads: 16
+    threads: 8
+    resources:
+        mem_mb = 100*1024
     shell:
         """
         bgzip -@ {threads} -c {input.sr_spec_vcf_uncompress} > {output.sr_spec_vcf}

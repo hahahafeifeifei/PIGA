@@ -42,8 +42,7 @@ rule personal_pangenome:
         prefix = "c5_personal_ref/sample_reference/{sample}/{sample}"
     threads: 8
     resources:
-        mem_mb = 150*1024,
-        max_mem_gb = 150
+        mem_mb = 100*1024
     shell:
         """
         ls {input.sr_fq1} {input.sr_fq2} {input.lr_hifi_fastqs} > {output.kmer_fq_list}
@@ -89,6 +88,8 @@ rule gam_call_variants_filter:
     output:
         filtered_vcf = "c5_personal_ref/sample_reference/{sample}/{sample}.filter.vcf.gz"
     threads: 2
+    resources:
+        mem_mb = 20*1024
     shell:
         """
         dp_mean=$(bcftools query -f "%DP\\n" {input.vcf} | awk '{{if($1>=100)print 100;else print$0}}' | csvtk -H -t summary -f 1:mean)
@@ -105,6 +106,8 @@ rule filtered_variants_ref_consensus:
     output:
         consensus_fasta = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta",
         chain = "c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.chain"
+    resources:
+        mem_mb = 20*1024
     shell:
         """
         bcftools consensus -f {input.ref} -H 1 -c {output.chain} {input.vcf} > {output.consensus_fasta}

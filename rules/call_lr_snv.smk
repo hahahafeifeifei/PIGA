@@ -9,7 +9,9 @@ rule lr_hifi_pbmm2_map:
         ref = config['reference']['CHM13']
     output:
         hifi_bam = "c2_call_lr_snv/sample_bam/{sample}/{sample}.hifi.srt.bam"
-    threads: 4
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
         pbmm2 align -j {threads} -J 1 \
@@ -28,7 +30,9 @@ rule lr_zmw_pbmm2_map:
         ref = config['reference']['CHM13']
     output:
         zmw_bam = "c2_call_lr_snv/sample_bam/{sample}/{sample}.zmw.srt.bam"
-    threads: 4
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
         pbmm2 align -j {threads} -J 1 \
@@ -61,9 +65,13 @@ rule lr_hifi_dv:
     singularity:
         "file://scripts/call_lr_snv/deepvariant.sif"
     threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
-        rm -rf {params.DV_INTERMEDIATE_DIR} {params.TMP_DIR}
+        if [ -d {params.DV_INTERMEDIATE_DIR} ]; then
+            rm -rf {params.DV_INTERMEDIATE_DIR} {params.TMP_DIR}
+        fi
         mkdir -p {params.DV_INTERMEDIATE_DIR}
         mkdir -p {params.TMP_DIR}
 
@@ -87,6 +95,8 @@ rule prepare_chr_bed:
         ref_fai = config['reference']['CHM13'] + '.fai'
     output:
         chr_bed = "c2_call_lr_snv/chr_vcf/chr_bed/chm13.{chrom}.bed"
+    resources:
+        mem_mb = 10*1024
     shell:
         """
         awk -v OFS='\\t' -v chrom={wildcards.chrom} '{{if($1==chrom)print $1,"0",$2}}' {input.ref_fai} > {output.chr_bed}
@@ -107,8 +117,7 @@ rule lr_glnexus:
         chr_db = "c2_call_lr_snv/chr_vcf/{chrom}_db"
     threads: 16
     resources:
-        mem_mb = 200*1024,
-        max_mem_gb = 200,
+        mem_mb = 200*1024
     shell:
         """
 
@@ -141,7 +150,9 @@ rule glnexus_vcf_merge:
         glnexus_vcfs = expand("c2_call_lr_snv/chr_vcf/{prefix}.deepvariant.filter.biallelic_snp.{chrom}.vcf.gz", chrom=[f'chr{i}' for i in range(1, 23)] + ['chrX'], prefix = config['prefix'])
     output:
         merged_glnexus_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.filter.biallelic_snp.vcf.gz"
-    threads: 16
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
         bcftools concat --threads {threads} -Oz -o {output.merged_glnexus_vcf} {input.glnexus_vcfs}
@@ -160,7 +171,9 @@ rule lr_whatshap_genotype:
         whatshap_reform_snp_vcf = "c2_call_lr_snv/sample_gvcf/{sample}/{sample}.deepvariant.whatshap.biallelic_snp.reform.vcf.gz"
     params:
         sex = get_sex
-    threads: 16
+    threads: 8
+    resources:
+        mem_mb = 60*1024
     shell:
         """
         whatshap genotype -o {output.whatshap_tmp_snp_vcf} -r {input.ref} --ignore-read-groups --sample {wildcards.sample} {input.merged_glnexus_vcf} {input.zmw_bam}
@@ -181,6 +194,8 @@ rule lr_whatshap_vcf_merge:
         merge_whatshap_filter_snp_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.vcf.gz",
         merge_whatshap_filter_snp_vcf_tbi = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.vcf.gz.tbi"
     threads: 4
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         bcftools merge --threads {threads} -m none {input.whatshap_reform_snp_vcfs} -Oz -o {output.merge_whatshap_snp_vcf}
@@ -198,6 +213,8 @@ rule lr_beagle_split_vcf:
     params:
         prefix = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter.{{chrom}}"
     threads: 1
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         mkdir -p c2_call_lr_snv/lr_beagle/{wildcards.chrom}
@@ -216,6 +233,8 @@ checkpoint generate_beagle_split_num_list:
     params:
         file_prefix = f"c2_call_lr_snv/chr_vcf/*/{config['prefix']}.deepvariant.whatshap.biallelic_snp.filter"
     threads: 1
+    resources:
+        mem_mb = 30*1024
     shell:
         """
         ls {params.file_prefix}.*.vcf.gz > {output.beagle_split_num_list}
@@ -242,7 +261,7 @@ rule lr_beagle:
         prefix = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.beagle.{{chrom}}.{{num}}"
     threads: 8
     resources:
-        mem_mb = 80*1024,
+        mem_mb = 60*1024
     shell:
         """
         beagle \
@@ -258,8 +277,7 @@ rule chr_num_beagle_vcf_merge:
         chr_beagle_vcf = f"c2_call_lr_snv/chr_vcf/{{chrom}}/{config['prefix']}.deepvariant.whatshap.beagle.{{chrom}}.vcf.gz"
     threads: 1
     resources:
-        mem_mb = 20*1024,
-        max_mem_gb = 20
+        mem_mb = 10*1024
     run:
         vcf_num = len(input.chr_num_beagle_vcfs)
 
@@ -288,8 +306,7 @@ rule concat_beagle_vcf:
         concat_beagle_vcf = f"c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz"
     threads: 16
     resources:
-        mem_mb = 80*1024,
-        max_mem_gb = 80
+        mem_mb = 120*1024
     shell:
         """        
         bcftools concat --threads {threads} -a {input.chr_beagle_vcfs} | \

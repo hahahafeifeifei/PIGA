@@ -13,7 +13,7 @@ rule graph_bed_filtering:
         bed_clip_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.bed_clip.gfa",
         filter_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.gfa"
     resources:
-        mem_mb=lambda wildcards, attempt: 100 * 1024 * attempt,
+        mem_mb=lambda wildcards, attempt: 200 * 1024 * attempt,
         runtime_hrs=lambda wildcards, attempt: 20 * attempt
     threads: 8
     shell:
@@ -43,6 +43,8 @@ rule prepare_train_gfa:
         train_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.gfa"
     params:
         all_sample = "\\t\\|".join(list(train_sample_map.keys()) + list(train_sample_map.values()))
+    resources:
+        mem_mb=30 * 1024
     shell:
         """
         grep -v $'{params.all_sample}\\t' {input.filter_gfa} > {output.train_raw_gfa}        
@@ -59,6 +61,8 @@ rule process_train_node_edge:
         truth_sample = lambda wildcards: train_sample_map.get(wildcards.train_sample)
     wildcard_constraints:
         train_sample = "|".join(list(train_sample_map.keys()))
+    resources:
+        mem_mb=30 * 1024
     shell:
         """
         python3 scripts/simplify_pangenome/ml_training_selection.py {input.filter_gfa} {wildcards.train_sample} {params.truth_sample} {output.sample_train_node} {output.sample_train_edge}
@@ -73,6 +77,9 @@ rule merge_samples:
     output:
         merged_train_node = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.node",
         merged_train_edge = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}.subgraph_{{id}}.seqwish.smoothxg.gfaffix.filter.train.edge"
+    threads: 4
+    resources:
+        mem_mb=60 * 1024
     shell:
         """
         sample_size=$(echo {input.sample_train_nodes} | awk '{{print NF}}')
@@ -105,7 +112,7 @@ rule gnn_feature_extract:
     params:
         tmp_dir = "c7_graph_construction/subgraph/subgraph_{id}"
     resources:
-        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
+        mem_mb=lambda wildcards, attempt: 80 * 1024 * attempt
     threads: 8
     shell:
         """
@@ -203,7 +210,7 @@ rule gfa_ml_filter:
         ml_filter_raw_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.raw.gfa",
         ml_filter_vg = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.vg"
     resources:
-        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt,
+        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt
     threads: 4
     params:
         train_sample = "\\t\\|".join(list(train_sample_map.keys()))
@@ -227,6 +234,8 @@ rule variant_projection:
         variant_project_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfa",
         ref_component_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.ref_component.gfa",
         gfaffix_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa"
+    resources:
+        mem_mb=lambda wildcards, attempt: 150 * 1024 * attempt
     shell:
         """
         if [ $(vg paths -x {input.ml_filter_vg} -L | grep CHM13 | wc -l) -eq 0 ]

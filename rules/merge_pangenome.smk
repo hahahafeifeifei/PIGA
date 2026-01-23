@@ -15,7 +15,7 @@ rule subgraph_feature:
         node_count = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.node.count",
         chr_subgraph = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.chr_subgraph.list"
     resources:
-        mem_mb = 60*1024
+        mem_mb = 20*1024
     shell:
         """
         grep ^S {input.gfaffix_gfa} | wc -l | awk -v id={wildcards.id} '{{print id"\\t"$1}}' > {output.node_count}
@@ -32,7 +32,7 @@ rule feature_merge:
         node_sum_counts = f"c7_graph_construction/{config['prefix']}.node.sum.count",
         chr_subgraph_list = f"c7_graph_construction/{config['prefix']}.chr_subgraph.list"
     resources:
-        mem_mb = 60*1024
+        mem_mb = 20*1024
     shell:
         """
         cat {input.counts} | sort -k 1n > {output.node_counts}
@@ -49,8 +49,7 @@ rule node_ids:
         ids_assembly_gfa = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.assembly.gfa",
         ids_variant_path = f"c7_graph_construction/subgraph/subgraph_{{id}}/{config['prefix']}_subgraph_{{id}}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.ids.variant.path"
     resources:
-        mem_mb = 60*1024,
-        runtime_hrs=10
+        mem_mb = 30*1024
     shell:
         """
         index=$(awk -v id={wildcards.id} '{{if($1==id) print $2}}' {input.node_sum_counts})
@@ -70,6 +69,8 @@ rule chr_merge:
         merged_gfa = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gfa",
         merged_variant_path = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.variant.path"
     threads: 8
+    resources:
+        mem_mb = 80*1024
     wildcard_constraints:
         chr = "|".join(chr_list)
     params:
@@ -98,6 +99,8 @@ rule chr_gbz:
         chr_gbz = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gbz",
         chr_gbwt = f"c7_graph_construction/graph_merge/{config['prefix']}.{{chr}}.assembly.gbwt"
     threads: 4
+    resources:
+        mem_mb = 40*1024
     shell:
         """
         vg gbwt --set-tag "reference_samples=CHM13" -G {input.chr_gfa} --gbz-format -g {output.chr_gbz} --max-node 0
@@ -115,6 +118,8 @@ rule merged_gbz:
         merge_gbwt = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbwt",
         merge_gbz = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz"
     threads: 25
+    resources:
+        mem_mb = 300*1024
     shell:
         """
         cat {input.chr_gfas} | grep "^S\\|^L" > {output.merge_gfa}
@@ -131,6 +136,8 @@ rule haplotype_path:
         ri = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.ri",
         hapl = f"c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.hapl"
     threads: 25
+    resources:
+        mem_mb = 300*1024
     shell:
         """
         vg index -j {output.dist} -t {threads} {input.gbz} --no-nested-distance
