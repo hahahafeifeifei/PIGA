@@ -278,10 +278,10 @@ rule merge_vcfs:
     resources:
         mem_mb = 10*1024
     shell:
-    """
-    mv {input} {output}
-    tabix -f {output}
-    """
+        """
+        mv {input} {output}
+        tabix -f {output}
+        """
 
 
 rule construct_gvcf_map:
