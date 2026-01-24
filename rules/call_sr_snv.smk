@@ -397,7 +397,7 @@ rule merged_vcf_snp_VQSR:
         mem_mb = 100*1024  
     shell:
         """
-        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
+        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.max_mem_gb}G" \
             VariantRecalibrator \
             -R {input.ref} \
             -V {input.vcf} \
@@ -412,7 +412,7 @@ rule merged_vcf_snp_VQSR:
             -O {output.snp_recal} \
             --tranches-file {output.snp_tranches} \
         
-        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
+        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.max_mem_gb}G" \
             ApplyVQSR \
             -R {input.ref} \
             -V {input.vcf} \
@@ -439,7 +439,7 @@ rule merged_vcf_indel_VQSR:
         mem_mb = 100*1024  
     shell:
         """
-        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
+        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.max_mem_gb}G" \
             VariantRecalibrator \
             -V {input.vcf} \
             --trust-all-polymorphic \
@@ -452,7 +452,7 @@ rule merged_vcf_indel_VQSR:
             -O {output.indel_recal} \
             --tranches-file {output.indel_tranches} \
         
-        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.min_mem_gb}G" \
+        gatk --java-options "-Xmx{resources.max_mem_gb}G -Xms{resources.max_mem_gb}G" \
             ApplyVQSR \
             -R {input.ref} \
             -V {input.vcf} \
