@@ -25,6 +25,7 @@ PIGA uses Snakemake and requires several software dependencies. The easiest way 
 
 ```bash
 # Create the conda environment named 'piga'
+# We recommend using mamba for faster environment building.
 conda env create -f environment.yaml -n piga
 
 # Activate the environment to use PIGA
