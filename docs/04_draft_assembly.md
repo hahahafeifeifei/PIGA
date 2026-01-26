@@ -92,3 +92,7 @@ If omitted, the workflow will use the default:
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/draft_assembly.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`**: Diploid draft assembly of each sample

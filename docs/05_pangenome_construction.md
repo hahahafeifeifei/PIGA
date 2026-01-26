@@ -67,6 +67,10 @@ The file must be **space-delimited**, with:
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/construct_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```
 
+### Output
+The output file should contain:
+- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`**: Constructed pangenome of each subgraph
+
 ## simplify_pangenome
 
 ### Description
@@ -125,6 +129,10 @@ If omitted, the workflow will use the default:
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/simplify_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```
 
+### Output
+The output file should contain:
+- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa`**: Simplified pangenome of each subgraph
+
 ## merge_pangenome
 
 ### Description
@@ -160,3 +168,7 @@ If omitted, the workflow will use the default:
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_pangenome.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz`**: Merged pangenome across all subgraph pangenomes

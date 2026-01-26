@@ -89,3 +89,7 @@ If omitted, the workflow will use the default:
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/infer_diploid_path.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{hap1,hap2}.complete_assembly.polish.clip.fasta`**: Final diploid assembly of each sample

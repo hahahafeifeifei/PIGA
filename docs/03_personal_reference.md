@@ -53,3 +53,7 @@ Use `{sample}` as a wildcard; it will be automatically replaced with sample name
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/generate_personal_reference.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta`**: Personalized reference of each sample

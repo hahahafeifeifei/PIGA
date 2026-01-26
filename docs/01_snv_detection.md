@@ -51,6 +51,10 @@ Use `{sample}` as a wildcard, which will be replaced automatically by the sample
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_sr_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
 
+### Output
+The output file should contain:
+- **`c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz`**: Short-read SNV callset
+
 ## call_lr_snv
 
 ### Description
@@ -97,6 +101,11 @@ Use `{sample}` as a wildcard; it will be automatically replaced with sample name
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_lr_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
 
+### Output
+The output file should contain:
+- **`c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz`**: Long-read SNV callset
+
+
 ## merge_snv
 
 ### Description
@@ -138,3 +147,7 @@ If omitted, the workflow will use the default:
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz`**: SNV callset combining short-read and long-read callsets

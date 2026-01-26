@@ -116,9 +116,25 @@ This method is designed for high-performance computing (HPC) environments and us
 ```bash
 # Run PIGA using a workflow profile to submit jobs to a cluster
 snakemake -s Snakefile --cores 32 --jobs 32 --configfile config/config.yaml --profile ./profile/config_slurm/
+# The broken pipeline can be continued by rerunning with --rerun-incomplete.
+snakemake --rerun-incomplete -s Snakefile --cores 32 --jobs 32 --configfile config/config.yaml --profile ./profile/config_slurm/
 ```
 
 **Note:** By default, we provide a profile which is configured to use the **SLURM** job scheduler. You can customize the cluster settings (e.g., switch to a different scheduler or change resource allocation) by editing the configuration file.
+
+### Output
+The output file should contain:
+- **`c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz`**: Short-read SNV callset
+- **`c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz`**: Long-read SNV callset
+- **`c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz`**: SNV callset combining short-read and long-read callsets
+- **`c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz`**: Phased SNVs of each sample
+- **`c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta`**: Personalized reference of each sample
+- **`c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`**: Diploid draft assembly of each sample
+- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`**: Constructed pangenome of each subgraph
+- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa`**: Simplified pangenome of each subgraph
+- **`c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz`**: Merged pangenome across all subgraph pangenomes
+- **`c8_diploid_path_infer/sample_assembly/{sample}/{sample}.{hap1,hap2}.complete_assembly.polish.clip.fasta`**: Final diploid assembly of each sample
+
 
 ## Documentation
 

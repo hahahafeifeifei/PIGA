@@ -47,3 +47,7 @@ If omitted, the workflow will use the default:
 ```bash
 snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/phase_snv.yaml --workflow-profile ./profile/config_slurm/
 ```
+
+### Output
+The output file should contain:
+- **`c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz`**: Phased SNVs of each samples
