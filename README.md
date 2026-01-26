@@ -129,7 +129,7 @@ The output file should contain:
 - `c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz`: SNV callset combining short-read and long-read callsets
 - `c4_phase_snv/sample_vcf/{sample}/{sample}.shapeit.vcf.gz`: Phased SNVs of each sample
 - `c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta`: Personalized reference of each sample
-- `c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`: Diploid draft assembly of each sample
+- `c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`: Draft diploid assembly of each sample
 - `c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`: Constructed pangenome of each subgraph
 - `c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa`: Simplified pangenome of each subgraph
 - `c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz`: Merged pangenome across all subgraph pangenomes

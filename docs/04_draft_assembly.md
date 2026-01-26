@@ -95,4 +95,4 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/draft_assembly.y
 
 ### Output
 The output file should contain:
-- `c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`: Diploid draft assembly of each sample
+- `c6_draft_assembly/sample_assembly/{sample}/assembly/{sample}.{hap1,hap2}.fasta`: Draft diploid assembly of each sample
