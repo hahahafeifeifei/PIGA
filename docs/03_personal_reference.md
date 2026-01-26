@@ -28,25 +28,25 @@ This pipeline generates personalized reference and SNV haplotype for each indivi
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`sr_fastqs`**: Specify the paths to the **paired-end short-read FASTQ files**.
+`sr_fastqs`: Specify the paths to the paired-end short-read FASTQ files.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW-grouped (subreads) FASTQ files**.
+`lr_zmw_fastqs`: Specify the path(s) to PacBio ZMW-grouped (subreads) FASTQ files.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`external_pangenome`**: Provide the path to the **external pangenome graph** (GBZ format), such as the HGSVC3/HPRC minigraph–cactus pangenome assembly.
+`external_pangenome`: Provide the path to the external pangenome graph (GBZ format), such as the HGSVC3/HPRC minigraph–cactus pangenome assembly.
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
+- `CHM13`: Provide the path to the T2T CHM13 human reference genome (FASTA format, indexed by `samtools faidx`).
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
 ### Usage
 
@@ -56,4 +56,4 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/generate_persona
 
 ### Output
 The output file should contain:
-- **`c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta`**: Personalized reference of each sample
+- `c5_personal_ref/sample_reference/{sample}/{sample}.personal_ref.fasta`: Personalized reference of each sample

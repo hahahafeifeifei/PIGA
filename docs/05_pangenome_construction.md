@@ -33,33 +33,33 @@ This pipeline performs pangenome construction and simplification.
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
-- `GRCh38`: Provide the path to the **GRCh38 reference genome** (FASTA format. Indexed by `samtools faidx`).
+- `CHM13`: Provide the path to the T2T CHM13 human reference genome (FASTA format, indexed by `samtools faidx`).
+- `GRCh38`: Provide the path to the GRCh38 reference genome (FASTA format. Indexed by `samtools faidx`).
 
-**`external_assembly_list`**: Specify the path to a file listing **external genome assemblies** to be included in pangenome construction.
-The file must be **space-delimited**, with:
+`external_assembly_list`: Specify the path to a file listing external genome assemblies to be included in pangenome construction.
+The file must be space-delimited, with:
 
-- **Column 1:** Haplotype/assembly name
-- **Column 2:** Path to the haplotype/assembly `fasta` file
+- Column 1: Haplotype/assembly name
+- Column 2: Path to the haplotype/assembly `fasta` file
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
-**`internal_assembly_list`** _(optional)_: Specify the path to a file listing **internal genome assemblies** to be included in pangenome construction.
+`internal_assembly_list` _(optional)_: Specify the path to a file listing internal genome assemblies to be included in pangenome construction.
 If omitted, the workflow will use the default:
 `c6_draft_assembly/sample_assembly/internal_assembly.list`
 
-The file must be **space-delimited**, with:
+The file must be space-delimited, with:
 
-- **Column 1:** Haplotype/assembly name
-- **Column 2:** Path to the haplotype/assembly `fasta` file
+- Column 1: Haplotype/assembly name
+- Column 2: Path to the haplotype/assembly `fasta` file
 
 ### Usage
 
@@ -69,7 +69,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/construct_pangen
 
 ### Output
 The output file should contain:
-- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`**: Constructed pangenome of each subgraph
+- `c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`: Constructed pangenome of each subgraph
 
 ## simplify_pangenome
 
@@ -91,35 +91,35 @@ The output file should contain:
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Path to the **T2T CHM13 reference genome** (FASTA format, indexed by `samtools faidx`).
-- `GRCh38`: Path to the **GRCh38 reference genome (no-alt analysis set)** in FASTA format.
+- `CHM13`: Path to the T2T CHM13 reference genome (FASTA format, indexed by `samtools faidx`).
+- `GRCh38`: Path to the GRCh38 reference genome (no-alt analysis set) in FASTA format.
 
-**`train_sample_list`**: Path to a file listing samples used for model training.
+`train_sample_list`: Path to a file listing samples used for model training.
 One sample per line.
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
-**`phased_snv`** _(optional)_: Path to phased SNV files (used for haplotype-aware graph simplification).
+`phased_snv` _(optional)_: Path to phased SNV files (used for haplotype-aware graph simplification).
 If omitted, the workflow will use the default:
 `c4_phase_snv/merged_vcf/{prefix}.consensus.whatshap.shapeit.vcf.gz`
 
-**`subgraph_id_list`** _(optional)_: Path to a file listing subgraph IDs.
+`subgraph_id_list` _(optional)_: Path to a file listing subgraph IDs.
 If omitted, the workflow will use the default:
 `c7_graph_construction/subgraph_id.list`
 
-**`subgraph_fa`** _(optional)_: Path to the FASTA files of subgraphs.
+`subgraph_fa` _(optional)_: Path to the FASTA files of subgraphs.
 If omitted, the workflow will use the default:
 `c7_graph_construction/subgraph/subgraph_{id}/{prefix}_subgraph_{id}.fasta`
 
-**`subgraph_gfa`** _(optional)_: Path to the GFA files of subgraphs.
+`subgraph_gfa` _(optional)_: Path to the GFA files of subgraphs.
 If omitted, the workflow will use the default:
 `c7_graph_construction/subgraph/subgraph_{id}/{prefix}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`
 
@@ -131,7 +131,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/simplify_pangeno
 
 ### Output
 The output file should contain:
-- **`c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa`**: Simplified pangenome of each subgraph
+- `c7_graph_construction/subgraph/subgraph_{id}/{config['prefix']}_subgraph_{id}.seqwish.smoothxg.gfaffix.ml_filter.variant_project.gfaffix.gfa`: Simplified pangenome of each subgraph
 
 ## merge_pangenome
 
@@ -147,19 +147,19 @@ The output file should contain:
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
-**`subgraph_id_list`** _(optional)_: Path to a file listing subgraph IDs.
+`subgraph_id_list` _(optional)_: Path to a file listing subgraph IDs.
 If omitted, the workflow will use the default:
 `c7_graph_construction/subgraph_id.list`
 
-**`subgraph_gfa`** _(optional)_: Path to the GFA files of subgraphs.
+`subgraph_gfa` _(optional)_: Path to the GFA files of subgraphs.
 If omitted, the workflow will use the default:
 `c7_graph_construction/subgraph/subgraph_{id}/{prefix}_subgraph_{id}.seqwish.smoothxg.gfaffix.gfa`
 
@@ -171,4 +171,4 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_pangenome.
 
 ### Output
 The output file should contain:
-- **`c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz`**: Merged pangenome across all subgraph pangenomes
+- `c7_graph_construction/graph_merge/{config['prefix']}.merge.assembly.gbz`: Merged pangenome across all subgraph pangenomes

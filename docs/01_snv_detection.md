@@ -21,20 +21,20 @@ This pipeline performs population-level SNV detection by leveraging PacBio long 
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`sr_fastqs`**: Specify the paths to the **paired-end short-read FASTQ files**.
+`sr_fastqs`: Specify the paths to the paired-end short-read FASTQ files.
 Use `{sample}` as a wildcard, which will be replaced automatically by the sample names defined in `samples`.
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx` and `bwa index`).
+- `CHM13`: Provide the path to the T2T CHM13 human reference genome (FASTA format, indexed by `samtools faidx` and `bwa index`).
 
-**`GATK_Resource`**: Specify paths to the required **GATK reference resource datasets**, all lifted over to CHM13 coordinates:
+`GATK_Resource`: Specify paths to the required GATK reference resource datasets, all lifted over to CHM13 coordinates:
 
 - `hapmap` – HapMap 3.3
 - `omni` – 1000G Omni 2.5
@@ -43,7 +43,7 @@ Use `{sample}` as a wildcard, which will be replaced automatically by the sample
 - `mills` – Mills + 1000G gold-standard indels
 - `axiomPoly` – Axiom Exome Plus polymorphism dataset
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
 ### Usage
 
@@ -53,7 +53,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_sr_snv.yaml
 
 ### Output
 The output file should contain:
-- **`c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz`**: Short-read SNV callset
+- `c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz`: Short-read SNV callset
 
 ## call_lr_snv
 
@@ -77,23 +77,23 @@ The output file should contain:
 
 The configuration file should contain:
 
-**`samples`**: Specify the path to a text file listing all samples.
-The file must be **space-delimited**, with:
+`samples`: Specify the path to a text file listing all samples.
+The file must be space-delimited, with:
 
-- **Column 1:** Sample name
-- **Column 2:** Sample sex
+- Column 1: Sample name
+- Column 2: Sample sex
 
-**`lr_hifi_fastqs`**: Specify the path(s) to **PacBio HiFi long-read FASTQ files** for each sample.
+`lr_hifi_fastqs`: Specify the path(s) to PacBio HiFi long-read FASTQ files for each sample.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`lr_zmw_fastqs`**: Specify the path(s) to **PacBio ZMW FASTQ files**.
+`lr_zmw_fastqs`: Specify the path(s) to PacBio ZMW FASTQ files.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
+- `CHM13`: Provide the path to the T2T CHM13 human reference genome (FASTA format, indexed by `samtools faidx`).
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
 ### Usage
 
@@ -103,7 +103,7 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/call_lr_snv.yaml
 
 ### Output
 The output file should contain:
-- **`c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz`**: Long-read SNV callset
+- `c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz`: Long-read SNV callset
 
 
 ## merge_snv
@@ -122,23 +122,23 @@ The output file should contain:
 
 The configuration file should contain:
 
-**`sr_fastqs`**: Specify the paths to the **paired-end short-read FASTQ files**.
+`sr_fastqs`: Specify the paths to the paired-end short-read FASTQ files.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`lr_hifi_fastqs`**: Specify the path(s) to **PacBio HiFi long-read FASTQ files** for each sample.
+`lr_hifi_fastqs`: Specify the path(s) to PacBio HiFi long-read FASTQ files for each sample.
 Use `{sample}` as a wildcard; it will be automatically replaced with sample names from the `samples` file.
 
-**`reference`**:
+`reference`:
 
-- `CHM13`: Provide the path to the **T2T CHM13 human reference genome** (FASTA format, indexed by `samtools faidx`).
+- `CHM13`: Provide the path to the T2T CHM13 human reference genome (FASTA format, indexed by `samtools faidx`).
 
-**`prefix`**: Prefix used for naming output files.
+`prefix`: Prefix used for naming output files.
 
-**`sr_vcf`** _(optional)_: Path to the short-read SNV VCF file.
+`sr_vcf` _(optional)_: Path to the short-read SNV VCF file.
 If omitted, the workflow will use the default:
 `c1_call_sr_snv/merged_vcf/{prefix}.gatk.variant_recalibrated.filter.analysis_set.biallelic.vcf.gz`
 
-**`lr_vcf`** _(optional)_: Path to the long-read SNV VCF file.
+`lr_vcf` _(optional)_: Path to the long-read SNV VCF file.
 If omitted, the workflow will use the default:
 `c2_call_lr_snv/lr_beagle/concat/{prefix}.deepvariant.whatshap.filter.analysis_set.biallelic_snp.beagle.filter.vcf.gz`
 
@@ -150,4 +150,4 @@ snakemake -s Snakefile --cores 64 --jobs 64 --configfile config/merge_snv.yaml -
 
 ### Output
 The output file should contain:
-- **`c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz`**: SNV callset combining short-read and long-read callsets
+- `c3_merge_snv/merged_vcf/{config['prefix']}.consensus.merfin.vcf.gz`: SNV callset combining short-read and long-read callsets
