@@ -124,7 +124,7 @@ snakemake --rerun-incomplete -s Snakefile --cores 32 --jobs 32 --configfile conf
 **Note:** By default, we provide a profile which is configured to use the **SLURM** job scheduler. You can customize the cluster settings (e.g., switch to a different scheduler or change resource allocation) by editing the configuration file.
 
 ## Output
-The output file should contain:
+The output file contain:
 - `c1_call_sr_snv/merged_vcf/{config['prefix']}.gatk.variant_recalibrated.filter.vcf.gz`: Short-read SNV callset
 
 - `c2_call_lr_snv/merged_vcf/{config['prefix']}.deepvariant.whatshap.beagle.vcf.gz`: Long-read SNV callset
