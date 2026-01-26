@@ -113,14 +113,17 @@ rule personal_ref_dv:
         mkdir -p {params.DV_INTERMEDIATE_DIR}
         mkdir -p {params.TMP_DIR}
         
+        export TMPDIR={params.TMP_DIR}
         /opt/deepvariant/bin/run_deepvariant \
             --num_shards {threads} \
             --model_type=PACBIO \
             --ref={input.consensus_fasta} \
             --reads={input.ngs_dedup_bam} \
+            --intermediate_results_dir={params.DV_INTERMEDIATE_DIR} \
             --output_vcf={output.personal_dv_vcf} \
             --sample_name {wildcards.sample}
         
+        rm -rf {params.DV_INTERMEDIATE_DIR}/*
         bcftools view --threads {threads} -f PASS -i "GQ>20" -r chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX {output.personal_dv_vcf} | \
             bcftools norm -m -any -f {input.consensus_fasta} -Oz -o {output.personal_dv_filter_vcf}
         tabix -f {output.personal_dv_filter_vcf}
@@ -340,9 +343,9 @@ rule phase_assembly:
         sex = get_sex,
         tmp_dir = "c6_draft_assembly/sample_assembly/{sample}/{sample}_tmp",
         assembly_dir = "c6_draft_assembly/sample_assembly/{sample}/assembly"
-    threads: 8
+    threads: 16
     resources:
-        mem_mb = 120*1024
+        mem_mb = 150*1024
     shell:
         """
         python3 scripts/draft_assembly/phase_assembly.version2.py \

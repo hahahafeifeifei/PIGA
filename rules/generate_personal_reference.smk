@@ -42,7 +42,7 @@ rule personal_pangenome:
         prefix = "c5_personal_ref/sample_reference/{sample}/{sample}"
     threads: 8
     resources:
-        mem_mb = 100*1024
+        mem_mb = 200*1024
     shell:
         """
         ls {input.sr_fq1} {input.sr_fq2} {input.lr_hifi_fastqs} > {output.kmer_fq_list}

@@ -46,6 +46,7 @@ dependencies:
   - shapeit4
   - merfin
   - graphaligner
+  - wtdbg
   - racon
   - pbgcpp
   - cutadapt

@@ -119,13 +119,13 @@ rule ref_fasta_vcf_merge:
         sex = get_sex
     shell:
         """
-        if [ {params.sex} -eq "female" ];
+        if [ {params.sex} == "female" ];
         then
                 cat c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,M}}.ref.fasta > {output.merge_ref_fasta}
         else
                 cat c8_diploid_path_infer/sample_assembly/{wildcards.sample}/{wildcards.sample}.chr{{{{1..22}},X,Y,M}}.ref.fasta > {output.merge_ref_fasta}
         fi
-        samtools faidx {sample}.ref.fasta
+        samtools faidx {output.merge_ref_fasta}
         bcftools concat --threads {threads} {input.norm_chr_vcfs} -o {output.merge_vcf}
         tabix -f {output.merge_vcf}
         vcfbub --input {output.merge_vcf} -l 0 -a 50000 | bcftools view -a - | bcftools view -e "ALT=='.'" -o {output.vcfbub_vcf}
