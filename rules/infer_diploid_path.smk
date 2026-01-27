@@ -391,9 +391,9 @@ rule secphase_correct_bam:
         phase_assembly_correct_hap2_fa = temp("c8_diploid_path_infer/sample_assembly/{sample}/{sample}.hap2.phase_assembly.fasta")
     params:
         secphase_dir = "c8_diploid_path_infer/sample_assembly/{sample}/secphase_out_dir"
-    threads: 4
+    threads: 8
     resources:
-        mem_mb= 30*1024
+        mem_mb= 60*1024
     shell:
         """
         > {output.merge_complete_assembly_fa}
